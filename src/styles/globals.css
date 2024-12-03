@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --background-secondary: #f2f4f5;
+  /* Primary color define */
+  --primary: #1435C3;;
+  --secondary: #59d2ff;
+  
+  /* Text bold color */
+  --text-bold: #171717;
+  --text-normal: #171717;
+  --text-light: #171717;
+
+  /* Success color*/
+  --success: #2DB224;
+  --warning: #FFC107;
+  --danger: #EE5858;
+  --info: #17A2B8;
+
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  @apply font-roboto;
+}
