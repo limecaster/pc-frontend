@@ -8,7 +8,7 @@ import doubleCheck from "@/assets/icon/others/Checks.svg";
 const Footer: React.FC = () => {
   return (
     <footer className="flex flex-col w-full max-md:max-w-full">
-      <div className="flex flex-wrap gap-6 items-start py-20 pr-28 pl-20 w-full bg-blue-800 min-h-[400px] max-md:px-5 max-md:max-w-full">
+      <div className="flex flex-wrap gap-6 items-start py-20 pr-28 pl-20 w-full bg-primary min-h-[400px] max-md:px-5 max-md:max-w-full">
       <div className="flex flex-col grow shrink self-stretch my-auto font-medium min-w-[240px] w-[250px]">
         <Image
         src={logoBlue}

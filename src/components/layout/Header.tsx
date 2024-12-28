@@ -12,22 +12,22 @@ const Header: React.FC = () => {
   return (
     <header className="flex flex-col w-full max-md:max-w-full">
       <div className="flex flex-wrap gap-10 justify-between items-center px-2 py-5 w-full bg-primary max-md:px-5 max-md:max-w-full">
-        <Image src={logo} width={61} height={48} alt="Company logo" />
-        <form className="flex flex-wrap gap-2 items-start self-stretch px-5 py-3.5 my-auto text-sm leading-none bg-white rounded-sm shadow-lg min-w-[240px] text-slate-500 max-md:max-w-full">
+        <Image src={logo} width={80} height={60} alt="Company logo" className="mx-2" />
+        <form className="flex flex-wrap gap-2 items-start self-stretch px-5 py-1 my-auto text-sm leading-none bg-white rounded-sm shadow-lg min-w-[240px] text-slate-500 max-md:max-w-full">
           <label htmlFor="search" className="sr-only">
-            Search products
+            Tìm kiếm sản phẩm...
           </label>
           <input
             type="text"
             id="search"
             placeholder="Tìm kiếm sản phẩm..."
-            className="w-[578px] max-md:w-full focus:outline-none"
+            className="w-[578px] max-md:w-full text-slate-500 border-none focus:ring-0 focus:outline-none"
           />
           <button type="submit" aria-label="Search">
             <Image
               src={searchIcon}
               alt=""
-              className="object-contain shrink-0 w-5 aspect-square"
+              className="object-contain shrink-0 w-5 aspect-square my-2.5"
             />
           </button>
         </form>
