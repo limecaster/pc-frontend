@@ -1,3 +1,5 @@
+"use client";
+import React from "react";
 import { ManualBuildPCItemCard } from "@/components/productCard/ManualBuildPCItemCard";
 import { ProductCard } from "@/components/productCard/ProductCard";
 import { ProductCardProps } from "@/components/productCard/types";
@@ -42,18 +44,28 @@ const itemData = [
     { label: "Phụ kiện khác", imageSrc: accessoriesIcon },
 ];
 
-export default function ManualBuildPC() {
+const ManualBuildPC = () => {
     return (
-        <div className="grid grid-col-1 gap-4 justify-center py-4 w-full bg-bgSecondary">
-            <ProductCard {...productCardProps} />
-            {itemData.map(({ label, imageSrc }) => (
-                <ManualBuildPCItemCard
-                    key={label}
-                    label={label}
-                    imageSrc={imageSrc}
-                    description="Vui lòng chọn linh kiện"
-                />
-            ))}
+        <div className="p-4 bg-bgSecondary shadow-md border-t-2 border-slate-200 dark:bg-white dark:border-zinc-100">
+            <h1 className="text-4xl text-zinc-900 font-bold mb-4 text-center dark:text-zinc-100">
+                XÂY DỰNG CẤU HÌNH PC THỦ CÔNG
+            </h1>
+            <p className="text-lg text-zinc-500 font-medium mb-4 text-center dark:text-zinc-100">
+                Hãy chọn các linh kiện để xây dựng cấu hình PC của bạn
+            </p>
+            <div className="grid grid-col-1 gap-4 justify-center py-4 w-full bg-bgSecondary">
+                <ProductCard {...productCardProps} />
+                {itemData.map(({ label, imageSrc }) => (
+                    <ManualBuildPCItemCard
+                        key={label}
+                        label={label}
+                        imageSrc={imageSrc}
+                        description="Vui lòng chọn linh kiện"
+                    />
+                ))}
+            </div>
         </div>
     );
-}
+};
+
+export default ManualBuildPC;

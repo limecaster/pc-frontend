@@ -1,18 +1,10 @@
 import type { Metadata } from "next";
-// import localFont from "next/font/local";
 import "../styles/globals.css";
-import { roboto } from "@/app/fonts/fonts"
-
-// const geistSans = localFont({
-//   src: "./fonts/GeistVF.woff",
-//   variable: "--font-geist-sans",
-//   weight: "100 900",
-// });
-// const geistMono = localFont({
-//   src: "./fonts/GeistMonoVF.woff",
-//   variable: "--font-geist-mono",
-//   weight: "100 900",
-// });
+import { roboto } from "@/app/fonts/fonts";
+import Navigation from "@/components/layout/Navigation";
+import Breadcrumb from "@/components/layout/Breadcrumb";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "B Store",
@@ -26,11 +18,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        // className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        className={`${roboto.className} antialiased`}
-      >
+      <body className={`${roboto.className} antialiased`}>
+        <Header />
+        <Navigation />
+        <Breadcrumb />
         {children}
+        <Footer />
       </body>
     </html>
   );

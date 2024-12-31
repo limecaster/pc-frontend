@@ -6,7 +6,7 @@ import { faRotate } from "@fortawesome/free-solid-svg-icons";
 import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 
 const AutoBuildPC = () => {
-  const [input, setInput] = useState("");
+  let [input, setInput] = useState("");
   interface Suggestion {
     category: string;
     items: {
@@ -19,15 +19,19 @@ const AutoBuildPC = () => {
     promo: number;
   }
 
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [loading, setLoading] = useState(false);
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
   };
 
   const handleBuildClick = async () => {
+    setLoading(true);
     try {
-      console.log(JSON.stringify({ userInput: input }));
+      if (!input) {
+        input = "PC để chơi game R7 7800X3D, khoảng 25 triệu";
+      }
       const response = await fetch("http://localhost:3001/build/auto-build", {
         method: "POST",
         mode: "cors",
@@ -35,11 +39,10 @@ const AutoBuildPC = () => {
         body: JSON.stringify({ userInput: input }),
       });
       const data = await response.json();
-      console.log(data);
       const formattedSuggestions: Suggestion[] = [
         {
           category: "Saving",
-          items: Object.values(data) as {
+          items: Object.values(data?.saving) as {
             name?: string;
             type?: string;
             price?: number;
@@ -50,7 +53,7 @@ const AutoBuildPC = () => {
         },
         {
           category: "Performance",
-          items: Object.values(data) as {
+          items: Object.values(data?.performance) as {
             name?: string;
             type?: string;
             price?: number;
@@ -61,7 +64,7 @@ const AutoBuildPC = () => {
         },
         {
           category: "Popular",
-          items: Object.values(data) as {
+          items: Object.values(data?.popular) as {
             name?: string;
             type?: string;
             price?: number;
@@ -71,9 +74,12 @@ const AutoBuildPC = () => {
           promo: 25.0,
         },
       ];
+
       setSuggestions(formattedSuggestions);
     } catch (error) {
       console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -106,52 +112,64 @@ const AutoBuildPC = () => {
           </span>
         </div>
       )}
-      {items.map(
-        (
-          item: {
-            name?: string;
-            type?: string;
-            price?: number;
-            imageUrl?: string;
-          },
-          index: number
-        ) => (
-          <div key={index} className="grid grid-cols-7 gap-2 mb-2 px-4">
-            <Image
-              src={`https://via.placeholder.com/150`} // item.imageUrl
-              width={150}
-              height={150}
-              alt={"Ảnh sản phẩm"}
-              className="rounded "
-            />
-            <p className="col-span-3 text-zinc-900 leading-none font-medium">
-              {item.name || item.type}
-            </p>
-            <p className="col-span-2 text-base font-semibold leading-none text-primary">
-              {item.price?.toLocaleString("vi-VN")}đ
-            </p>
-            <div className="auto-build-actions">
-              <FontAwesomeIcon icon={faRotate} className="text-zinc-900" />
+      {loading ? (
+        <div className="flex justify-center items-center p-4">
+          <div className="loader"></div>
+        </div>
+      ) : items.length !== 8 ? (
+        <div className="text-center text-red-500 font-medium p-4">
+          Không thể tạo cấu hình PC dựa trên yêu cầu của bạn.
+        </div>
+      ) : (
+        items.map(
+          (
+            item: {
+              name?: string;
+              type?: string;
+              price?: number;
+              imageUrl?: string;
+            },
+            index: number
+          ) => (
+            <div key={index} className="grid grid-cols-7 gap-2 mb-2 px-4">
+              <Image
+                src={`https://via.placeholder.com/150`} // item.imageUrl
+                width={150}
+                height={150}
+                alt={"Ảnh sản phẩm"}
+                className="rounded "
+              />
+              <p className="col-span-3 text-zinc-900 leading-none font-medium">
+                {item.name || item.type}
+              </p>
+              <p className="col-span-2 text-base font-semibold leading-none text-primary">
+                {item.price?.toLocaleString("vi-VN")}đ
+              </p>
+              <div className="auto-build-actions">
+                <FontAwesomeIcon icon={faRotate} className="text-zinc-900" />
+              </div>
             </div>
-          </div>
+          )
         )
       )}
-      <div className="item-cell-action mt-4 p-4 text-right">
-        <div className="item-combo-price">
-          <p className="text-base font-semibold leading-none text-primary">
-            Tổng tiền:{" "}
-            {items
-              .reduce((acc, item) => acc + (item.price || 0), 0)
-              .toLocaleString("vi-VN")}{" "}
-            VND
-          </p>
+      {items.length === 8 && (
+        <div className="item-cell-action mt-4 p-4 text-right">
+          <div className="item-combo-price">
+            <p className="text-base font-semibold leading-none text-primary">
+              Tổng tiền:{" "}
+              {items
+                .reduce((acc, item) => acc + (item.price || 0), 0)
+                .toLocaleString("vi-VN")}{" "}
+              VND
+            </p>
+          </div>
+          <div className="item-action">
+            <button className="mt-2 bg-primary text-white font-medium py-1 px-4 rounded">
+              Thêm vào giỏ hàng
+            </button>
+          </div>
         </div>
-        <div className="item-action">
-          <button className="mt-2 bg-primary text-white font-medium py-1 px-4 rounded">
-            Thêm vào giỏ hàng
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 

@@ -32,7 +32,7 @@ const Navigation: React.FC = () => {
           <span className="self-stretch my-auto">Trạng thái đơn hàng</span>
         </a>
         <a
-          href="#"
+          href="/manual-build-pc"
           className="flex gap-1 justify-between items-center self-stretch my-auto w-[143px]"
         >
           <Image
