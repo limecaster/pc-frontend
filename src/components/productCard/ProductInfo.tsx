@@ -6,10 +6,9 @@ interface ProductInfoProps {
   category: string;
   imageUrl: string;
   productName: string;
-  logoUrl: string;
 }
 
-export function ProductInfo({ category, imageUrl, productName, logoUrl }: ProductInfoProps) {
+export function ProductInfo({ category, imageUrl, productName }: ProductInfoProps) {
   return (
     <div className="flex flex-wrap gap-px self-stretch text-sm leading-5 text-black max-md:max-w-full">
       <div className="flex overflow-hidden flex-auto gap-2.5 justify-center items-center px-1">
@@ -18,22 +17,19 @@ export function ProductInfo({ category, imageUrl, productName, logoUrl }: Produc
         </div>
         <Image
           src={imageUrl}
-          alt={`${productName} product image`}
+          alt={`${productName}`}
           width={85}
           height={85}
           className="object-contain shrink-0 self-stretch my-auto aspect-square w-[85px]"
+          loading='lazy'
         />
-        <div className="self-stretch my-auto w-[250px]">
+        <div
+          className="self-stretch my-auto w-full line-clamp-2 overflow-hidden text-ellipsis break-words"
+          style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
+        >
           {productName}
         </div>
       </div>
-      <Image
-        src={logoUrl}
-        alt=""
-        width={97}
-        height={33}
-        className="object-contain shrink-0 my-auto aspect-[2.94] w-[97px]"
-      />
     </div>
   );
 }

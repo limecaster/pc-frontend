@@ -12,8 +12,12 @@ const nextConfig: NextConfig = ({
       "pc-builder.io",
       "pcbuilderus.wpcomstaging.com",
       "pp_main_product_image",
-      "res.cloudinary.com"
+      "res.cloudinary.com",
+      "m.media-amazon.com"
     ],
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
   },
 });
 

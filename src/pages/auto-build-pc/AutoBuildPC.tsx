@@ -1,28 +1,22 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/compat/router";
 import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faRotate } from "@fortawesome/free-solid-svg-icons";
 import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 
-const AutoBuildPC = () => {
+const AutoBuildPC: React.FC = () => {
+  const router = useRouter();
   let [input, setInput] = useState("");
-  interface Suggestion {
-    category: string;
-    items: {
-      name?: string;
-      type?: string;
-      price?: number;
-      imageUrl?: string;
-    }[];
-    savings: number;
-    promo: number;
-  }
-
-
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<{ category: string; items: any[]; savings: number; promo: number; }[]>([]);
   const [loading, setLoading] = useState(false);
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  useEffect(() => {
+    if (!router?.isReady) return;
+  }, [router?.isReady]);
+
+  const handleInputChange = (e: { target: { value: React.SetStateAction<string>; }; }) => {
     setInput(e.target.value);
   };
 
@@ -31,6 +25,7 @@ const AutoBuildPC = () => {
     try {
       if (!input) {
         input = "PC để chơi game R7 7800X3D, khoảng 25 triệu";
+        setInput(input);
       }
       const response = await fetch("http://localhost:3001/build/auto-build", {
         method: "POST",
@@ -39,37 +34,22 @@ const AutoBuildPC = () => {
         body: JSON.stringify({ userInput: input }),
       });
       const data = await response.json();
-      const formattedSuggestions: Suggestion[] = [
+      const formattedSuggestions = [
         {
           category: "Saving",
-          items: Object.values(data?.saving) as {
-            name?: string;
-            type?: string;
-            price?: number;
-            imageUrl?: string;
-          }[],
+          items: Object.values(data?.saving) || [],
           savings: 20.0,
           promo: 30.0,
         },
         {
           category: "Performance",
-          items: Object.values(data?.performance) as {
-            name?: string;
-            type?: string;
-            price?: number;
-            imageUrl?: string;
-          }[],
+          items: Object.values(data?.performance) || [],
           savings: 25.0,
           promo: 40.0,
         },
         {
           category: "Popular",
-          items: Object.values(data?.popular) as {
-            name?: string;
-            type?: string;
-            price?: number;
-            imageUrl?: string;
-          }[],
+          items: Object.values(data?.popular) || [],
           savings: 15.0,
           promo: 25.0,
         },
@@ -83,15 +63,25 @@ const AutoBuildPC = () => {
     }
   };
 
-  const renderSuggestion = (
-    category: string,
-    items: {
-      name?: string;
-      type?: string;
-      price?: number;
-      imageUrl?: string;
-    }[],
-  ) => (
+  const handleCustomizeClick = (items: any[]) => {
+    const selectedProducts = 
+      {
+        "CPU": items[0],
+        "Quạt tản nhiệt": items[1],
+        "Bo mạch chủ": items[2],
+        "Card đồ họa": items[3],
+        "RAM": items[4],
+        "SSD": items[5],
+        "Vỏ case": items[6],
+        "Nguồn": items[7],
+      }
+    router?.push({
+      pathname: '/manual-build-pc',
+      query: { selectedProducts: JSON.stringify(selectedProducts) },
+    });
+  };
+
+  const renderSuggestion = (category: string, items: any[]) => (
     <div className="item-cells-group border rounded shadow-md bg-neural-50">
       {category === "Saving" ? (
         <div className="grid grid-cols-1 place-items-center h-10 item-cells-top is-saving bg-gradient-to-b from-lime-100 to-bg-neural-50">
@@ -121,36 +111,26 @@ const AutoBuildPC = () => {
           Không thể tạo cấu hình PC dựa trên yêu cầu của bạn.
         </div>
       ) : (
-        items.map(
-          (
-            item: {
-              name?: string;
-              type?: string;
-              price?: number;
-              imageUrl?: string;
-            },
-            index: number
-          ) => (
-            <div key={index} className="grid grid-cols-7 gap-2 mb-2 px-4">
-              <Image
-                src={`https://via.placeholder.com/150`} // item.imageUrl
-                width={150}
-                height={150}
-                alt={"Ảnh sản phẩm"}
-                className="rounded "
-              />
-              <p className="col-span-3 text-zinc-900 leading-none font-medium">
-                {item.name || item.type}
-              </p>
-              <p className="col-span-2 text-base font-semibold leading-none text-primary">
-                {item.price?.toLocaleString("vi-VN")}đ
-              </p>
-              <div className="auto-build-actions">
-                <FontAwesomeIcon icon={faRotate} className="text-zinc-900" />
-              </div>
+        items.map((item: { name: any; type: any; price: { toLocaleString: (arg0: string) => string | number | bigint | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<React.AwaitedReactNode> | null | undefined; }; }, index: React.Key | null | undefined) => (
+          <div key={index} className="grid grid-cols-7 gap-2 mb-2 px-4">
+            <Image
+              src={`https://via.placeholder.com/150`} // item.imageUrl
+              width={150}
+              height={150}
+              alt={"Ảnh sản phẩm"}
+              className="rounded "
+            />
+            <p className="col-span-3 text-zinc-900 leading-none font-medium">
+              {item.name || item.type}
+            </p>
+            <p className="col-span-2 text-base font-semibold leading-none text-primary">
+              {item.price?.toLocaleString("vi-VN")}đ
+            </p>
+            <div className="auto-build-actions">
+              <FontAwesomeIcon icon={faRotate} className="text-zinc-900" />
             </div>
-          )
-        )
+          </div>
+        ))
       )}
       {items.length === 8 && (
         <div className="item-cell-action mt-4 p-4 text-right">
@@ -158,14 +138,18 @@ const AutoBuildPC = () => {
             <p className="text-base font-semibold leading-none text-primary">
               Tổng tiền:{" "}
               {items
-                .reduce((acc, item) => acc + (item.price || 0), 0)
+                .reduce((acc: any, item: { price: any; }) => acc + (item.price || 0), 0)
                 .toLocaleString("vi-VN")}{" "}
               VND
             </p>
           </div>
           <div className="item-action">
-            <button className="mt-2 bg-primary text-white font-medium py-1 px-4 rounded">
-              Thêm vào giỏ hàng
+            <button
+              className="mt-2 bg-primary text-white font-medium py-1 px-4 rounded"
+              onClick={() => handleCustomizeClick(items)}
+              type="button"
+            >
+              Cá nhân hóa
             </button>
           </div>
         </div>
@@ -216,10 +200,7 @@ const AutoBuildPC = () => {
       <div className="grid grid-cols-3 gap-4 mt-6">
         {suggestions.map((suggestion, index) => (
           <React.Fragment key={index}>
-            {renderSuggestion(
-              suggestion.category,
-              suggestion.items,
-            )}
+            {renderSuggestion(suggestion.category, suggestion.items)}
           </React.Fragment>
         ))}
       </div>

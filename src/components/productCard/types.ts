@@ -12,4 +12,6 @@ export interface ManualBuildPCItemCardProps {
   label: string;
   imageSrc: string;
   description: string;
+  buttonLabel: string;
+  onButtonClick: () => void;
 }
