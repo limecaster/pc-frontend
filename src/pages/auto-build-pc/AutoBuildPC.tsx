@@ -22,6 +22,7 @@ const AutoBuildPC: React.FC = () => {
 
   const handleBuildClick = async () => {
     setLoading(true);
+    
     try {
       if (!input) {
         input = "PC để chơi game R7 7800X3D, khoảng 25 triệu";
@@ -34,6 +35,7 @@ const AutoBuildPC: React.FC = () => {
         body: JSON.stringify({ userInput: input }),
       });
       const data = await response.json();
+      console.log(data);
       const formattedSuggestions = [
         {
           category: "Saving",
@@ -132,7 +134,7 @@ const AutoBuildPC: React.FC = () => {
           </div>
         ))
       )}
-      {items.length === 8 && (
+      {!loading && items.length === 8 && (
         <div className="item-cell-action mt-4 p-4 text-right">
           <div className="item-combo-price">
             <p className="text-base font-semibold leading-none text-primary">
