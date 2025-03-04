@@ -33,7 +33,7 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  @apply font-roboto;
+  font-family: 'Roboto', sans-serif;
 }
 
 .loader {

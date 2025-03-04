@@ -11,7 +11,7 @@ import phoneCall from "@/assets/icon/others/PhoneCall.svg";
 
 const Navigation: React.FC = () => {
   return (
-    <nav className="flex flex-wrap gap-10 justify-between items-center px-20 py-4 w-full bg-white shadow-sm max-md:px-5 max-md:max-w-full">
+    <nav className="flex flex-wrap gap-10 justify-between items-center px-20 py-4 w-full bg-white shadow-sm max-md:px-5 max-md:max-w-full max-md:flex-col">
       <div className="flex flex-wrap gap-6 justify-center items-center self-stretch my-auto text-sm leading-none text-gray-500 min-w-[240px] max-md:max-w-full">
         <div className="flex flex-col self-stretch px-0.5 my-auto font-medium text-zinc-900 w-[203px]">
           <button className="flex gap-2 justify-center items-center px-6 py-3.5 bg-gray-100 rounded-sm max-md:px-5">

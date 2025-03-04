@@ -1,5 +1,13 @@
-import ManualBuildPC from "@/pages/manual-build-pc/ManualBuildPC";
+"use client";
+import { Suspense } from "react";
+import ManualBuildPCContent from "./ManualBuildPCComponent";
 
-export default function ManualBuildPCPage() {
-  return <ManualBuildPC />;
+const ManualBuildPC = () => {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <ManualBuildPCContent />
+        </Suspense>
+    );
 }
+
+export default ManualBuildPC;

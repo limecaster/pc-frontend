@@ -1,4 +1,4 @@
-import AutoBuildPC from "@/pages/auto-build-pc/AutoBuildPC";
+import AutoBuildPC from "@/app/auto-build-pc/page";
 
 export default function Home() {
   return <AutoBuildPC />;

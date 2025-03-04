@@ -8,7 +8,7 @@ import caretRight from "@/assets/icon/others/CaretRight.svg";
 const Breadcrumb: React.FC = () => {
   return (
     <nav
-      className="flex flex-col justify-center items-start px-16 py-4 w-full text-sm leading-none bg-bgSecondary max-md:px-5 max-md:max-w-full"
+      className="flex flex-col justify-center items-start px-16 py-4 w-full text-sm leading-none bg-bgSecondary max-md:px-5 max-md:max-w-full max-md:py-2"
       aria-label="Breadcrumb"
     >
       <div className="flex gap-2 justify-center items-center">

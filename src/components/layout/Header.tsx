@@ -13,7 +13,7 @@ const Header: React.FC = () => {
     <header className="flex flex-col w-full max-md:max-w-full">
       <div className="flex flex-wrap gap-10 justify-between items-center px-2 py-5 w-full bg-primary max-md:px-5 max-md:max-w-full">
       <Image src={logo} width={80} height={60} alt="Company logo" className="mx-2" />
-      <form className="flex flex-wrap gap-2 items-start self-stretch px-5 py-1 my-auto text-sm leading-none bg-white rounded-sm shadow-lg min-w-[240px] text-slate-500 max-md:max-w-full max-md:flex-1">
+      <form className="flex flex-wrap gap-2 items-center self-stretch px-5 py-1 my-auto text-sm leading-none bg-white rounded-sm shadow-lg min-w-[240px] text-slate-500 max-md:max-w-full max-md:flex-1 max-md:gap-1">
         <label htmlFor="search" className="sr-only">
         Tìm kiếm sản phẩm...
         </label>

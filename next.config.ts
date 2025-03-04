@@ -1,24 +1,54 @@
-import type { NextConfig } from "next";
+import { NextConfig } from "next";
 
-const nextConfig: NextConfig = ({
-  /* config options here */
+const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: {
-    domains: [
-      "via.placeholder.com",
-      "localhost",
-      "cdna.pcpartpicker.com",
-      "pc-builder.net",
-      "pc-builder.io",
-      "pcbuilderus.wpcomstaging.com",
-      "pp_main_product_image",
-      "res.cloudinary.com",
-      "m.media-amazon.com"
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "via.placeholder.com",
+      },
+      {
+        protocol: "http",
+        hostname: "localhost",
+      },
+      {
+        protocol: "https",
+        hostname: "cdna.pcpartpicker.com",
+      },
+      {
+        protocol: "https",
+        hostname: "pc-builder.net",
+      },
+      {
+        protocol: "https",
+        hostname: "pc-builder.io",
+      },
+      {
+        protocol: "https",
+        hostname: "pcbuilderus.wpcomstaging.com",
+      },
+      {
+        protocol: "https",
+        hostname: "pp_main_product_image",
+      },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+      },
+      {
+        protocol: "https",
+        hostname: "m.media-amazon.com",
+      },
+      {
+        protocol: "https",
+        hostname: "c.animaapp.com",
+      }
     ],
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
-});
+};
 
 export default nextConfig;

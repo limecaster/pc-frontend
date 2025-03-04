@@ -8,7 +8,7 @@ import doubleCheck from "@/assets/icon/others/Checks.svg";
 const Footer: React.FC = () => {
   return (
     <footer className="flex flex-col w-full max-md:max-w-full">
-      <div className="flex flex-wrap gap-6 items-start py-20 pr-28 pl-20 w-full bg-primary min-h-[400px] max-md:px-5 max-md:max-w-full">
+      <div className="flex flex-wrap gap-6 items-start py-20 pr-28 pl-20 w-full bg-primary min-h-[400px] max-md:px-5 max-md:max-w-full max-md:flex-col">
       <div className="flex flex-col grow shrink self-stretch my-auto font-medium min-w-[240px] w-[250px]">
         <Image
         src={logoBlue}
@@ -34,10 +34,10 @@ const Footer: React.FC = () => {
       </div>
       <div className="flex flex-col min-w-[240px] w-[608px] max-md:max-w-full">
         <h1 className="max-w-full text-4xl font-semibold leading-10 w-[608px] max-md:max-w-full">
-        ĐỒ ÁN CHUYÊN NGÀNH <br /> HƯỚNG HỆ THỐNG THÔNG TIN
+        ĐỒ ÁN TỐT NGHIỆP <br /> HƯỚNG HỆ THỐNG THÔNG TIN
         </h1>
         <p className="mt-6 text-base leading-6 max-md:max-w-full">
-        Đây là ĐACN của Đỗ Văn Bâng. <br /> Đây là một trang web thương
+        Đây là ĐATN của Đỗ Văn Bâng. <br /> Đây là một trang web thương
         mại điện tử, chuyên bán linh kiện máy tính và PC, có hỗ trợ tính
         năng build-PC.
         </p>
