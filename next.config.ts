@@ -43,6 +43,18 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "c.animaapp.com",
+      },
+      {
+        protocol: "https",
+        hostname: "i.pravatar.cc",
+      },
+      {
+        protocol: "https",
+        hostname: "placekitten.com",
+      },
+      {
+        protocol: "https",
+        hostname: "via.placeholder.com",
       }
     ],
   },

@@ -23,7 +23,7 @@ const SearchSort: React.FC = () => {
   return (
     <div className="inline-flex items-start gap-[307px] w-full">
       <form onSubmit={handleSearch} className="flex-grow">
-        <div className="inline-flex items-center justify-between gap-2 px-4 py-3 relative w-[364px] bg-gray-00 rounded-sm border border-solid border-gray-100">
+        <div className="inline-flex items-center justify-between gap-2 px-4 py-3 relative w-[364px] bg-gray-00 rounded-sm border border-solid border-gray-200">
           <input
             type="text"
             value={searchTerm}
@@ -32,33 +32,33 @@ const SearchSort: React.FC = () => {
             className="relative w-full outline-none font-normal text-gray-500 text-sm tracking-[0] leading-5 bg-transparent"
           />
           <button type="submit">
-            <MagnifyingGlassIcon className="w-5 h-5" />
+            <MagnifyingGlassIcon className="w-5 h-5 text-gray-800" />
           </button>
         </div>
       </form>
 
       <div className="inline-flex items-center gap-[22px] relative">
-        <div className="relative w-fit font-normal text-gray-900 text-sm tracking-[0] leading-5 whitespace-nowrap">
+        <div className="relative w-fit font-medium text-gray-900 text-sm tracking-[0] leading-5 whitespace-nowrap">
           Sắp xếp:
         </div>
 
         <div className="relative">
           <button 
-            className="inline-flex items-center justify-between w-[180px] px-4 py-3 bg-gray-00 border border-solid border-gray-100 rounded-sm"
+            className="inline-flex items-center justify-between w-[180px] px-4 py-3 bg-white border border-solid border-gray-200 rounded-sm"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
-            <span className="font-normal text-sm leading-5">
+            <span className="font-normal text-sm text-gray-800 leading-5">
               {sortOptions.find(opt => opt.id === sortOption)?.name || "Phổ biến"}
             </span>
-            <ChevronDownIcon className="w-4 h-4" />
+            <ChevronDownIcon className="w-4 h-4 text-gray-800" />
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute top-full left-0 w-[180px] bg-gray-00 border border-solid border-gray-100 rounded-sm mt-1 z-10">
+            <div className="absolute top-full left-0 w-[180px] bg-white border border-solid border-gray-200 rounded-sm mt-1 z-10">
               {sortOptions.map(option => (
                 <div 
                   key={option.id}
-                  className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm"
+                  className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-800"
                   onClick={() => {
                     setSortOption(option.id);
                     setIsDropdownOpen(false);

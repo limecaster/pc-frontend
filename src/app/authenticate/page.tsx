@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { LoginTabs } from "@/components/authenticate/LoginTabs";
 import { LoginForm } from "@/components/authenticate/LoginForm";
 import { RegisterForm } from "@/components/authenticate/RegisterForm";
@@ -10,6 +10,9 @@ import { LoginButton } from "@/components/authenticate/LoginButton";
 type AuthMode = "login" | "register" | "forgot-password";
 
 const Authenticate: React.FC = () => {
+    useEffect(() => {
+        document.title = "B Store - Xác thực tài khoản";
+    }, []);
     const [activeTab, setActiveTab] = useState<"login" | "register">("login");
     const [authMode, setAuthMode] = useState<AuthMode>("login");
 

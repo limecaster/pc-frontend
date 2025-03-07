@@ -2,7 +2,7 @@
 
 import type { Metadata } from "next";
 import "../styles/globals.css";
-import { roboto } from "@/app/fonts/fonts";
+import { roboto } from "@/components/fonts/fonts";
 import Navigation from "@/components/layout/Navigation";
 import Breadcrumb from "@/components/layout/Breadcrumb";
 import Header from "@/components/layout/Header";

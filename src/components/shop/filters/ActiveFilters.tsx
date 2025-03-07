@@ -8,8 +8,8 @@ interface ActiveFilterProps {
 
 const ActiveFilter: React.FC<ActiveFilterProps> = ({ text, onRemove }) => {
     return (
-        <div className="inline-flex items-center gap-2 py-1 px-2 bg-gray-100 rounded">
-            <div className="grid grid-cols-1 text-sm font-normal leading-5">
+        <div className="inline-flex items-center gap-2 py-1 px-2 bg-gray-600 rounded">
+            <div className="grid grid-cols-1 text-sm text-gray-100 font-normal leading-5">
                 {text}
             </div>
             <button onClick={onRemove} type="button">

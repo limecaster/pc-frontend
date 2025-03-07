@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faRotate } from "@fortawesome/free-solid-svg-icons";
@@ -22,13 +22,16 @@ export interface PCConfiguration {
 }
 
 const AutoBuildPC: React.FC = () => {
+    useEffect(() => {
+        document.title = "B Store - Xây dựng PC tự động";
+    }, []);
+
     const router = useRouter();
     let [input, setInput] = useState("");
     const [suggestions, setSuggestions] = useState<
         { category: string; items: any[] }[]
     >([]);
     const [loading, setLoading] = useState(false);
-    // New state for PC configurations and config modal
     const [pcConfigs, setPcConfigs] = useState<PCConfiguration[]>([]);
     const [showConfigModal, setShowConfigModal] = useState(false);
     const [selectedConfig, setSelectedConfig] = useState<any>(null);
