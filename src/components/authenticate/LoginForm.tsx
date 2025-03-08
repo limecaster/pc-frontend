@@ -1,63 +1,116 @@
+"use client";
+
 import React, { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface LoginFormProps {
-    onSubmit: (email: string, password: string) => void;
+    onSubmit: (loginId: string, password: string) => void;
     onForgotPassword: () => void;
 }
 
 export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, onForgotPassword }) => {
-    const [email, setEmail] = useState("");
+    const [loginId, setLoginId] = useState("");
     const [password, setPassword] = useState("");
+    const [errors, setErrors] = useState<{ loginId?: string; password?: string }>({});
+    const { isLoading } = useAuth();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit(email, password);
+        
+        // Basic validation
+        const newErrors: { loginId?: string; password?: string } = {};
+        if (!loginId) newErrors.loginId = "Username hoặc email là bắt buộc";
+        if (!password) newErrors.password = "Mật khẩu là bắt buộc";
+        
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+        
+        // Call the onSubmit function from props
+        onSubmit(loginId, password);
+    };
+    
+    const handleInputChange = (field: 'loginId' | 'password', value: string) => {
+        // Clear the specific error when the user types
+        setErrors(prev => {
+            const updated = {...prev};
+            delete updated[field];
+            return updated;
+        });
+
+        // Update the appropriate state based on field
+        if (field === 'loginId') {
+            setLoginId(value);
+        } else {
+            setPassword(value);
+        }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="mt-3 w-full max-w-[360px]">
-            <div className="w-full text-sm leading-none whitespace-nowrap text-zinc-900">
-                <label htmlFor="email">Email</label>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-8 py-6 self-stretch w-full text-gray-800">
+            <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-neutral-600">
+                    Username/Email
+                </label>
                 <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="flex mt-2 w-full bg-white rounded-sm border border-solid border-[#E4E7E9] min-h-11 px-3"
+                    type="text"
+                    value={loginId}
+                    onChange={(e) => handleInputChange('loginId', e.target.value)}
+                    className={`px-2.5 py-3 text-sm bg-white border border-solid rounded-sm focus:outline-none focus:border-primary ${
+                        errors.loginId ? "border-red-500" : "border-[#E4E7E9]"
+                    }`}
+                    placeholder="Nhập username hoặc email"
+                    disabled={isLoading}
                 />
+                {errors.loginId && (
+                    <span className="text-xs text-red-500 mt-1">{errors.loginId}</span>
+                )}
             </div>
-
-            <div className="mt-4 w-full">
-                <div className="flex gap-10 justify-between items-center w-full text-sm leading-none">
-                    <label
-                        htmlFor="password"
-                        className="self-stretch my-auto text-zinc-900"
-                    >
+            <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between">
+                    <label className="text-xs font-medium text-neutral-600">
                         Mật khẩu
                     </label>
                     <button
                         type="button"
                         onClick={onForgotPassword}
-                        className="self-stretch my-auto font-medium text-cyan-300"
+                        className="text-xs font-medium text-primary cursor-pointer hover:text-primary-dark focus:outline-none"
+                        disabled={isLoading}
                     >
                         Quên mật khẩu?
                     </button>
                 </div>
-                <div className="relative">
-                    <input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="flex w-full bg-white rounded-sm border border-solid border-[#E4E7E9] min-h-11 px-3 mt-2 text-zinc-900"
-                    />
-                    <img
-                        src="https://cdn.builder.io/api/v1/image/assets/6f33a6c0fcd7400b8e8582051039e87b/1e266fd65a0f5dabfd384a7271901f23c8286d66b00712dc4e76f092744745ca?placeholderIfAbsent=true"
-                        alt="Toggle password visibility"
-                        className="absolute right-4 top-1/2 transform -translate-y-1/2 object-contain w-5 aspect-square cursor-pointer"
-                    />
-                </div>
+                <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    className={`px-2.5 py-3 text-sm bg-white border border-solid rounded-sm focus:outline-none focus:border-primary ${
+                        errors.password ? "border-red-500" : "border-[#E4E7E9]"
+                    }`}
+                    placeholder="Nhập mật khẩu"
+                    disabled={isLoading}
+                />
+                {errors.password && (
+                    <span className="text-xs text-red-500 mt-1">{errors.password}</span>
+                )}
             </div>
+            <button
+                type="submit"
+                disabled={isLoading}
+                className={`mt-5 flex gap-2.5 px-5 py-3.5 text-sm font-medium text-white rounded-md justify-center items-center w-full bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors ${
+                    isLoading ? "opacity-70 cursor-not-allowed" : ""
+                }`}
+            >
+                <span>{isLoading ? "ĐANG XỬ LÝ..." : "ĐĂNG NHẬP"}</span>
+                {!isLoading && (
+                    <img
+                        src="https://cdn.builder.io/api/v1/image/assets/6f33a6c0fcd7400b8e8582051039e87b/2c2149ae3c405dce61079c18695dad90fa1ed8e56693380a2c000152af016002?placeholderIfAbsent=true"
+                        alt="Đăng nhập icon"
+                        className="object-contain shrink-0 self-stretch my-auto w-5 aspect-square"
+                    />
+                )}
+            </button>
         </form>
     );
 };

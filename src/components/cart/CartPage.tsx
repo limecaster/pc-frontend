@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import CartItem from "./CartItem";
-
+import { getCart, addMultipleToCart, updateCartItemQuantity, removeCartItem } from "@/api/cart";
 import VietQRLogo from "@/assets/VietQRLogo.png";
 
 export interface CartItem {
@@ -12,38 +12,175 @@ export interface CartItem {
     name: string;
     price: number;
     quantity: number;
-    image: string;
+    imageUrl: string;
     slug: string;
 }
 
 const CartPage: React.FC = () => {
-    // This would typically come from a context or state management system
-    const [cartItems, setCartItems] = useState<CartItem[]>([
-        {
-            id: "1",
-            name: "Card đồ họa MSI GeForce RTX 4070 GAMING X TRIO 12G",
-            price: 17990000,
-            quantity: 1,
-            image: "/products/rtx4070.jpg",
-            slug: "msi-rtx-4070-gaming-x-trio",
-        },
-        {
-            id: "2",
-            name: "Bàn phím cơ AKKO 3068B Plus World Tour Tokyo R2",
-            price: 2190000,
-            quantity: 2,
-            image: "/products/keyboard.jpg",
-            slug: "akko-3068b-plus-world-tour-tokyo",
-        },
-        {
-            id: "3",
-            name: "Chuột gaming Logitech G502 X PLUS LightForce",
-            price: 3490000,
-            quantity: 1,
-            image: "/products/mouse.jpg",
-            slug: "logitech-g502-x-plus",
-        },
-    ]);
+    const [cartItems, setCartItems] = useState<CartItem[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+    // Check if user is authenticated
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        setIsAuthenticated(!!token);
+    }, []);
+
+    // Load cart items from both sources
+    useEffect(() => {
+        const loadCart = async () => {
+            setLoading(true);
+            setError(null);
+            
+            try {
+                // Always load localStorage cart first for immediate display
+                const localCart = loadLocalCart();
+                setCartItems(localCart);
+                
+                // If authenticated, fetch server cart and merge
+                if (isAuthenticated) {
+                    const serverCart = await fetchServerCart();
+                    if (serverCart && serverCart.length > 0) {
+                        const mergedCart = mergeServerAndLocalCarts(serverCart, localCart);
+                        setCartItems(mergedCart);
+                        // Save merged cart back to localStorage
+                        localStorage.setItem("cart", JSON.stringify(mergedCart));
+                    } else if (localCart.length > 0) {
+                        // Sync local cart to server if server cart is empty
+                        await syncLocalCartToServer(localCart);
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading cart:", err);
+                setError("Failed to load your cart. Please try again later.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        loadCart();
+    }, [isAuthenticated]);
+
+    // Load cart from localStorage
+    const loadLocalCart = (): CartItem[] => {
+        if (typeof window === "undefined") return [];
+        const savedCart = localStorage.getItem("cart");
+        return savedCart ? JSON.parse(savedCart) : [];
+    };
+
+    // Fetch cart from server
+    const fetchServerCart = async (): Promise<CartItem[]> => {
+        try {
+            const response = await getCart();
+            console.log("Server cart response:", response);
+            if (response.success && response.cart && response.cart.items) {
+                // Transform backend cart format to frontend format
+                return response.cart.items.map((item: any) => ({
+                    id: item.productId,
+                    name: item.productName,
+                    price: item.price,
+                    quantity: item.quantity,
+                    imageUrl: item.imageUrl, // Assuming this pattern for images
+                    slug: item.productId
+                }));
+            }
+            return [];
+        } catch (error) {
+            console.error("Error fetching cart from server:", error);
+            // If there's an authentication error, we'll just use the local cart
+            if (error instanceof Error && error.message.includes("Authentication")) {
+                setIsAuthenticated(false);
+            }
+            return [];
+        }
+    };
+
+    // Merge server and local carts
+    const mergeServerAndLocalCarts = (serverCart: CartItem[], localCart: CartItem[]): CartItem[] => {
+        const mergedCart = [...serverCart];
+        
+        // Add items from local cart that don't exist in server cart or update quantities
+        localCart.forEach(localItem => {
+            const serverItemIndex = mergedCart.findIndex(item => item.id === localItem.id);
+            
+            if (serverItemIndex === -1) {
+                // Item exists only in local cart, add it
+                mergedCart.push(localItem);
+            } else {
+                // Item exists in both, take the higher quantity
+                mergedCart[serverItemIndex].quantity = Math.max(
+                    mergedCart[serverItemIndex].quantity,
+                    localItem.quantity
+                );
+            }
+        });
+        
+        return mergedCart;
+    };
+
+    // Sync local cart to server
+    const syncLocalCartToServer = async (localCart: CartItem[]) => {
+        if (!isAuthenticated || localCart.length === 0) return;
+        
+        try {
+            // Extract product IDs from local cart, with duplicates for quantity
+            const productIds: string[] = [];
+            localCart.forEach(item => {
+                for (let i = 0; i < item.quantity; i++) {
+                    productIds.push(item.id);
+                }
+            });
+            
+            await addMultipleToCart(productIds);
+        } catch (error) {
+            console.error("Error syncing local cart to server:", error);
+        }
+    };
+
+    // Save cart to localStorage whenever it changes
+    useEffect(() => {
+        localStorage.setItem("cart", JSON.stringify(cartItems));
+    }, [cartItems]);
+
+    // Handle quantity change
+    const updateQuantity = async (id: string, newQuantity: number) => {
+        if (newQuantity < 1) return;
+
+        // Update local state
+        setCartItems(prevItems =>
+            prevItems.map(item =>
+                item.id === id ? { ...item, quantity: newQuantity } : item
+            )
+        );
+        
+        // Sync with server if authenticated
+        if (isAuthenticated) {
+            try {
+                await updateCartItemQuantity(id, newQuantity);
+            } catch (error) {
+                console.error("Failed to update quantity on server:", error);
+                // Optionally show error to user
+            }
+        }
+    };
+
+    // Handle item removal
+    const removeItem = async (id: string) => {
+        // Update local state
+        setCartItems(prevItems => prevItems.filter(item => item.id !== id));
+        
+        // Sync with server if authenticated
+        if (isAuthenticated) {
+            try {
+                await removeCartItem(id);
+            } catch (error) {
+                console.error("Failed to remove item from server cart:", error);
+                // Optionally show error to user
+            }
+        }
+    };
 
     // Calculate totals
     const subtotal = cartItems.reduce(
@@ -63,22 +200,6 @@ const CartPage: React.FC = () => {
         }).format(amount);
     };
 
-    // Handle quantity change
-    const updateQuantity = (id: string, newQuantity: number) => {
-        if (newQuantity < 1) return;
-
-        setCartItems((prevItems) =>
-            prevItems.map((item) =>
-                item.id === id ? { ...item, quantity: newQuantity } : item,
-            ),
-        );
-    };
-
-    // Handle item removal
-    const removeItem = (id: string) => {
-        setCartItems((prevItems) => prevItems.filter((item) => item.id !== id));
-    };
-
     // Empty cart
     const isCartEmpty = cartItems.length === 0;
 
@@ -89,7 +210,22 @@ const CartPage: React.FC = () => {
                     Giỏ hàng của bạn
                 </h1>
 
-                {isCartEmpty ? (
+                {loading ? (
+                    <div className="text-center py-16">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div>
+                        <p className="mt-4 text-gray-600">Đang tải giỏ hàng...</p>
+                    </div>
+                ) : error ? (
+                    <div className="text-center py-16 text-red-500">
+                        <p>{error}</p>
+                        <button 
+                            onClick={() => window.location.reload()} 
+                            className="mt-4 text-primary hover:underline"
+                        >
+                            Thử lại
+                        </button>
+                    </div>
+                ) : isCartEmpty ? (
                     <div className="text-center py-16 bg-white rounded-lg shadow p-8">
                         <div className="text-gray-500 text-lg mb-6">
                             Giỏ hàng của bạn đang trống
@@ -133,8 +269,8 @@ const CartPage: React.FC = () => {
                                                     name={item.name}
                                                     price={item.price}
                                                     quantity={item.quantity}
-                                                    image={item.image}
-                                                    slug={item.slug}
+                                                    image={item.imageUrl}
+                                                    slug={item.id}
                                                     onUpdateQuantity={
                                                         updateQuantity
                                                     }

@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect } from "react";
 
 import OrdersPage from "@/components/dashboard/orders/OrdersPage";

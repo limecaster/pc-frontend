@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { CheckCircledIcon } from "@radix-ui/react-icons";
@@ -11,7 +11,8 @@ interface OrderItem {
     name: string;
     price: number;
     quantity: number;
-    image: string;
+    image?: string;
+    imageUrl?: string;
 }
 
 interface CheckoutSuccessComponentProps {
@@ -31,46 +32,80 @@ interface CheckoutSuccessComponentProps {
     total?: number;
 }
 
-const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = ({
-    orderId = "ORD-2023-11001",
-    orderDate = new Date().toLocaleDateString("vi-VN", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    }),
-    orderItems = [
-        {
-            id: "1",
-            name: "Card đồ họa MSI GeForce RTX 4070 GAMING X TRIO 12G",
-            price: 17990000,
-            quantity: 1,
-            image: "/products/rtx4070.jpg",
+const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (props) => {
+    const [orderDetails, setOrderDetails] = useState<CheckoutSuccessComponentProps>({
+        orderId: "ORD-2023-11001",
+        orderDate: new Date().toLocaleDateString("vi-VN", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        }),
+        orderItems: [
+            {
+                id: "1",
+                name: "Card đồ họa MSI GeForce RTX 4070 GAMING X TRIO 12G",
+                price: 17990000,
+                quantity: 1,
+                image: "/products/rtx4070.jpg",
+            },
+            {
+                id: "2",
+                name: "Bàn phím cơ AKKO 3068B Plus World Tour Tokyo R2",
+                price: 2190000,
+                quantity: 2,
+                image: "/products/keyboard.jpg",
+            },
+        ],
+        shippingAddress: {
+            fullName: "Nguyễn Văn A",
+            address: "123 Đường ABC, Phường XYZ",
+            city: "Quận 1, TP. Hồ Chí Minh",
+            phone: "0987654321",
         },
-        {
-            id: "2",
-            name: "Bàn phím cơ AKKO 3068B Plus World Tour Tokyo R2",
-            price: 2190000,
-            quantity: 2,
-            image: "/products/keyboard.jpg",
-        },
-    ],
-    shippingAddress = {
-        fullName: "Nguyễn Văn A",
-        address: "123 Đường ABC, Phường XYZ",
-        city: "Quận 1, TP. Hồ Chí Minh",
-        phone: "0987654321",
-    },
-    paymentMethod = "VietQR",
-    subtotal = orderItems.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-    ),
-    shippingFee = 0,
-    discount = 0,
-    total = subtotal + shippingFee - discount,
-}) => {
+        paymentMethod: "PayOS",
+        subtotal: 22370000,
+        shippingFee: 0,
+        discount: 0,
+        total: 22370000,
+    });
+
+    useEffect(() => {
+        // Load order details from localStorage if available
+        const savedOrder = localStorage.getItem('latestOrder');
+        if (savedOrder) {
+            try {
+                const parsedOrder = JSON.parse(savedOrder);
+                // Format the date
+                parsedOrder.orderDate = new Date(parsedOrder.orderDate).toLocaleDateString("vi-VN", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                });
+                
+                // Process the order items to ensure they have image/imageUrl
+                const processedItems = parsedOrder.orderItems.map((item: OrderItem) => ({
+                    ...item,
+                    image: item.image || item.imageUrl || "/products/placeholder.jpg",
+                }));
+                
+                parsedOrder.orderItems = processedItems;
+                setOrderDetails(parsedOrder);
+                
+                // Clear the saved order to prevent showing it again on refresh
+                localStorage.removeItem('latestOrder');
+            } catch (e) {
+                console.error("Error parsing saved order:", e);
+            }
+        } else if (Object.keys(props).length > 0) {
+            // Use props if provided and no localStorage data
+            setOrderDetails(props);
+        }
+    }, [props]);
+
     // Format currency
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat("vi-VN", {
@@ -79,6 +114,19 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = ({
             maximumFractionDigits: 0,
         }).format(amount);
     };
+    
+    // Destructure from state
+    const {
+        orderId,
+        orderDate,
+        orderItems,
+        shippingAddress,
+        paymentMethod,
+        subtotal,
+        shippingFee,
+        discount,
+        total
+    } = orderDetails;
 
     return (
         <div className="w-full bg-gray-100 py-8 min-h-screen">
@@ -132,19 +180,19 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = ({
                             <div className="space-y-2">
                                 <p className="text-gray-600">
                                     <span className="font-medium">Người nhận:</span>{" "}
-                                    {shippingAddress.fullName}
+                                    {shippingAddress?.fullName}
                                 </p>
                                 <p className="text-gray-600">
                                     <span className="font-medium">Địa chỉ:</span>{" "}
-                                    {shippingAddress.address}
+                                    {shippingAddress?.address}
                                 </p>
                                 <p className="text-gray-600">
                                     <span className="font-medium">Thành phố:</span>{" "}
-                                    {shippingAddress.city}
+                                    {shippingAddress?.city}
                                 </p>
                                 <p className="text-gray-600">
                                     <span className="font-medium">Số điện thoại:</span>{" "}
-                                    {shippingAddress.phone}
+                                    {shippingAddress?.phone}
                                 </p>
                             </div>
                         </div>
@@ -189,14 +237,14 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = ({
                                 Sản phẩm đã mua
                             </h2>
                             <div className="space-y-4">
-                                {orderItems.map((item) => (
+                                {orderItems?.map((item) => (
                                     <div
                                         key={item.id}
                                         className="flex border-b border-gray-200 pb-4 last:border-0 last:pb-0"
                                     >
                                         <div className="w-16 h-16 border border-gray-200 rounded overflow-hidden flex-shrink-0">
                                             <Image
-                                                src={item.image}
+                                                src={item.imageUrl || "/products/placeholder.jpg"}
                                                 alt={item.name}
                                                 width={64}
                                                 height={64}
@@ -225,28 +273,28 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = ({
                             <div className="mt-6 space-y-2">
                                 <div className="flex justify-between text-sm">
                                     <span className="text-gray-600">Tạm tính:</span>
-                                    <span className="font-medium text-primary">{formatCurrency(subtotal)}</span>
+                                    <span className="font-medium text-primary">{formatCurrency(subtotal || 0)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-gray-600">Phí vận chuyển:</span>
                                     <span className="font-medium text-green-600">
                                         {shippingFee === 0
                                             ? "Miễn phí"
-                                            : formatCurrency(shippingFee)}
+                                            : formatCurrency(shippingFee || 0)}
                                     </span>
                                 </div>
-                                {discount > 0 && (
+                                {discount && discount > 0 && (
                                     <div className="flex justify-between text-sm">
                                         <span className="text-gray-600">Giảm giá:</span>
                                         <span className="text-green-600">
-                                            -{formatCurrency(discount)}
+                                            -{formatCurrency(discount || 0)}
                                         </span>
                                     </div>
                                 )}
                                 <div className="border-t border-gray-200 mt-4 pt-4 flex justify-between">
                                     <span className="font-medium text-gray-900">Tổng cộng:</span>
                                     <span className="font-bold text-primary">
-                                        {formatCurrency(total)}
+                                        {formatCurrency(total || 0)}
                                     </span>
                                 </div>
                             </div>

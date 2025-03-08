@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import FilterItem from "./FilterItem";
+import { useRouter } from "next/navigation";
 
 const categories = [
     { id: "monitor", name: "Màn hình máy tính" },
@@ -16,8 +17,31 @@ const categories = [
     { id: "accessories", name: "Phụ kiện khác" },
 ];
 
-const CategoryFilter: React.FC = () => {
-    const [selectedCategory, setSelectedCategory] = useState<string>("monitor");
+interface CategoryFilterProps {
+    paramCategory?: string;
+}
+
+const CategoryFilter: React.FC<CategoryFilterProps> = ({ paramCategory }) => {
+    const router = useRouter();
+    const [selectedCategory, setSelectedCategory] = useState<string>(
+        paramCategory || "monitor"
+    );
+
+    useEffect(() => {
+        // Update selected category when paramCategory changes
+        if (paramCategory) {
+            setSelectedCategory(paramCategory);
+        }
+    }, [paramCategory]);
+
+    const handleCategoryChange = (categoryId: string) => {
+        setSelectedCategory(categoryId);
+        
+        // Navigate to the category page
+        if (categoryId !== paramCategory) {
+            router.push(`/products/${categoryId}`);
+        }
+    };
 
     return (
         <div className="flex flex-col gap-4">
@@ -35,7 +59,7 @@ const CategoryFilter: React.FC = () => {
                             className={selectedCategory === category.id ? "bg-primary-500" : ""}
                             checked={selectedCategory === category.id}
                             type="radio"
-                            onChange={() => setSelectedCategory(category.id)}
+                            onChange={() => handleCategoryChange(category.id)}
                         />
                         <div
                             className={`text-sm leading-5 ${

@@ -1,12 +1,13 @@
 "use client";
-import React from "react";
+import React, { ReactNode } from "react";
 
 interface LoginButtonProps {
-    children: React.ReactNode;
+    children: ReactNode;
     type?: "submit" | "button";
     variant?: "primary" | "secondary";
     className?: string;
     onClick?: () => void;
+    disabled?: boolean;
 }
 
 export const LoginButton: React.FC<LoginButtonProps> = ({
@@ -15,6 +16,7 @@ export const LoginButton: React.FC<LoginButtonProps> = ({
     variant = "primary",
     className = "",
     onClick,
+    disabled = false
 }) => {
     const baseStyles =
         "flex gap-2 justify-center items-center px-6 w-full text-sm font-bold tracking-normal leading-10 rounded-sm";
@@ -27,8 +29,11 @@ export const LoginButton: React.FC<LoginButtonProps> = ({
     return (
         <button
             onClick={onClick}
-            className={`${baseStyles} ${variantStyles[variant]} ${className}`}
-            type = {type}
+            className={`${baseStyles} ${variantStyles[variant]} ${className} ${
+                disabled ? "opacity-70 cursor-not-allowed" : ""
+            }`}
+            type={type}
+            disabled={disabled}
         >
             {children}
         </button>

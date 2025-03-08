@@ -2,10 +2,6 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { StarIcon, StarFilledIcon } from "@radix-ui/react-icons";
 
-interface ProductSpec {
-    name: string;
-    value: string;
-}
 
 interface Review {
     id: string;
@@ -19,7 +15,7 @@ interface Review {
 interface ProductInformationProps {
     description: string;
     additionalInfo?: string;
-    specifications: ProductSpec[];
+    specifications: Record<string, string>;
     reviews?: Review[];
 }
 
@@ -98,7 +94,6 @@ const ProductInformation: React.FC<ProductInformationProps> = ({
     };
 
     const reviewStats = calculateReviewStats();
-
     return (
         <div className="w-full bg-white border border-gray-200 rounded-md shadow-sm">
             {/* Tab Navigation */}
@@ -178,7 +173,7 @@ const ProductInformation: React.FC<ProductInformationProps> = ({
                 {/* Specifications Tab */}
                 {activeTab === "specs" && (
                     <div className="overflow-hidden border rounded-md">
-                        {specifications.map((spec, index) => (
+                        {Object.entries(specifications).map(([key, value], index) => (
                             <div
                                 key={index}
                                 className={`flex border-b last:border-b-0 ${
@@ -186,10 +181,11 @@ const ProductInformation: React.FC<ProductInformationProps> = ({
                                 }`}
                             >
                                 <div className="w-1/3 py-3 px-4 font-medium text-sm text-gray-900 border-r">
-                                    {spec.name}
+                                {/* Convert camelCase to Capitalized Each Word */}
+                                    {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} 
                                 </div>
                                 <div className="w-2/3 py-3 px-4 text-sm text-gray-600">
-                                    {spec.value}
+                                    {value}
                                 </div>
                             </div>
                         ))}

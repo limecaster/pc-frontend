@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 

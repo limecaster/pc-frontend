@@ -6,57 +6,27 @@ import Image from "next/image";
 import { HeartIcon } from "@radix-ui/react-icons";
 import Cart from "@/assets/icon/shop/Cart.svg";
 import ProductInformation from "@/components/product/ProductInformation";
-
-interface ProductSpec {
-    name: string;
-    value: string;
-}
-
-interface Review {
-    id: string;
-    username: string;
-    rating: number;
-    date: string;
-    content: string;
-    avatar: string;
-}
-
-interface ProductDetails {
-    id: string;
-    name: string;
-    price: number;
-    originalPrice?: number;
-    discount?: number;
-    rating: number;
-    reviewCount: number;
-    description: string;
-    additionalInfo?: string;
-    imageUrl: string;
-    additionalImages?: string[];
-    specifications: ProductSpec[];
-    reviews?: Review[];
-    sku: string;
-    stock: string;
-    brand: string;
-    category: string;
-    color?: string;
-    size?: string;
-}
+import { toast } from "react-hot-toast"; // Add Toaster import
+import { ProductDetails } from "@/types/ProductDetails"; // Corrected path
 
 // Replace the mock data function with an actual API call
 const fetchProduct = async (id: string): Promise<ProductDetails | null> => {
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/products/${id}`);
-        
+        const response = await fetch(
+            `${
+                process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+            }/products/${id}`,
+        );
+        console.log("Response:", response);
+
         if (!response.ok) {
-            throw new Error('Failed to fetch product');
+            throw new Error("Failed to fetch product");
         }
-        
+
         const data = await response.json();
-        console.log('Product data:', data);
         return data;
     } catch (error) {
-        console.error('Error fetching product:', error);
+        console.error("Error fetching product:", error);
         return null;
     }
 };
@@ -77,11 +47,12 @@ const ProductDetailPage = () => {
     const [quantity, setQuantity] = useState(1);
     const [mainImage, setMainImage] = useState("");
     const [isWishlist, setIsWishlist] = useState(false);
+    const [cartItemCount, setCartItemCount] = useState(0);
 
     useEffect(() => {
         const loadProduct = async () => {
             try {
-                const id = slug.toString().split("-")[0];
+                const id = slug;
                 const productData = await fetchProduct(id);
                 setProduct(productData);
                 if (productData?.imageUrl) {
@@ -97,6 +68,15 @@ const ProductDetailPage = () => {
         if (slug) {
             loadProduct();
         }
+
+        // Load initial cart count
+        const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
+        setCartItemCount(
+            cartItems.reduce(
+                (sum: number, item: any) => sum + item.quantity,
+                0,
+            ),
+        );
     }, [slug]);
 
     if (loading) {
@@ -124,7 +104,49 @@ const ProductDetailPage = () => {
 
     // Handlers
     const handleAddToCart = () => {
-        console.log(`Adding ${quantity} of product ${product.id} to cart`);
+        if (!product) return;
+
+        try {
+            // Get current cart from localStorage
+            const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
+            console.log("Current cart items:", cartItems);
+            // Check if product already exists in cart
+            const existingItemIndex = cartItems.findIndex(
+                (item: any) => item.id === product.id,
+            );
+
+            if (existingItemIndex >= 0) {
+                // Update quantity if product already exists
+                cartItems[existingItemIndex].quantity += quantity;
+            } else {
+                // Add new product to cart
+                cartItems.push({
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    imageUrl: product.imageUrl,
+                    quantity: quantity,
+                });
+            }
+
+            // Save updated cart to localStorage
+            localStorage.setItem("cart", JSON.stringify(cartItems));
+
+            // Update cart item count
+            const newCount = cartItems.reduce(
+                (sum: number, item: any) => sum + item.quantity,
+                0,
+            );
+            setCartItemCount(newCount);
+
+            // Show success notification
+            toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`, {
+                duration: 3000,
+            });
+        } catch (error) {
+            console.error("Error adding to cart:", error);
+            toast.error("Không thể thêm vào giỏ hàng. Vui lòng thử lại!");
+        }
     };
 
     const handleBuyNow = () => {
@@ -268,7 +290,7 @@ const ProductDetailPage = () => {
                                         }
                                     })}
                                 </div>
-                                <span className="font-semibold text-sm text-gray-900 ml-2"> 
+                                <span className="font-semibold text-sm text-gray-900 ml-2">
                                     {product.rating} sao
                                 </span>
                                 <span className="text-sm text-gray-600">
@@ -398,7 +420,7 @@ const ProductDetailPage = () => {
                                 onClick={handleAddToCart}
                                 className="flex-1 flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded font-bold"
                             >
-                                <Image 
+                                <Image
                                     src={Cart}
                                     alt="Add to cart"
                                     width={24}
@@ -504,20 +526,12 @@ const ProductDetailPage = () => {
                             </h3>
                             <div className="flex flex-col gap-1 text-gray-600 text-sm">
                                 <div className="flex items-center gap-2">
-                                    <img
+                                    <Image
                                         className="w-6 h-6"
-                                        alt="Image"
                                         src="https://c.animaapp.com/vaaCW8Fs/img/image-11-1@2x.png"
-                                    />
-                                    <span className="text-sm">
-                                        Cam kết hàng chính hãng 100%
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <img
-                                        className="w-6 h-6"
                                         alt="Image"
-                                        src="https://c.animaapp.com/vaaCW8Fs/img/image-12-1@2x.png"
+                                        width={24}
+                                        height={24}
                                     />
                                     <span className="text-sm">
                                         Miễn phí giao hàng cho đơn hàng từ 5
@@ -525,10 +539,12 @@ const ProductDetailPage = () => {
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <img
+                                    <Image
                                         className="w-6 h-6"
-                                        alt="Image"
                                         src="https://c.animaapp.com/vaaCW8Fs/img/image-13-1@2x.png"
+                                        alt="Image"
+                                        width={24}
+                                        height={24}
                                     />
                                     <span className="text-sm">
                                         Đổi trả trong vòng 10 ngày
