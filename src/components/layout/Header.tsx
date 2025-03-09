@@ -4,19 +4,23 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faUser,
     faShoppingCart,
     faBell,
-    faSearch,
     faSignOutAlt,
     faUserCircle,
 } from "@fortawesome/free-solid-svg-icons";
+import SearchSort from "@/components/shop/SearchSort";
 
 const Header = () => {
+    const router = useRouter();
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [cartCount, setCartCount] = useState(0);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [isSearching, setIsSearching] = useState(false);
 
     const { user, isAuthenticated, logout } = useAuth();
 
@@ -43,6 +47,23 @@ const Header = () => {
         }
     }, []);    
 
+    // Handle search submission
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!searchQuery.trim()) return;
+        
+        setIsSearching(true);
+        try {
+            // Redirect to search page with the query parameter
+            router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+        } catch (error) {
+            console.error("Search error:", error);
+        } finally {
+            setIsSearching(false);
+            setSearchQuery(""); // Clear search input after submission
+        }
+    };
+
     return (
         <header className="bg-primary shadow-md">
             <div className="container mx-auto px-4 py-3 flex justify-between items-center">
@@ -59,16 +80,9 @@ const Header = () => {
                     </span>
                 </Link>
 
-                {/* Search Bar */}
-                <div className="hidden md:flex items-center flex-1 max-w-xl mx-6 relative">
-                    <input
-                        type="text"
-                        placeholder="Tìm kiếm sản phẩm..."
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                    <button className="absolute right-3 text-gray-400 hover:text-gray-900">
-                        <FontAwesomeIcon icon={faSearch} />
-                    </button>
+                {/* Search Bar - Use SearchSort component with isGlobalSearch */}
+                <div className="hidden md:block flex-1 max-w-xl mx-6">
+                    <SearchSort isGlobalSearch={true} />
                 </div>
 
                 {/* Navigation Icons */}
@@ -191,18 +205,9 @@ const Header = () => {
                 </div>
             </div>
 
-            {/* Mobile Search - Visible only on mobile */}
+            {/* Mobile Search - Use SearchSort component with isGlobalSearch */}
             <div className="md:hidden px-4 py-2">
-                <div className="relative">
-                    <input
-                        type="text"
-                        placeholder="Tìm kiếm sản phẩm..."
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                    <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300">
-                        <FontAwesomeIcon icon={faSearch} />
-                    </button>
-                </div>
+                <SearchSort isGlobalSearch={true} />
             </div>
         </header>
     );

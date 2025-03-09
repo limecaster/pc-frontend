@@ -353,9 +353,14 @@ const CartPage: React.FC = () => {
                                 <div className="mt-6">
                                     <Link
                                         href="/checkout"
-                                        className="w-full bg-primary py-3 px-4 rounded-md text-white font-medium 
-                           hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 
-                           focus:ring-primary text-center block transition-colors"
+                                        className={`w-full bg-primary py-3 px-4 rounded-md text-white font-medium hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-center block transition-colors ${
+                                            cartItems.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
+                                        onClick={(e) => {
+                                            if (cartItems.length === 0) {
+                                                e.preventDefault();
+                                            }
+                                        }}
                                     >
                                         Tiến hành thanh toán
                                     </Link>

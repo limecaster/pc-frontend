@@ -1,55 +1,73 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import ProductCard from "./ProductCard";
+import { fetchProductsByCategory, fetchNewProducts } from "@/api/product";
 
 interface ProductGridProps {
-    limit?: number;
     category?: string;
+    products?: any[];
+    isLoading?: boolean;
+    page?: number;
+    onPageChange?: (page: number) => void;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ limit, category }) => {
-    const [displayedProducts, setDisplayedProducts] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+const ProductGrid: React.FC<ProductGridProps> = ({
+    category,
+    products: propProducts,
+    isLoading: propIsLoading,
+    page = 1,
+    onPageChange,
+}) => {
+    const [products, setProducts] = useState<any[]>([]);
+    const [loading, setLoading] = useState<boolean>(propIsLoading || true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchProducts = async () => {
-            try {
-                setLoading(true);
-                let url =
-                    "http://localhost:3001/products/landing-page-products";
+        // If loading state is controlled by parent, use that
+        if (propIsLoading !== undefined) {
+            setLoading(propIsLoading);
+        }
+    }, [propIsLoading]);
 
-                // Add category filter if provided
-                if (category) {
-                    url = `http://localhost:3001/products/category/${category}`;
-                } else if (limit) {
-                    // If no category but limit is provided, it's likely for the landing page
-                    url =
-                        "http://localhost:3001/products/landing-page-products";
-                }
-
-                const response = await fetch(url);
-                const products = await response.json();
-
-                if (Array.isArray(products)) {
-                    setDisplayedProducts(
-                        limit ? products.slice(0, limit) : products,
-                    );
-                } else {
-                    console.error(
-                        "Fetched products is not an array:",
-                        products,
-                    );
-                    setDisplayedProducts([]);
-                }
-            } catch (error) {
-                console.error("Error fetching products:", error);
-                setDisplayedProducts([]);
-            } finally {
+    useEffect(() => {
+        // If products are provided as props, use them
+        if (propProducts) {
+            setProducts(propProducts);
+            if (propIsLoading === undefined) {
                 setLoading(false);
+            }
+            return;
+        }
+
+        // Otherwise load products by category or fetch new products
+        const loadProducts = async () => {
+            if (propIsLoading === undefined) {
+                setLoading(true);
+            }
+
+            try {
+                let fetchedProducts;
+                if (category) {
+                    const response = await fetchProductsByCategory(
+                        category,
+                        page,
+                    );
+                    fetchedProducts = response.products || response;
+                } else {
+                    fetchedProducts = await fetchNewProducts();
+                }
+                setProducts(fetchedProducts);
+            } catch (err) {
+                setError("Failed to load products");
+                console.error(err);
+            } finally {
+                if (propIsLoading === undefined) {
+                    setLoading(false);
+                }
             }
         };
 
-        fetchProducts();
-    }, [limit, category]);
+        loadProducts();
+    }, [category, propProducts, page, propIsLoading]);
 
     if (loading) {
         return (
@@ -61,8 +79,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({ limit, category }) => {
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {displayedProducts.length > 0 ? (
-                displayedProducts.map((product) => (
+            {products.length > 0 ? (
+                products.map((product) => (
                     <ProductCard
                         key={product.id}
                         id={product.id}

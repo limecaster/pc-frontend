@@ -4,7 +4,9 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { CheckCircledIcon } from "@radix-ui/react-icons";
-import { generateSlug } from "@/utils/slugify";
+// import { generateSlug } from "@/utils/slugify";
+import { getOrderDetails } from "@/api/checkout";
+import { useSearchParams } from "next/navigation";
 
 interface OrderItem {
     id: string;
@@ -30,81 +32,113 @@ interface CheckoutSuccessComponentProps {
     shippingFee?: number;
     discount?: number;
     total?: number;
+    orderNumber?: string;
 }
 
 const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (props) => {
-    const [orderDetails, setOrderDetails] = useState<CheckoutSuccessComponentProps>({
-        orderId: "ORD-2023-11001",
-        orderDate: new Date().toLocaleDateString("vi-VN", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        }),
-        orderItems: [
-            {
-                id: "1",
-                name: "Card đồ họa MSI GeForce RTX 4070 GAMING X TRIO 12G",
-                price: 17990000,
-                quantity: 1,
-                image: "/products/rtx4070.jpg",
-            },
-            {
-                id: "2",
-                name: "Bàn phím cơ AKKO 3068B Plus World Tour Tokyo R2",
-                price: 2190000,
-                quantity: 2,
-                image: "/products/keyboard.jpg",
-            },
-        ],
-        shippingAddress: {
-            fullName: "Nguyễn Văn A",
-            address: "123 Đường ABC, Phường XYZ",
-            city: "Quận 1, TP. Hồ Chí Minh",
-            phone: "0987654321",
-        },
-        paymentMethod: "PayOS",
-        subtotal: 22370000,
-        shippingFee: 0,
-        discount: 0,
-        total: 22370000,
-    });
+    const searchParams = useSearchParams();
+    const [orderDetails, setOrderDetails] = useState<CheckoutSuccessComponentProps | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Load order details from localStorage if available
-        const savedOrder = localStorage.getItem('latestOrder');
-        if (savedOrder) {
+        // Function to load order details
+        const loadOrderDetails = async () => {
+            setLoading(true);
+            setError(null);
+            
             try {
-                const parsedOrder = JSON.parse(savedOrder);
-                // Format the date
-                parsedOrder.orderDate = new Date(parsedOrder.orderDate).toLocaleDateString("vi-VN", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                });
+                // First check if we have a saved order in localStorage
+                const savedOrder = localStorage.getItem('latestOrder');
+                if (savedOrder) {
+                    try {
+                        const parsedOrder = JSON.parse(savedOrder);
+                        // Format the date
+                        parsedOrder.orderDate = new Date(parsedOrder.orderDate).toLocaleDateString("vi-VN", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                        });
+                        
+                        // Process the order items to ensure they have image/imageUrl
+                        const processedItems = parsedOrder.orderItems.map((item: OrderItem) => ({
+                            ...item,
+                            image: item.image || item.imageUrl || "/products/placeholder.jpg",
+                        }));
+                        
+                        parsedOrder.orderItems = processedItems;
+                        setOrderDetails(parsedOrder);
+                        
+                        // Clear the saved order after using it
+                        localStorage.removeItem('latestOrder');
+                        setLoading(false);
+                        return;
+                    } catch (e) {
+                        console.error("Error parsing saved order:", e);
+                        // Continue to fetch from server if parsing fails
+                    }
+                }
                 
-                // Process the order items to ensure they have image/imageUrl
-                const processedItems = parsedOrder.orderItems.map((item: OrderItem) => ({
-                    ...item,
-                    image: item.image || item.imageUrl || "/products/placeholder.jpg",
-                }));
+                // If no localStorage data, try to get order ID from URL
+                const orderId = searchParams.get('orderId');
                 
-                parsedOrder.orderItems = processedItems;
-                setOrderDetails(parsedOrder);
+                if (!orderId) {
+                    setError("Không tìm thấy thông tin đơn hàng");
+                    setLoading(false);
+                    return;
+                }
                 
-                // Clear the saved order to prevent showing it again on refresh
-                localStorage.removeItem('latestOrder');
-            } catch (e) {
-                console.error("Error parsing saved order:", e);
+                // Fetch order details from server
+                const response = await getOrderDetails(orderId);
+                
+                if (response.success && response.order) {
+                    // Transform server response to match expected format
+                    const serverOrder: CheckoutSuccessComponentProps = {
+                        orderId: response.order.id.toString(),
+                        orderNumber: response.order.orderNumber ,
+                        orderDate: new Date(response.order.orderDate).toLocaleDateString("vi-VN", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                        }),
+                        orderItems: response.order.items.map((item: any) => ({
+                            id: item.product.id,
+                            name: item.product.name,
+                            price: item.subPrice / item.quantity, // Calculate unit price
+                            quantity: item.quantity,
+                            imageUrl: item.product.imageUrl || "/images/image-placeholer.webp",
+                        })),
+                        shippingAddress: {
+                            fullName: response.order.customer?.fullName || "Khách hàng",
+                            address: response.order.deliveryAddress.split(',')[0] || "",
+                            city: response.order.deliveryAddress.split(',').slice(1).join(',') || "",
+                            phone: response.order.customer?.phoneNumber || "",
+                        },
+                        paymentMethod: response.order.paymentMethod,
+                        subtotal: response.order.total,
+                        shippingFee: 0,
+                        discount: 0,
+                        total: response.order.total
+                    };
+                    
+                    setOrderDetails(serverOrder);
+                } else {
+                    throw new Error("Invalid server response format");
+                }
+            } catch (error) {
+                console.error("Failed to load order details:", error);
+                setError("Không thể tải thông tin đơn hàng. Vui lòng thử lại sau.");
+            } finally {
+                setLoading(false);
             }
-        } else if (Object.keys(props).length > 0) {
-            // Use props if provided and no localStorage data
-            setOrderDetails(props);
-        }
-    }, [props]);
+        };
+
+        loadOrderDetails();
+    }, [searchParams, props]);
 
     // Format currency
     const formatCurrency = (amount: number) => {
@@ -115,7 +149,48 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
         }).format(amount);
     };
     
-    // Destructure from state
+    // Show loading state
+    if (loading) {
+        return (
+            <div className="w-full bg-gray-100 py-16 min-h-screen">
+                <div className="container mx-auto px-4">
+                    <div className="bg-white rounded-lg shadow-md p-8 max-w-2xl mx-auto text-center">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent mb-4"></div>
+                        <p className="text-gray-600">Đang tải thông tin đơn hàng...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    
+    // Show error state
+    if (error || !orderDetails) {
+        return (
+            <div className="w-full bg-gray-100 py-16 min-h-screen">
+                <div className="container mx-auto px-4">
+                    <div className="bg-white rounded-lg shadow-md p-8 max-w-2xl mx-auto text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <h1 className="text-2xl font-bold text-gray-800 mb-2">
+                            Có lỗi xảy ra
+                        </h1>
+                        <p className="text-gray-600 mb-6">
+                            {error || "Không tìm thấy thông tin đơn hàng"}
+                        </p>
+                        <Link
+                            href="/"
+                            className="bg-primary hover:bg-primary-dark text-white py-2 px-6 rounded-md font-medium"
+                        >
+                            Về trang chủ
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    
+    // Destructure from orderDetails
     const {
         orderId,
         orderDate,
@@ -253,7 +328,7 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                                         </div>
                                         <div className="ml-4 flex-grow">
                                             <Link
-                                                href={`/product/${item.id}-${generateSlug(item.name)}`}
+                                                href={`/product/${item.id}`}
                                                 className="text-sm font-medium text-gray-900 hover:text-primary line-clamp-2"
                                             >
                                                 {item.name}

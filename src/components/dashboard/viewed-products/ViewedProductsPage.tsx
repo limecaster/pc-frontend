@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Tooltip } from "@/components/ui/tooltip";
-import { generateSlug } from "@/utils/slugify";
 
 interface ViewedProduct {
   id: string;
@@ -78,7 +77,7 @@ const ViewedProductsPage: React.FC = () => {
                     <div>
                       <Tooltip content={product.name}>
                         <Link
-                          href={`/product/${product.id}-${generateSlug(product.name)}`}
+                          href={`/product/${product.id}`}
                           className="text-base font-medium text-gray-900 hover:text-primary line-clamp-2"
                         >
                           {product.name}
@@ -98,7 +97,7 @@ const ViewedProductsPage: React.FC = () => {
                   
                   <div className="mt-4 flex gap-3">
                     <Link
-                      href={`/product/${product.id}-${generateSlug(product.name)}`}
+                      href={`/product/${product.id}`}
                       className="px-4 py-2 bg-primary text-white text-sm rounded-md hover:bg-primary-dark"
                     >
                       Xem sản phẩm

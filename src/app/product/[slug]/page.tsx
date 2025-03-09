@@ -3,11 +3,12 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
-import { HeartIcon } from "@radix-ui/react-icons";
+import { HeartIcon, HeartFilledIcon } from "@radix-ui/react-icons";
 import Cart from "@/assets/icon/shop/Cart.svg";
 import ProductInformation from "@/components/product/ProductInformation";
 import { toast } from "react-hot-toast"; // Add Toaster import
 import { ProductDetails } from "@/types/ProductDetails"; // Corrected path
+import { useWishlist } from "@/contexts/WishlistContext";
 
 // Replace the mock data function with an actual API call
 const fetchProduct = async (id: string): Promise<ProductDetails | null> => {
@@ -46,8 +47,9 @@ const ProductDetailPage = () => {
     const [loading, setLoading] = useState(true);
     const [quantity, setQuantity] = useState(1);
     const [mainImage, setMainImage] = useState("");
-    const [isWishlist, setIsWishlist] = useState(false);
     const [cartItemCount, setCartItemCount] = useState(0);
+    const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+    const [isWishlist, setIsWishlist] = useState(false);
 
     useEffect(() => {
         const loadProduct = async () => {
@@ -77,7 +79,12 @@ const ProductDetailPage = () => {
                 0,
             ),
         );
-    }, [slug]);
+
+        // Check if in wishlist using context
+        if (slug) {
+            setIsWishlist(isInWishlist(slug as string));
+        }
+    }, [slug, isInWishlist]);
 
     if (loading) {
         return (
@@ -153,13 +160,17 @@ const ProductDetailPage = () => {
         console.log(`Buying now: ${quantity} of product ${product.id}`);
     };
 
-    const toggleWishlist = () => {
-        setIsWishlist(!isWishlist);
-        console.log(
-            `${isWishlist ? "Removing from" : "Adding to"} wishlist: ${
-                product.id
-            }`,
-        );
+    const toggleWishlist = async () => {
+        try {
+            if (isWishlist) {
+                await removeFromWishlist(product.id);
+            } else {
+                await addToWishlist(product.id);
+            }
+            setIsWishlist(!isWishlist);
+        } catch (error) {
+            console.error("Failed to update wishlist", error);
+        }
     };
 
     return (
@@ -446,14 +457,17 @@ const ProductDetailPage = () => {
                                     className="flex items-center gap-2 text-sm text-gray-700"
                                     onClick={toggleWishlist}
                                 >
-                                    <HeartIcon
-                                        className={`${
-                                            isWishlist
-                                                ? "text-red-500 fill-current"
-                                                : "text-gray-500"
-                                        }`}
-                                    />
-                                    Thêm vào danh sách yêu thích
+                                    {isWishlist ? (
+                                        <>
+                                            <HeartFilledIcon className="text-rose-500" />
+                                            Xóa sản phẩm khỏi danh sách yêu thích
+                                        </>
+                                    ) : (
+                                        <>
+                                            <HeartIcon className="text-gray-500" />
+                                            Thêm vào danh sách yêu thích
+                                        </>
+                                    )}
                                 </button>
                             </div>
 

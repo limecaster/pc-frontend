@@ -1,12 +1,12 @@
 "use client";
 import React, { Suspense } from "react";
-import VerifyEmailContent from "./VerifyEmailContent";
+import SearchResultsContent from "./SearchResultsContent";
 
-const VerifyEmailPage: React.FC = () => {
+const SearchPage: React.FC = () => {
     return (
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-white">Loading...</div>}>
-            <VerifyEmailContent />
+            <SearchResultsContent />
         </Suspense>
     );
 };
-export default VerifyEmailPage;
+export default SearchPage;

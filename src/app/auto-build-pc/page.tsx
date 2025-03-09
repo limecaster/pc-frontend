@@ -2,7 +2,6 @@
 import React, { useState, useEffect} from "react";
 import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faRotate } from "@fortawesome/free-solid-svg-icons";
 import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 import { io, Socket } from "socket.io-client";
 import { useRouter } from "next/navigation";

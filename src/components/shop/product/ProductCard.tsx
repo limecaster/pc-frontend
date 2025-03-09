@@ -8,12 +8,13 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { toast } from "react-hot-toast";
 import { addToCart } from "@/api/cart";
 import { validateTokenFormat } from "@/api/auth";
+import { useWishlist } from "@/contexts/WishlistContext";
 
 interface ProductCardProps {
     id: string;
     name: string;
     price: number;
-    rating: number; // Can be decimal now
+    rating: number;
     reviewCount: number;
     imageUrl: string;
 }
@@ -29,17 +30,32 @@ const ProductCard: React.FC<ProductCardProps> = ({
     const router = useRouter();
     const [isHovered, setIsHovered] = useState(false);
     const [hoveredButton, setHoveredButton] = useState<string | null>(null);
+    
+    // Use the wishlist context instead of local state and API calls
+    const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+    const inWishlist = isInWishlist(id);
 
     const formattedPrice = new Intl.NumberFormat("vi-VN").format(price) + "đ";
 
-    // Handler
+    // Handler for wishlist
+    const handleWishlistToggle = async (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent card click
+        
+        if (inWishlist) {
+            await removeFromWishlist(id);
+        } else {
+            await addToWishlist(id);
+        }
+    };
+
+    // Handler for cart
     const handleAddToCart = async () => {
         try {
             // Check if we have a valid token before trying API
             if (localStorage.getItem("token") && validateTokenFormat()) {
                 try {
                     // Use the API function directly instead of fetch
-                    const result = await addToCart(id, 1);
+                    await addToCart(id, 1);
                     
                     // Show success notification
                     toast.success(`Đã thêm sản phẩm vào giỏ hàng!`, {
@@ -98,7 +114,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     };
 
     const handleQuickView = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent card click
+        e.stopPropagation();
         router.push(`/product/${id}`);
     };
 
@@ -178,17 +194,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 >
                     <button
                         className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                            hoveredButton === "heart"
-                                ? "bg-primary"
+                            hoveredButton === "heart" || inWishlist
+                                ? "bg-rose-500"
                                 : "bg-white"
                         }`}
                         onMouseEnter={() => setHoveredButton("heart")}
                         onMouseLeave={() => setHoveredButton(null)}
-                        onClick={(e) => {
-                            e.stopPropagation(); // Prevent card click
-                            console.log("Add to wishlist");
-                        }}
-                        aria-label="Add to wishlist"
+                        onClick={handleWishlistToggle}
+                        aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
                     >
                         <Image
                             src={Heart}
@@ -196,7 +209,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                             width={20}
                             height={20}
                             className={`${
-                                hoveredButton === "heart"
+                                hoveredButton === "heart" || inWishlist
                                     ? "filter brightness-0 invert"
                                     : ""
                             }`}
@@ -270,8 +283,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 </Tooltip>
 
                 {/* Price */}
-                <div className="font-semibold text-sm text-primary">
-                    {formattedPrice}
+                <div className={`font-semibold text-sm ${formattedPrice === "0đ" ? "text-rose-500" : "text-primary"}`}>
+                    {formattedPrice === "0đ" ? "Không kinh doanh" : formattedPrice}
                 </div>
             </div>
         </div>

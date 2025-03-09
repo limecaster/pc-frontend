@@ -6,7 +6,7 @@ const WishlistDashboard = () => {
     useEffect(() => {
         document.title = "Danh sách yêu thích | B Store";
     }, []);
-
+    
     return <WishlistPage />;
 };
 

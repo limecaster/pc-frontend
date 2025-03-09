@@ -6,7 +6,6 @@ import Link from "next/link";
 import { TrashIcon } from "@radix-ui/react-icons";
 import VietQRLogo from "@/assets/VietQRLogo.png";
 import { Tooltip } from "../ui/tooltip";
-import { generateSlug } from "@/utils/slugify";
 import PayOSPayment from "./PayOSPayment";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -57,13 +56,16 @@ interface CheckoutFormData {
 const CheckoutPage: React.FC = () => {
     const router = useRouter();
     
-    const [cartItems, setCartItems] = useState<Product[]>(() => {
-        if (typeof window !== "undefined") {
-            const storedCart = localStorage.getItem("cart");
-            return storedCart ? JSON.parse(storedCart) : [];
+    // Changed to avoid hydration mismatch - initialize with empty array
+    const [cartItems, setCartItems] = useState<Product[]>([]);
+    
+    // Load cart data only after component mounts on client
+    useEffect(() => {
+        const storedCart = localStorage.getItem("cart");
+        if (storedCart) {
+            setCartItems(JSON.parse(storedCart));
         }
-        return [];
-    });
+    }, []);
 
     useEffect(() => {
         localStorage.setItem("cart", JSON.stringify(cartItems));
@@ -198,9 +200,24 @@ const CheckoutPage: React.FC = () => {
             // Format the complete address
             const fullAddress = `${formData.houseNumber}, ${formData.streetName}, ${formData.ward}, ${formData.district}, ${formData.province}`;
             
+            // Get user token to check authentication status
+            const token = localStorage.getItem('token');
+            let customerId = null;
+            
+            if (token) {
+                try {
+                    // Decode token to get customerId - this is a simple example, adjust based on your token structure
+                    const tokenData = JSON.parse(atob(token.split('.')[1]));
+                    customerId = tokenData.sub; // Assuming 'sub' contains the user ID
+                } catch (e) {
+                    console.error('Error parsing token:', e);
+                }
+            }
+            
             // Prepare order data for payment
             const orderData = {
                 orderId: displayOrderId,
+                customerId, // Include customerId if user is authenticated
                 items: cartItems.map(item => ({
                     id: item.id,
                     name: item.name,
@@ -229,6 +246,7 @@ const CheckoutPage: React.FC = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
                 body: JSON.stringify(orderData),
             });
@@ -433,8 +451,9 @@ const CheckoutPage: React.FC = () => {
                                                     name="district"
                                                     value={formData.district}
                                                     onChange={handleInputChange}
-                                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+                                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                                                     required
+                                                    disabled={!formData.province}
                                                 >
                                                     <option value="">
                                                         Chọn quận/huyện
@@ -463,8 +482,9 @@ const CheckoutPage: React.FC = () => {
                                                     name="ward"
                                                     value={formData.ward}
                                                     onChange={handleInputChange}
-                                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+                                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                                                     required
+                                                    disabled={!formData.district}
                                                 >
                                                     <option value="">
                                                         Chọn xã/phường
@@ -612,7 +632,7 @@ const CheckoutPage: React.FC = () => {
                                                     <Tooltip content={item.name}>
                                                         <h3 className="text-sm font-medium text-gray-900 truncate">
                                                             <Link 
-                                                                href={`/product/${item.id}-${generateSlug(item.name)}`}
+                                                                href={`/product/${item.id}`}
                                                                 className="hover:text-primary transition-colors"
                                                             >
                                                                 {item.name}
@@ -727,7 +747,7 @@ const CheckoutPage: React.FC = () => {
                         </div>
                     </div>
                 )}
-            </div>W
+            </div>
         </div>
     );
 };

@@ -1,12 +1,12 @@
 "use client";
-import React, { useEffect } from "react";
-import CheckoutSuccessPageComponent from "@/components/checkout/CheckoutSuccessPage";
+import React, { Suspense } from "react";
+import CheckoutSuccessContent from "./CheckoutSuccessContent";
 
-const CheckoutSuccessPage = () => {
-    useEffect(() => {
-        document.title = "B Store - Thanh toán thành công";
-    }, []);
-    return <CheckoutSuccessPageComponent />;
+const CheckoutSuccessPage: React.FC = () => {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-white">Loading...</div>}>
+            <CheckoutSuccessContent />
+        </Suspense>
+    );
 };
-
 export default CheckoutSuccessPage;

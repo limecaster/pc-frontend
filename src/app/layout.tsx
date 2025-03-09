@@ -9,6 +9,8 @@ import Chatbot from "@/components/chatbot/ChatBot";
 import { Toaster } from "react-hot-toast";
 import { Roboto } from "next/font/google";
 import { Providers } from "./providers";
+import { WishlistProvider } from "@/contexts/WishlistContext";
+import { CheckoutProvider } from "@/contexts/CheckoutContext";
 
 const roboto = Roboto({
     subsets: ["vietnamese"],
@@ -24,13 +26,17 @@ export default function RootLayout({
         <html lang="vi">
             <body className={roboto.className}>
                 <Providers>
-                    <Header />
-                    <Navigation />
-                    <Breadcrumb />
-                    {children}
-                    <Footer />
-                    <Chatbot />
-                    <Toaster position="top-center" />
+                    <WishlistProvider>
+                        <CheckoutProvider>
+                            <Header />
+                            <Navigation />
+                            <Breadcrumb />
+                            {children}
+                            <Footer />
+                            <Chatbot />
+                            <Toaster position="top-center" />
+                        </CheckoutProvider>
+                    </WishlistProvider>
                 </Providers>
             </body>
         </html>

@@ -1,78 +1,143 @@
-import React, { useState } from "react";
-import { MagnifyingGlassIcon, ChevronDownIcon } from "@radix-ui/react-icons";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSearch } from "@fortawesome/free-solid-svg-icons";
 
-const sortOptions = [
-  { id: "popular", name: "Phổ biến" },
-  { id: "newest", name: "Mới nhất" },
-  { id: "price-asc", name: "Giá: Thấp đến cao" },
-  { id: "price-desc", name: "Giá: Cao đến thấp" },
-  { id: "rating", name: "Đánh giá" },
-];
+interface SearchSortProps {
+    initialQuery?: string;
+    products?: any[];
+    onFilteredProductsChange?: (filteredProducts: any[]) => void;
+    onSort?: (sortOption: string) => void;
+    isGlobalSearch?: boolean; // To differentiate between global search and local search
+}
 
-const SearchSort: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortOption, setSortOption] = useState("popular");
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+const SearchSort: React.FC<SearchSortProps> = ({
+    initialQuery = "",
+    products = [],
+    onFilteredProductsChange,
+    onSort,
+    isGlobalSearch = false,
+}) => {
+    const router = useRouter();
+    const [searchTerm, setSearchTerm] = useState(initialQuery);
+    const [sortOption, setSortOption] = useState("relevance");
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Implement search functionality
-    console.log("Searching for:", searchTerm);
-  };
+    // If initialQuery changes (from parent component), update searchTerm state
+    useEffect(() => {
+        setSearchTerm(initialQuery);
+    }, [initialQuery]);
 
-  return (
-    <div className="inline-flex items-start gap-[307px] w-full">
-      <form onSubmit={handleSearch} className="flex-grow">
-        <div className="inline-flex items-center justify-between gap-2 px-4 py-3 relative w-[364px] bg-gray-00 rounded-sm border border-solid border-gray-200">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm kiếm sản phẩm"
-            className="relative w-full outline-none font-normal text-gray-500 text-sm tracking-[0] leading-5 bg-transparent"
-          />
-          <button type="submit">
-            <MagnifyingGlassIcon className="w-5 h-5 text-gray-800" />
-          </button>
-        </div>
-      </form>
+    // When search term or sort option changes, filter products locally
+    useEffect(() => {
+        // Only perform local filtering if not in global search mode and we have products
+        if (
+            !isGlobalSearch &&
+            products.length > 0 &&
+            onFilteredProductsChange
+        ) {
+            let filtered = [...products];
 
-      <div className="inline-flex items-center gap-[22px] relative">
-        <div className="relative w-fit font-medium text-gray-900 text-sm tracking-[0] leading-5 whitespace-nowrap">
-          Sắp xếp:
-        </div>
+            // Filter by search term if provided
+            if (searchTerm.trim()) {
+                filtered = filtered.filter((product) =>
+                    product.name
+                        .toLowerCase()
+                        .includes(searchTerm.trim().toLowerCase()),
+                );
+            }
 
-        <div className="relative">
-          <button 
-            className="inline-flex items-center justify-between w-[180px] px-4 py-3 bg-white border border-solid border-gray-200 rounded-sm"
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          >
-            <span className="font-normal text-sm text-gray-800 leading-5">
-              {sortOptions.find(opt => opt.id === sortOption)?.name || "Phổ biến"}
-            </span>
-            <ChevronDownIcon className="w-4 h-4 text-gray-800" />
-          </button>
+            // Sort the filtered products
+            sortProducts(filtered, sortOption);
 
-          {isDropdownOpen && (
-            <div className="absolute top-full left-0 w-[180px] bg-white border border-solid border-gray-200 rounded-sm mt-1 z-10">
-              {sortOptions.map(option => (
-                <div 
-                  key={option.id}
-                  className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-800"
-                  onClick={() => {
-                    setSortOption(option.id);
-                    setIsDropdownOpen(false);
-                  }}
+            // Send filtered products back to parent
+            onFilteredProductsChange(filtered);
+        }
+    }, [searchTerm, sortOption, products, isGlobalSearch]);
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        // If this is a global search (header search), navigate to search page
+        if (isGlobalSearch && searchTerm.trim()) {
+            router.push(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
+        }
+
+        // For local search, the useEffect above will handle filtering
+    };
+
+    const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newSortOption = e.target.value;
+        setSortOption(newSortOption);
+
+        // If parent provided a sort handler, call it
+        if (onSort) {
+            onSort(newSortOption);
+        }
+    };
+
+    // Helper to sort products based on the selected option
+    const sortProducts = (productList: any[], option: string): any[] => {
+        switch (option) {
+            case "price-asc":
+                return productList.sort((a, b) => a.price - b.price);
+            case "price-desc":
+                return productList.sort((a, b) => b.price - a.price);
+            case "rating":
+                return productList.sort((a, b) => b.rating - a.rating);
+            case "newest":
+                // Assuming products have a createdAt or date field
+                return productList.sort(
+                    (a, b) =>
+                        new Date(b.createdAt || 0).getTime() -
+                        new Date(a.createdAt || 0).getTime(),
+                );
+            default: // relevance or any other option
+                return productList; // Keep original order
+        }
+    };
+
+    return (
+        <div className="flex flex-col md:flex-row gap-4 justify-between text-gray-700">
+            <form
+                onSubmit={handleSearch}
+                className="relative flex-grow max-w-md"
+            >
+                <input
+                    type="text"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+                    placeholder="Tìm kiếm sản phẩm..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <button
+                    type="submit"
+                    className="absolute right-0 top-0 h-full px-4 text-gray-600 hover:text-primary"
                 >
-                  {option.name}
+                    <FontAwesomeIcon icon={faSearch} />
+                </button>
+            </form>
+
+            {!isGlobalSearch && (
+                <div className="flex items-center gap-2">
+                    <label htmlFor="sort" className="text-sm text-gray-700">
+                        Sắp xếp theo:
+                    </label>
+                    <select
+                        id="sort"
+                        value={sortOption}
+                        onChange={handleSortChange}
+                        className="px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary text-sm"
+                    >
+                        <option value="relevance">Phù hợp nhất</option>
+                        <option value="price-asc">Giá thấp đến cao</option>
+                        <option value="price-desc">Giá cao đến thấp</option>
+                        <option value="newest">Mới nhất</option>
+                        <option value="rating">Đánh giá cao nhất</option>
+                    </select>
                 </div>
-              ))}
-            </div>
-          )}
+            )}
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default SearchSort;

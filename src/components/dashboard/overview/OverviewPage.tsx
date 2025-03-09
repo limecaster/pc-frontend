@@ -12,7 +12,7 @@ import {
     ChevronRightIcon,
 } from "@radix-ui/react-icons";
 import { Tooltip } from "@/components/ui/tooltip";
-import { generateSlug } from "@/utils/slugify";
+// import { generateSlug } from "@/utils/slugify";
 
 const DashboardOverview: React.FC = () => {
     // Mock user data - in a real app this would come from an API or state
@@ -372,9 +372,7 @@ const DashboardOverview: React.FC = () => {
                                             <Link
                                                 href={`/product/${
                                                     product.id
-                                                }-${generateSlug(
-                                                    product.name,
-                                                )}`}
+                                                }`}
                                                 className="text-sm font-medium text-gray-900 hover:text-primary truncate block"
                                             >
                                                 {product.name}

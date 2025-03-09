@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeftIcon, CheckCircledIcon } from "@radix-ui/react-icons";
-import { generateSlug } from "@/utils/slugify";
+// import { generateSlug } from "@/utils/slugify";
 import { Tooltip } from "../ui/tooltip";
 
 // Define status types
@@ -338,7 +338,7 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
                                                 <Tooltip content={item.name}>
                                                     <h3 className="text-sm font-medium text-gray-900 truncate">
                                                         <Link 
-                                                            href={`/product/${item.id}-${generateSlug(item.name)}`}
+                                                            href={`/product/${item.id}`}
                                                             className="hover:text-primary transition-colors"
                                                         >
                                                             {item.name}
