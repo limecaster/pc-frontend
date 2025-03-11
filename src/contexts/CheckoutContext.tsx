@@ -4,7 +4,7 @@ import React, {
     useContext,
     ReactNode,
 } from "react";
-import { processPayment, createOrder, createGuestOrder } from "@/api/checkout";
+import { createOrder, createGuestOrder } from "@/api/checkout";
 import { toast } from "react-hot-toast";
 import { validateTokenFormat } from "@/api/auth";
 import { useRouter } from "next/navigation";
@@ -30,7 +30,7 @@ interface CheckoutContextType {
     paymentLoading: boolean;
     createCheckoutOrder: (
         items: OrderItem[],
-        shippingInfo: ShippingInfo,
+        shipping: ShippingInfo,
         notes?: string,
     ) => Promise<any>;
     clearCheckout: () => void;
@@ -65,7 +65,7 @@ export function CheckoutProvider({ children }: CheckoutProviderProps) {
         setShippingInfo(null);
     };
 
-    // Create an order and process payment
+    // Create an order without immediate payment
     const createCheckoutOrder = async (
         items: OrderItem[],
         shipping: ShippingInfo,
@@ -85,32 +85,7 @@ export function CheckoutProvider({ children }: CheckoutProviderProps) {
             // Format full address
             const fullAddress = shipping.address;
 
-            // Prepare order data
-            const orderData = {
-                orderId: `ORDER-${Date.now()}`,
-                items: items.map((item) => ({
-                    id: item.productId,
-                    name: item.name,
-                    price: item.price,
-                    quantity: item.quantity,
-                })),
-                customer: {
-                    fullName: shipping.fullName,
-                    email: shipping.email,
-                    phone: shipping.phone,
-                    address: fullAddress,
-                },
-                total,
-                subtotal: total,
-                shippingFee: 0,
-                discount: 0,
-                notes,
-                paymentMethod: "PayOS",
-                returnUrl: window.location.origin + "/checkout/success",
-                cancelUrl: window.location.origin + "/checkout/failure",
-            };
-
-            // Create order in database first
+            // Create order in database
             let orderResponse;
 
             if (localStorage.getItem("token") && validateTokenFormat()) {
@@ -150,51 +125,48 @@ export function CheckoutProvider({ children }: CheckoutProviderProps) {
                 orderResponse = await createGuestOrder(guestOrderData);
             }
 
-            // If order created successfully, process payment
+            // If order created successfully, store order data and return
             if (orderResponse && orderResponse.success) {
-                // Update order ID with the one from database
-                orderData.orderId = orderResponse.order.id.toString();
-                // orderData.description = `Order #${orderResponse.order.id}`;
+                const orderId = orderResponse.order.id;
+                const orderNumber = orderResponse.order.orderNumber || `ORDER-${orderId}`;
+                
+                // Store order data for success page
+                localStorage.setItem(
+                    "latestOrder",
+                    JSON.stringify({
+                        orderId: orderId,
+                        orderNumber: orderNumber,
+                        orderDate: new Date().toISOString(),
+                        orderItems: items,
+                        shippingAddress: {
+                            fullName: shipping.fullName,
+                            address: fullAddress,
+                            city: "",
+                            phone: shipping.phone,
+                        },
+                        paymentMethod: "PayOS",
+                        subtotal: total,
+                        shippingFee: 0,
+                        discount: 0,
+                        total,
+                        status: "pending_approval"
+                    }),
+                );
 
-                // Process payment
-                const paymentResponse = await processPayment(orderData);
+                // Clear cart after successful order creation
+                localStorage.removeItem("cart");
 
-                if (paymentResponse && paymentResponse.success) {
-                    // Store order data for success page
-                    localStorage.setItem(
-                        "latestOrder",
-                        JSON.stringify({
-                            orderId:
-                                paymentResponse.originalOrderId ||
-                                orderData.orderId,
-                            orderDate: new Date().toISOString(),
-                            orderItems: items,
-                            shippingAddress: {
-                                fullName: shipping.fullName,
-                                address: fullAddress,
-                                city: "",
-                                phone: shipping.phone,
-                            },
-                            paymentMethod: "PayOS",
-                            subtotal: total,
-                            shippingFee: 0,
-                            discount: 0,
-                            total,
-                        }),
-                    );
-
-                    // Return payment data for redirect
-                    return paymentResponse.data;
-                } else {
-                    throw new Error("Payment processing failed");
-                }
+                return {
+                    success: true,
+                    order: orderResponse.order,
+                };
             } else {
                 throw new Error("Order creation failed");
             }
         } catch (error) {
             console.error("Error in checkout process:", error);
             toast.error(
-                "Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại.",
+                "Có lỗi xảy ra trong quá trình đặt hàng. Vui lòng thử lại.",
             );
             throw error;
         } finally {

@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { CheckCircledIcon } from "@radix-ui/react-icons";
-// import { generateSlug } from "@/utils/slugify";
 import { getOrderDetails } from "@/api/checkout";
 import { useSearchParams } from "next/navigation";
 
@@ -16,7 +15,17 @@ interface OrderItem {
     image?: string;
     imageUrl?: string;
 }
-
+enum OrderStatus {
+    PENDING_APPROVAL = 'pending_approval',
+    APPROVED = 'approved',
+    PAYMENT_SUCCESS = 'payment_success',
+    PAYMENT_FAILURE = 'payment_failure',
+    PROCESSING = 'processing',
+    SHIPPING = 'shipping',
+    DELIVERED = 'delivered',
+    CANCELLED = 'cancelled',
+    COMPLETED = 'completed',
+}
 interface CheckoutSuccessComponentProps {
     orderId?: string;
     orderDate?: string;
@@ -27,6 +36,7 @@ interface CheckoutSuccessComponentProps {
         city: string;
         phone: string;
     };
+    status?: OrderStatus;
     paymentMethod?: string;
     subtotal?: number;
     shippingFee?: number;
@@ -47,12 +57,18 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
             setLoading(true);
             setError(null);
             
+            console.log("Loading order details...");
+            
             try {
                 // First check if we have a saved order in localStorage
                 const savedOrder = localStorage.getItem('latestOrder');
+                console.log("Saved order from localStorage:", savedOrder ? "Found" : "Not found");
+                
                 if (savedOrder) {
                     try {
                         const parsedOrder = JSON.parse(savedOrder);
+                        console.log("Parsed order from localStorage:", parsedOrder);
+                        
                         // Format the date
                         parsedOrder.orderDate = new Date(parsedOrder.orderDate).toLocaleDateString("vi-VN", {
                             year: "numeric",
@@ -63,16 +79,23 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                         });
                         
                         // Process the order items to ensure they have image/imageUrl
-                        const processedItems = parsedOrder.orderItems.map((item: OrderItem) => ({
+                        const processedItems = parsedOrder.orderItems?.map((item: OrderItem) => ({
                             ...item,
                             image: item.image || item.imageUrl || "/products/placeholder.jpg",
-                        }));
+                        })) || [];
                         
                         parsedOrder.orderItems = processedItems;
                         setOrderDetails(parsedOrder);
                         
-                        // Clear the saved order after using it
-                        localStorage.removeItem('latestOrder');
+                        console.log("Order details set from localStorage");
+                        
+                        // Don't remove from localStorage immediately to allow for page refreshes
+                        // We'll clear it after a delay
+                        setTimeout(() => {
+                            localStorage.removeItem('latestOrder');
+                            console.log("Cleared latestOrder from localStorage after delay");
+                        }, 30000); // 30 seconds delay
+                        
                         setLoading(false);
                         return;
                     } catch (e) {
@@ -83,6 +106,7 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                 
                 // If no localStorage data, try to get order ID from URL
                 const orderId = searchParams.get('orderId');
+                console.log("Order ID from URL params:", orderId);
                 
                 if (!orderId) {
                     setError("Không tìm thấy thông tin đơn hàng");
@@ -91,13 +115,15 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                 }
                 
                 // Fetch order details from server
+                console.log("Fetching order from server with ID:", orderId);
                 const response = await getOrderDetails(orderId);
+                console.log("Server response for order details:", response);
                 
                 if (response.success && response.order) {
                     // Transform server response to match expected format
                     const serverOrder: CheckoutSuccessComponentProps = {
                         orderId: response.order.id.toString(),
-                        orderNumber: response.order.orderNumber ,
+                        orderNumber: response.order.orderNumber,
                         orderDate: new Date(response.order.orderDate).toLocaleDateString("vi-VN", {
                             year: "numeric",
                             month: "long",
@@ -105,33 +131,47 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                             hour: "2-digit",
                             minute: "2-digit",
                         }),
-                        orderItems: response.order.items.map((item: any) => ({
-                            id: item.product.id,
-                            name: item.product.name,
-                            price: item.subPrice / item.quantity, // Calculate unit price
-                            quantity: item.quantity,
-                            imageUrl: item.product.imageUrl || "/images/image-placeholer.webp",
-                        })),
+                        orderItems: response.order.items?.map((item: any) => ({
+                            id: item.product?.id || "",
+                            name: item.product?.name || "Unknown Product",
+                            price: item.product ? (item.subPrice / item.quantity) : 0, // Calculate unit price safely
+                            quantity: item.quantity || 1,
+                            imageUrl: item.product?.imageUrl || "/images/image-placeholer.webp",
+                        })) || [],
                         shippingAddress: {
                             fullName: response.order.customer?.fullName || "Khách hàng",
-                            address: response.order.deliveryAddress.split(',')[0] || "",
-                            city: response.order.deliveryAddress.split(',').slice(1).join(',') || "",
+                            address: response.order.deliveryAddress?.split(',')[0] || "",
+                            city: response.order.deliveryAddress?.split(',').slice(1).join(',') || "",
                             phone: response.order.customer?.phoneNumber || "",
                         },
-                        paymentMethod: response.order.paymentMethod,
-                        subtotal: response.order.total,
+                        paymentMethod: response.order.paymentMethod || "PayOS",
+                        subtotal: response.order.total || 0,
                         shippingFee: 0,
                         discount: 0,
-                        total: response.order.total
+                        total: response.order.total || 0
                     };
                     
+                    console.log("Processed server order data:", serverOrder);
                     setOrderDetails(serverOrder);
                 } else {
-                    throw new Error("Invalid server response format");
+                    // For demo purposes, if the server response fails, we'll check if we have props
+                    if (props.orderId) {
+                        console.log("Using props as fallback:", props);
+                        setOrderDetails(props);
+                    } else {
+                        throw new Error(response.message || "Invalid server response format");
+                    }
                 }
             } catch (error) {
                 console.error("Failed to load order details:", error);
-                setError("Không thể tải thông tin đơn hàng. Vui lòng thử lại sau.");
+                
+                // Check for fallback order in URL parameters
+                if (props.orderId) {
+                    console.log("Using props as fallback after error:", props);
+                    setOrderDetails(props);
+                } else {
+                    setError("Không thể tải thông tin đơn hàng. Vui lòng thử lại sau.");
+                }
             } finally {
                 setLoading(false);
             }
@@ -200,7 +240,8 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
         subtotal,
         shippingFee,
         discount,
-        total
+        total,
+        orderNumber
     } = orderDetails;
 
     return (
@@ -215,10 +256,11 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                         Đặt hàng thành công!
                     </h1>
                     <p className="text-gray-600 mb-4 text-center">
-                        Cảm ơn bạn đã mua sắm tại B Store. Chúng tôi đã nhận được đơn hàng của bạn và sẽ xử lý trong thời gian sớm nhất.
+                        Cảm ơn bạn đã mua sắm tại B Store. Đơn hàng của bạn đang chờ xác nhận từ nhân viên. 
+                        Chúng tôi sẽ liên hệ với bạn sớm để xác nhận đơn hàng.
                     </p>
                     <div className="bg-gray-200 px-4 py-2 rounded-md text-sm text-gray-900">
-                        <span className="font-medium">Mã đơn hàng:</span> {orderId}
+                        <span className="font-medium">Mã đơn hàng:</span> {orderNumber || orderId}
                     </div>
                 </div>
 
@@ -238,7 +280,27 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                                 </p>
                                 <p className="text-gray-600">
                                     <span className="font-medium">Trạng thái:</span>{" "}
-                                    <span className="text-green-600 font-medium">Đã thanh toán</span>
+                                    <span className={`font-medium ${
+                                        orderDetails?.status === OrderStatus.PAYMENT_SUCCESS ? "text-green-600" :
+                                        orderDetails?.status === OrderStatus.PENDING_APPROVAL ? "text-yellow-600" :
+                                        orderDetails?.status === OrderStatus.APPROVED ? "text-blue-600" :
+                                        orderDetails?.status === OrderStatus.PAYMENT_FAILURE ? "text-red-600" :
+                                        orderDetails?.status === OrderStatus.PROCESSING ? "text-orange-600" :
+                                        orderDetails?.status === OrderStatus.SHIPPING ? "text-indigo-600" :
+                                        orderDetails?.status === OrderStatus.DELIVERED ? "text-purple-600" :
+                                        orderDetails?.status === OrderStatus.CANCELLED ? "text-gray-600" :
+                                        orderDetails?.status === OrderStatus.COMPLETED ? "text-green-600" : "text-gray-600"
+                                    }`}>
+                                        {orderDetails?.status === OrderStatus.PAYMENT_SUCCESS ? "Đã thanh toán" :
+                                        orderDetails?.status === OrderStatus.PENDING_APPROVAL ? "Chờ phê duyệt" :
+                                        orderDetails?.status === OrderStatus.APPROVED ? "Đã phê duyệt" :
+                                        orderDetails?.status === OrderStatus.PAYMENT_FAILURE ? "Thanh toán thất bại" :
+                                        orderDetails?.status === OrderStatus.PROCESSING ? "Đang xử lý" :
+                                        orderDetails?.status === OrderStatus.SHIPPING ? "Đang giao hàng" :
+                                        orderDetails?.status === OrderStatus.DELIVERED ? "Đã giao hàng" :
+                                        orderDetails?.status === OrderStatus.CANCELLED ? "Đã hủy" :
+                                        orderDetails?.status === OrderStatus.COMPLETED ? "Hoàn thành" : "Không xác định"}
+                                    </span>
                                 </p>
                                 <p className="text-gray-600">
                                     <span className="font-medium">Phương thức thanh toán:</span>{" "}
@@ -279,18 +341,33 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                             </h2>
                             <ol className="list-decimal list-inside space-y-2 text-gray-600">
                                 <li>
-                                    Chúng tôi sẽ kiểm tra và xác nhận đơn hàng của bạn.
+                                    Nhân viên sẽ xác nhận thông tin đơn hàng của bạn trong vòng 24 giờ.
                                 </li>
                                 <li>
-                                    Bạn sẽ nhận được email xác nhận đơn hàng với các chi tiết.
+                                    Sau khi đơn hàng được xác nhận, bạn sẽ nhận được email thông báo và cập nhật trạng thái đơn hàng.
                                 </li>
                                 <li>
-                                    Đơn hàng sẽ được đóng gói và gửi đi trong vòng 1-2 ngày làm việc.
+                                    {paymentMethod === "PayOS" ? 
+                                      "Đơn hàng sẽ được xử lý và gửi đi sau khi thanh toán thành công." : 
+                                      "Bạn có thể thanh toán khi nhận hàng theo phương thức đã chọn."}
                                 </li>
                                 <li>
-                                    Bạn sẽ nhận được thông báo khi đơn hàng được gửi đi.
+                                    Thời gian giao hàng dự kiến: 3-5 ngày làm việc.
                                 </li>
                             </ol>
+                            <div className="mt-4 bg-blue-50 p-4 rounded-md">
+                                <p className="text-blue-700 font-medium">
+                                    Bạn có thể theo dõi trạng thái đơn hàng trong phần "Đơn hàng" của tài khoản.
+                                </p>
+                                <div className="mt-2">
+                                    <Link
+                                        href="/dashboard/orders"
+                                        className="text-primary hover:underline font-medium"
+                                    >
+                                        Xem đơn hàng →
+                                    </Link>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Continue Shopping Button */}
@@ -358,14 +435,14 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                                             : formatCurrency(shippingFee || 0)}
                                     </span>
                                 </div>
-                                {discount && discount > 0 && (
+                                {/* {discount && discount > 0 && (
                                     <div className="flex justify-between text-sm">
                                         <span className="text-gray-600">Giảm giá:</span>
                                         <span className="text-green-600">
                                             -{formatCurrency(discount || 0)}
                                         </span>
                                     </div>
-                                )}
+                                )} */}
                                 <div className="border-t border-gray-200 mt-4 pt-4 flex justify-between">
                                     <span className="font-medium text-gray-900">Tổng cộng:</span>
                                     <span className="font-bold text-primary">

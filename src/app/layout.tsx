@@ -11,6 +11,7 @@ import { Roboto } from "next/font/google";
 import { Providers } from "./providers";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { CheckoutProvider } from "@/contexts/CheckoutContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const roboto = Roboto({
     subsets: ["vietnamese"],
@@ -23,18 +24,20 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="vi">
-            <body className={roboto.className}>
+        <html lang="en">
+            <body className={`${roboto.className}`}>
                 <Providers>
                     <WishlistProvider>
                         <CheckoutProvider>
-                            <Header />
-                            <Navigation />
-                            <Breadcrumb />
-                            {children}
-                            <Footer />
-                            <Chatbot />
-                            <Toaster position="top-center" />
+                            <AuthProvider>
+                                <Header />
+                                <Navigation />
+                                <Breadcrumb />
+                                {children}
+                                <Footer />
+                                <Chatbot />
+                                <Toaster position="top-center" />
+                            </AuthProvider>
                         </CheckoutProvider>
                     </WishlistProvider>
                 </Providers>

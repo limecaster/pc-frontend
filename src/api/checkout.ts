@@ -127,6 +127,8 @@ export async function checkPaymentStatus(paymentId: string) {
  */
 export async function getOrderDetails(orderId: string | number) {
     try {
+        console.log(`Fetching order details for ID: ${orderId}`);
+        
         const token = localStorage.getItem("token");
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
@@ -134,23 +136,33 @@ export async function getOrderDetails(orderId: string | number) {
         
         if (token) {
             headers.Authorization = `Bearer ${token}`;
+            console.log("Token available, adding to Authorization header");
+        } else {
+            console.log("No token available, proceeding without Authorization");
         }
 
         const response = await fetch(`${API_URL}/orders/${orderId}`, {
             headers,
         });
 
+        console.log(`Order details API response status: ${response.status}`);
+        
+        const data = await response.json();
+        console.log("Order details API response data:", data);
+        
         if (!response.ok) {
-            const data = await response.json();
             throw new Error(
-                data.error || `Failed to fetch order details: ${response.status}`
+                data.message || `Failed to fetch order details: ${response.status}`
             );
         }
 
-        return await response.json();
+        return data;
     } catch (error) {
         console.error("Error fetching order details:", error);
-        throw error;
+        return {
+            success: false, 
+            message: error instanceof Error ? error.message : "Unknown error fetching order details"
+        };
     }
 }
 

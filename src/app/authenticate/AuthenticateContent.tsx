@@ -1,135 +1,167 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { LoginTabs } from "@/components/authenticate/LoginTabs";
+
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { LoginForm } from "@/components/authenticate/LoginForm";
 import { RegisterForm } from "@/components/authenticate/RegisterForm";
 import { ForgotPasswordForm } from "@/components/authenticate/ForgotPasswordForm";
+import { LoginTabs } from "@/components/authenticate/LoginTabs";
 import { SocialLogin } from "@/components/authenticate/LoginSocial";
+import { unifiedLogin } from "@/api/auth";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter, useSearchParams } from "next/navigation";
 
-type AuthMode = "login" | "register" | "forgot-password";
+type AuthScreen = "login" | "register" | "forgotPassword";
 
 const AuthenticateContent: React.FC = () => {
     const [activeTab, setActiveTab] = useState<"login" | "register">("login");
-    const [authMode, setAuthMode] = useState<AuthMode>("login");
-    const { login, register: registerUser, forgotPassword, resetPassword, error, isAuthenticated, isLoading, clearError } = useAuth();
+    const [currentScreen, setCurrentScreen] = useState<AuthScreen>("login");
+    const [error, setError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { login, register, isAuthenticated, checkUserRole } = useAuth();
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const returnUrl = searchParams?.get('returnUrl') || '/';
-    const message = searchParams?.get('message');
 
     useEffect(() => {
-        document.title = "B Store - Xác thực tài khoản";
+        // If already authenticated, redirect based on role
         if (isAuthenticated) {
-            router.push(returnUrl);
+            const role = checkUserRole();
+            if (role === "admin") {
+                router.push("/admin");
+            } else if (role === "staff") {
+                router.push("/staff");
+            } else {
+                router.push("/");
+            }
         }
-    }, [isAuthenticated, router, returnUrl]);
+    }, [isAuthenticated, router, checkUserRole]);
+
+    const handleTabChange = (tab: "login" | "register") => {
+        setActiveTab(tab);
+        setCurrentScreen(tab);
+        setError(null);
+    };
 
     const handleLogin = async (loginId: string, password: string) => {
-        await login(loginId, password);
+        try {
+            setError(null);
+            setIsSubmitting(true);
+
+            const response = await unifiedLogin({ username: loginId, password });
+
+            if (response.access_token && response.user) {
+                login(response.access_token, response.user);
+
+                // Redirect based on role
+                if (response.user.role === "admin") {
+                    router.push("/admin");
+                } else if (response.user.role === "staff") {
+                    router.push("/staff");
+                } else {
+                    router.push("/");
+                }
+            }
+        } catch (err: any) {
+            console.error("Login error:", err);
+            setError(err.message || "Login failed. Please check your credentials.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleRegister = async (fullName: string, email: string, password: string, username?: string) => {
-        // Split fullName into firstname and lastname
-        const nameParts = fullName.trim().split(' ');
-        const lastname = nameParts.pop() || '';
-        const firstname = nameParts.join(' ');
-        
-        // Pass the username to the registration function
-        await registerUser(email, password, username, firstname, lastname);
-    };
-
-    const handleForgotPassword = async (email: string, otp?: string, newPassword?: string) => {
-        if (newPassword && otp) {
-            // Handle password reset submission
-            await resetPassword(email, otp, newPassword);
-            navigateToLogin();
-        } else {
-            // Handle sending OTP
-            await forgotPassword(email);
+        try {
+            setError(null);
+            setIsSubmitting(true);
+            
+            // Call the register function from auth context
+            await register(email, password, username, 
+                fullName.split(' ')[0] || "", // firstname (first word of fullName)
+                fullName.split(' ').slice(1).join(' ') || "" // lastname (rest of fullName)
+            );
+            
+            // Registration and verification successful
+            // Now redirect to login screen with success message
+            setActiveTab("login");
+            setCurrentScreen("login");
+            // Show success toast or message here if needed
+        } catch (err: any) {
+            console.error("Registration error:", err);
+            setError(err.message || "Registration failed. Please try again.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
-    const navigateToForgotPassword = () => {
-        clearError();
-        setAuthMode("forgot-password");
+    const handleForgotPasswordSubmit = async (email: string, otpCode?: string, newPassword?: string) => {
+        // This would be called when the forgot password flow is completed
+        // We can redirect back to login
+        setCurrentScreen("login");
     };
 
-    const navigateToLogin = () => {
-        clearError();
-        setAuthMode("login");
+    const handleNavigateToForgotPassword = () => {
+        setCurrentScreen("forgotPassword");
+        setError(null);
+    };
+
+    const handleNavigateToLogin = () => {
+        setCurrentScreen("login");
         setActiveTab("login");
+        setError(null);
     };
 
-    const navigateToRegister = () => {
-        clearError();
-        setAuthMode("register");
+    const handleNavigateToRegister = () => {
+        setCurrentScreen("register");
         setActiveTab("register");
+        setError(null);
     };
 
-    // Handle tab changes only when not in forgot-password mode
-    const handleTabChange = (tab: "login" | "register") => {
-        clearError();
-        setActiveTab(tab);
-        setAuthMode(tab);
+    const renderCurrentScreen = () => {
+        switch (currentScreen) {
+            case "login":
+                return (
+                    <>
+                        <LoginForm
+                            onSubmit={handleLogin}
+                            onForgotPassword={handleNavigateToForgotPassword}
+                            isSubmitting={isSubmitting}
+                        />
+                        <SocialLogin />
+                    </>
+                );
+            case "register":
+                return (
+                    <>
+                        <RegisterForm onSubmit={handleRegister} />
+                        <SocialLogin />
+                    </>
+                );
+            case "forgotPassword":
+                return (
+                    <ForgotPasswordForm
+                        onSubmit={handleForgotPasswordSubmit}
+                        onNavigateToLogin={handleNavigateToLogin}
+                        onNavigateToRegister={handleNavigateToRegister}
+                    />
+                );
+            default:
+                return null;
+        }
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-white">
-            <main className="overflow-hidden bg-white rounded border border-solid shadow-2xl border-[#E4E7E9] max-w-[424px] w-full">
-                {message && (
-                    <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
-                        <span className="block sm:inline">{message}</span>
-                    </div>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-white py-8">
+            <div className="w-full max-w-md shadow-lg rounded-lg overflow-hidden">
+                {currentScreen !== "forgotPassword" && (
+                    <LoginTabs activeTab={activeTab} onTabChange={handleTabChange} />
                 )}
-                
+
                 {error && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                        <span className="block sm:inline">{error}</span>
-                        <button className="absolute top-0 bottom-0 right-0 px-4 py-3" onClick={clearError}>
-                            <svg className="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                <title>Close</title>
-                                <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697L11.819 10l2.53 2.651a1.2 1.2 0 0 1 0 1.697z"/>
-                            </svg>
-                        </button>
+                    <div className="px-8 py-2 mt-4 bg-red-100 text-red-700 text-sm">
+                        {error}
                     </div>
                 )}
 
-                <div className="flex flex-col items-center pb-4 w-full bg-white">
-                    {authMode !== "forgot-password" && (
-                        <>
-                            <LoginTabs activeTab={activeTab} onTabChange={handleTabChange} />
-                            <div className="self-stretch w-full bg-gray-200 border border-gray-200 border-solid min-h-px" />
-                        </>
-                    )}
-
-                    {authMode === "login" && (
-                        <>
-                            <LoginForm 
-                                onSubmit={handleLogin} 
-                                onForgotPassword={navigateToForgotPassword} 
-                            />
-                            <SocialLogin />
-                        </>
-                    )}
-
-                    {authMode === "register" && (
-                        <>
-                            <RegisterForm onSubmit={handleRegister} />
-                            <SocialLogin />
-                        </>
-                    )}
-
-                    {authMode === "forgot-password" && (
-                        <ForgotPasswordForm 
-                            onSubmit={handleForgotPassword}
-                            onNavigateToLogin={navigateToLogin}
-                            onNavigateToRegister={navigateToRegister}
-                        />
-                    )}
-                </div>
-            </main>
+                {renderCurrentScreen()}
+            </div>
         </div>
     );
 };

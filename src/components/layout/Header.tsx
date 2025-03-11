@@ -101,7 +101,7 @@ const Header = () => {
                             <span className="hidden md:inline text-sm text-white">
                                 {isAuthenticated
                                     ? `Xin chào, ${
-                                          user?.firstname || user?.username
+                                          user?.firstName || user?.username
                                       }`
                                     : "Tài khoản"}
                             </span>

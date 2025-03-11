@@ -9,6 +9,8 @@ import { Tooltip } from "../ui/tooltip";
 import PayOSPayment from "./PayOSPayment";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { getCart } from "@/api/cart";
+import { useCheckout } from "@/contexts/CheckoutContext"; // Add this import
 
 const Alert = dynamic(() => import("@/components/ui/alert").then(mod => mod.Alert), { ssr: false });
 const AlertTitle = dynamic(() => import("@/components/ui/alert").then(mod => mod.AlertTitle), { ssr: false });
@@ -55,21 +57,105 @@ interface CheckoutFormData {
 
 const CheckoutPage: React.FC = () => {
     const router = useRouter();
+    const { createCheckoutOrder } = useCheckout(); // Extract the function from context
     
     // Changed to avoid hydration mismatch - initialize with empty array
     const [cartItems, setCartItems] = useState<Product[]>([]);
+    const [isLoadingCart, setIsLoadingCart] = useState(true);
     
-    // Load cart data only after component mounts on client
+    // Load cart data from both localStorage and API when component mounts
     useEffect(() => {
-        const storedCart = localStorage.getItem("cart");
-        if (storedCart) {
-            setCartItems(JSON.parse(storedCart));
-        }
+        const loadCart = async () => {
+            setIsLoadingCart(true);
+            try {
+                // First try to load from API if user is logged in
+                if (localStorage.getItem("token")) {
+                    try {
+                        const response = await getCart();
+                        if (response.success && response.cart) {
+                            console.log("Cart loaded from API:", response.cart);
+                            
+                            // Map cart items from API to the Product interface with safety checks
+                            const apiCartItems = response.cart.items?.map((item: any) => {
+                                console.log("Processing cart item:", item);
+                                
+                                // Handle both possible structures:
+                                // 1. Item with nested product object: { product: { id, name, ... }, quantity, ... }
+                                // 2. Item with flat structure: { id, productId, productName, quantity, ... }
+                                
+                                if (item.productId && item.productName) {
+                                    // Flat structure
+                                    return {
+                                        id: item.productId,
+                                        name: item.productName,
+                                        price: parseFloat(item.price || item.subPrice / item.quantity) || 0,
+                                        quantity: item.quantity || 1,
+                                        imageUrl: item.imageUrl || '/images/placeholder.png'
+                                    };
+                                } else if (item.product) {
+                                    // Nested structure
+                                    return {
+                                        id: item.product.id || `temp-${Date.now()}-${Math.random()}`,
+                                        name: item.product.name || "Unknown Product",
+                                        price: parseFloat(item.product.price) || 0,
+                                        quantity: item.quantity || 1,
+                                        imageUrl: item.product.imageUrl || 
+                                                  (item.product.images && item.product.images[0]) || 
+                                                  '/images/placeholder.png'
+                                    };
+                                } else {
+                                    console.error("Unrecognized cart item structure:", item);
+                                    return null;
+                                }
+                            }).filter(Boolean) || []; // Filter out any null items
+                            
+                            console.log("Processed cart items:", apiCartItems);
+                            setCartItems(apiCartItems);
+                            
+                            // Also update localStorage for consistency
+                            localStorage.setItem("cart", JSON.stringify(apiCartItems));
+                            return;
+                        }
+                    } catch (error) {
+                        console.error("Error loading cart from API:", error);
+                        // Fall back to localStorage if API fails
+                    }
+                }
+                
+                // If API call fails or user is not logged in, try localStorage
+                const storedCart = localStorage.getItem("cart");
+                if (storedCart) {
+                    try {
+                        const parsedCart = JSON.parse(storedCart);
+                        console.log("Cart loaded from localStorage:", parsedCart);
+                        
+                        // Ensure all cart items have necessary properties
+                        const validCartItems = parsedCart.filter((item: any) => 
+                            item && typeof item === 'object' && item.id);
+                            
+                        setCartItems(validCartItems);
+                    } catch (error) {
+                        console.error("Error parsing cart from localStorage:", error);
+                        setCartItems([]);
+                    }
+                }
+            } catch (error) {
+                console.error("Error loading cart:", error);
+                setCartItems([]);
+            } finally {
+                setIsLoadingCart(false);
+            }
+        };
+        
+        loadCart();
     }, []);
 
+    // Save to localStorage whenever cart changes
     useEffect(() => {
-        localStorage.setItem("cart", JSON.stringify(cartItems));
-    }, [cartItems]);
+        if (!isLoadingCart) { // Only update localStorage after initial load
+            localStorage.setItem("cart", JSON.stringify(cartItems));
+        }
+    }, [cartItems, isLoadingCart]);
 
     // Mock form data
     const [formData, setFormData] = useState<CheckoutFormData>({
@@ -200,105 +286,38 @@ const CheckoutPage: React.FC = () => {
             // Format the complete address
             const fullAddress = `${formData.houseNumber}, ${formData.streetName}, ${formData.ward}, ${formData.district}, ${formData.province}`;
             
-            // Get user token to check authentication status
-            const token = localStorage.getItem('token');
-            let customerId = null;
-            
-            if (token) {
-                try {
-                    // Decode token to get customerId - this is a simple example, adjust based on your token structure
-                    const tokenData = JSON.parse(atob(token.split('.')[1]));
-                    customerId = tokenData.sub; // Assuming 'sub' contains the user ID
-                } catch (e) {
-                    console.error('Error parsing token:', e);
-                }
-            }
-            
-            // Prepare order data for payment
+            // Create order data
             const orderData = {
-                orderId: displayOrderId,
-                customerId, // Include customerId if user is authenticated
-                items: cartItems.map(item => ({
-                    id: item.id,
-                    name: item.name,
-                    price: item.price,
-                    quantity: item.quantity,
-                })),
-                customer: {
+                items: cartItems,
+                shippingInfo: {
                     fullName: formData.fullName,
                     email: formData.email,
                     phone: formData.phone,
                     address: fullAddress,
                 },
-                total: total,
-                subtotal: subtotal,
-                shippingFee: deliveryFee,
-                discount: discountAmount,
-                notes: formData.notes,
-                returnUrl: window.location.origin + "/checkout/success",
-                cancelUrl: window.location.origin + "/checkout",
+                notes: formData.notes
             };
 
-            console.log('Sending order data:', orderData);
-
-            // Call backend to create payment
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/payment/create`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                },
-                body: JSON.stringify(orderData),
-            });
-
-            console.log('Payment response status:', response.status);
+            // Use checkout context to create order
+            const result = await createCheckoutOrder(
+                orderData.items.map(item => ({ ...item, productId: item.id })),
+                orderData.shippingInfo,
+                orderData.notes
+            );
             
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Error response:', errorText);
-                throw new Error(`Failed to create payment: ${errorText}`);
-            }
-
-            // Parse the response JSON
-            const responseData = await response.json();
-            console.log('Payment response data:', responseData);
-            
-            // Check if responseData has the expected structure based on PayOS API response
-            if (responseData.success && responseData.data) {
-                // Our API wrapper structure: { success: true, data: { paymentLinkId, checkoutUrl, ... } }
-                setPaymentData({
-                    paymentLinkId: responseData.data.paymentLinkId,
-                    checkoutUrl: responseData.data.checkoutUrl
-                });
+            if (result && result.success) {
+                // Clear cart
+                setCartItems([]);
+                localStorage.removeItem('cart');
                 
-                setPaymentStep('payment');
-                
-                // Save order details to localStorage for success page
-                localStorage.setItem('latestOrder', JSON.stringify({
-                    orderId: responseData.originalOrderId || displayOrderId, // Use original ID if available
-                    orderDate: new Date().toISOString(),
-                    orderItems: cartItems.map(item => ({
-                        ...item,
-                        image: item.imageUrl // Make sure image is properly set
-                    })),
-                    shippingAddress: {
-                        fullName: formData.fullName,
-                        address: `${formData.houseNumber}, ${formData.streetName}`,
-                        city: `${formData.ward}, ${formData.district}, ${formData.province}`,
-                        phone: formData.phone
-                    },
-                    paymentMethod: "PayOS",
-                    subtotal,
-                    shippingFee: deliveryFee,
-                    discount: discountAmount,
-                    total
-                }));
+                // Navigate to success page
+                router.push('/checkout/success');
             } else {
-                throw new Error(`Payment initialization failed: ${responseData.message || 'Unknown error'}`);
+                throw new Error("Failed to create order");
             }
         } catch (error) {
-            console.error('Error creating payment:', error);
-            setErrorMessage(`Có lỗi xảy ra khi tạo thanh toán: ${(error as Error).message}`);
+            console.error('Error creating order:', error);
+            setErrorMessage(`Có lỗi xảy ra khi đặt hàng: ${(error as Error).message}`);
         } finally {
             setIsProcessingPayment(false);
         }
@@ -322,6 +341,15 @@ const CheckoutPage: React.FC = () => {
     const removeItem = (id: string) => {
         setCartItems((items) => items.filter((item) => item.id !== id));
     };
+
+    // If cart is loading, show a loading indicator
+    if (isLoadingCart) {
+        return (
+            <div className="w-full h-96 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full bg-gray-100 py-8">
@@ -614,51 +642,57 @@ const CheckoutPage: React.FC = () => {
 
                                     {/* Products */}
                                     <div className="mt-6 space-y-4">
-                                        {cartItems.map((item) => (
-                                            <div
-                                                key={item.id}
-                                                className="flex items-center space-x-4"
-                                            >
-                                                <div className="flex-shrink-0 w-16 h-16 border border-gray-200 rounded-md overflow-hidden">
-                                                    <Image
-                                                        src={item.imageUrl}
-                                                        alt={item.name}
-                                                        width={64}
-                                                        height={64}
-                                                        className="w-full h-full object-contain"
-                                                    />
+                                        {cartItems && cartItems.length > 0 ? (
+                                            cartItems.map((item) => (
+                                                <div
+                                                    key={item.id}
+                                                    className="flex items-center space-x-4"
+                                                >
+                                                    <div className="flex-shrink-0 w-16 h-16 border border-gray-200 rounded-md overflow-hidden">
+                                                        <Image
+                                                            src={item.imageUrl || '/images/placeholder.png'}
+                                                            alt={item.name || 'Product'}
+                                                            width={64}
+                                                            height={64}
+                                                            className="w-full h-full object-contain"
+                                                        />
+                                                    </div>
+                                                    <div className="flex-grow w-0">
+                                                        <Tooltip content={item.name}>
+                                                            <h3 className="text-sm font-medium text-gray-900 truncate">
+                                                                <Link 
+                                                                    href={`/product/${item.id}`}
+                                                                    className="hover:text-primary transition-colors"
+                                                                >
+                                                                    {item.name}
+                                                                </Link>
+                                                            </h3>
+                                                        </Tooltip>
+                                                        <span className="text-sm text-gray-500">
+                                                            {item.quantity} x{" "}
+                                                        </span>
+                                                        <span className="text-sm font-medium text-primary">
+                                                            {formatCurrency(item.price)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex-shrink-0">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                removeItem(item.id)
+                                                            }
+                                                            className="text-red-500 hover:text-red-700"
+                                                        >
+                                                            <TrashIcon className="h-5 w-5" />
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <div className="flex-grow w-0">
-                                                    <Tooltip content={item.name}>
-                                                        <h3 className="text-sm font-medium text-gray-900 truncate">
-                                                            <Link 
-                                                                href={`/product/${item.id}`}
-                                                                className="hover:text-primary transition-colors"
-                                                            >
-                                                                {item.name}
-                                                            </Link>
-                                                        </h3>
-                                                    </Tooltip>
-                                                    <span className="text-sm text-gray-500">
-                                                        {item.quantity} x{" "}
-                                                    </span>
-                                                    <span className="text-sm font-medium text-primary">
-                                                        {formatCurrency(item.price)}
-                                                    </span>
-                                                </div>
-                                                <div className="flex-shrink-0">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            removeItem(item.id)
-                                                        }
-                                                        className="text-red-500 hover:text-red-700"
-                                                    >
-                                                        <TrashIcon className="h-5 w-5" />
-                                                    </button>
-                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="text-center py-4 text-gray-500">
+                                                Your cart is empty
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
 
                                     <div className="mt-6 border-t border-gray-200 pt-4 space-y-4">

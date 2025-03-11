@@ -117,21 +117,23 @@ export async function getCart() {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
             },
-            // Don't mix Authorization header with credentials
-            // credentials: "include",
         });
 
         if (!response.ok) {
             if (response.status === 401) {
                 throw new Error("Authentication failed. Please log in again.");
             }
-            const data = await response.json();
-            throw new Error(
-                data.message || `Failed to retrieve cart: ${response.status}`,
-            );
+            
+            try {
+                const data = await response.json();
+                throw new Error(data.message || `Failed to retrieve cart: ${response.status}`);
+            } catch (parseError) {
+                throw new Error(`Failed to retrieve cart: ${response.status}`);
+            }
         }
 
-        return await response.json();
+        const data = await response.json();
+        return data;
     } catch (error) {
         console.error("Error getting cart:", error);
         throw error;
