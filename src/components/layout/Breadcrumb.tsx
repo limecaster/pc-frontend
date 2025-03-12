@@ -26,6 +26,7 @@ const pathNameMap: { [key: string]: string } = {
     "viewed-products": "Sản phẩm đã xem",
     wishlist: "Danh sách yêu thích",
     account: "Thông tin tài khoản",
+    faq: "Câu hỏi thường gặp",
 };
 
 const Breadcrumb: React.FC = () => {
@@ -56,9 +57,9 @@ const Breadcrumb: React.FC = () => {
                         />
                         <Link
                             href="/"
-                            className="self-stretch my-auto text-gray-500"
+                            className="self-stretch my-auto text-gray-500 hover:text-gray-700"
                         >
-                            Home
+                            Trang chủ
                         </Link>
 
                         {breadcrumbItems.map((item, index) => (
@@ -69,13 +70,13 @@ const Breadcrumb: React.FC = () => {
                                     className="object-contain shrink-0 self-stretch my-auto w-5 aspect-square"
                                 />
                                 {index === breadcrumbItems.length - 1 ? (
-                                    <span className="self-stretch my-auto font-medium text-cyan-300">
+                                    <span className="self-stretch my-auto font-medium text-secondary hover:text-primary">
                                         {item.name}
                                     </span>
                                 ) : (
                                     <Link
                                         href={item.path}
-                                        className="self-stretch my-auto text-gray-500"
+                                        className="self-stretch my-auto text-gray-500 hover:text-gray-700"
                                     >
                                         {item.name}
                                     </Link>

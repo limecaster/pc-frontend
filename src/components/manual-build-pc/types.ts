@@ -6,6 +6,7 @@ export interface ProductCardProps {
   discountPercentage: string;
   logoUrl: string;
   category: string;
+  productUrl: string;
 }
 
 export interface ManualBuildPCItemCardProps {

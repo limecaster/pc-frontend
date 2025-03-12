@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import ChatInput from "@/components/chatbot/ChatInput";
 import ChatMessage from "@/components/chatbot/ChatMessage";
 import { ChatBubbleIcon } from "@radix-ui/react-icons";
+import { useFooter } from "@/contexts/FooterContext";
 
 export default function Chatbot() {
     const [messages, setMessages] = useState<
@@ -17,13 +18,37 @@ export default function Chatbot() {
     const [isOpen, setIsOpen] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isOverlappingFooter, setIsOverlappingFooter] = useState(false);
     const chatContainerRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const { footerRef } = useFooter();
 
     useEffect(() => {
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
     }, [messages]);
+
+    // Detect overlap with footer
+    useEffect(() => {
+        if (!buttonRef.current || !footerRef.current) return;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                setIsOverlappingFooter(entry.isIntersecting);
+            },
+            {
+                root: null,
+                threshold: 0.1,
+            }
+        );
+
+        observer.observe(footerRef.current);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [footerRef]);
 
     // Add welcome message when chat is first opened
     useEffect(() => {
@@ -107,8 +132,9 @@ export default function Chatbot() {
             {/* Floating Chatbot Button */}
             {!isOpen && (
                 <button
+                    ref={buttonRef}
                     onClick={toggleChatbot}
-                    className="fixed bottom-5 right-5 bg-primary text-white p-4 rounded-full shadow-lg hover:bg-primary-dark transition-all duration-300 transform hover:scale-110 focus:outline-none z-50"
+                    className={`fixed bottom-5 right-5 ${isOverlappingFooter ? 'bg-secondary' : 'bg-primary'} text-white p-4 rounded-full shadow-lg hover:bg-primary-dark transition-all duration-300 transform hover:scale-110 focus:outline-none z-50`}
                     type="button"
                     aria-label="Open chatbot"
                 >

@@ -1,9 +1,16 @@
 "use client";
 
+// Handle errors by logging and showing a toast notification
+const handleError = (error: any, message: string) => {
+    console.error(message, error);
+    toast.error(message);
+};
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { API_URL } from "@/config/constants";
 import { refreshTokenIfNeeded, validateTokenFormat } from "@/api/auth";
+import { toast } from "react-hot-toast";
 
 interface User {
     id: string;
@@ -38,6 +45,7 @@ interface AuthContextType {
         newPassword: string,
     ) => Promise<any>;
     resendOtp: (email: string, type: "verification" | "reset") => Promise<any>;
+    resendVerificationOtp: (email: string) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -113,6 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         lastname?: string,
     ): Promise<any> => {
         try {
+            setIsLoading(true);
             const response = await fetch(`${API_URL}/auth/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -125,18 +134,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 }),
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(
-                    errorData.message ||
-                        `Registration failed: ${response.status}`,
-                );
+                // If the user exists but is unverified, this should still be considered a success case
+                // since we're going to send them to verification
+                if (response.status === 409 && data.message?.toLowerCase().includes('email đã được sử dụng')) {
+                    // Check if the user is unverified
+                    const unverifiedCheck = await fetch(`${API_URL}/auth/check-verification-status`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email }),
+                    });
+                    
+                    // If we can't check or the user is verified, treat as an error
+                    if (!unverifiedCheck.ok) {
+                        throw new Error(data.message || 'Email đã được sử dụng');
+                    }
+                    
+                    const statusData = await unverifiedCheck.json();
+                    if (statusData.isVerified) {
+                        throw new Error('Email đã được sử dụng');
+                    }
+                    
+                    // Email exists but unverified - send them to verification screen
+                    toast.success("Bạn cần xác thực email của mình. Mã xác thực đã được gửi lại.");
+                    return {
+                        success: true,
+                        needsVerification: true,
+                        email
+                    };
+                }
+                throw new Error(data.message || 'Registration failed');
             }
 
-            return await response.json();
+            toast.success("Đăng ký thành công! Vui lòng kiểm tra email của bạn để xác thực tài khoản.");
+            return data;
         } catch (error) {
-            console.error("Registration error:", error);
+            handleError(error, 'Registration error:');
             throw error;
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -170,24 +208,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         otpCode: string,
     ): Promise<any> => {
         try {
+            setIsLoading(true);
             const response = await fetch(`${API_URL}/auth/verify-email`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({ email, otpCode }),
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(
-                    errorData.message ||
-                        `Email verification failed: ${response.status}`,
-                );
+                const data = await response.json();
+                throw new Error(data.message || 'Mã xác thực không hợp lệ');
             }
 
-            return await response.json();
+            const data = await response.json();
+            toast.success("Email đã được xác thực thành công!");
+            return data;
         } catch (error) {
-            console.error("Email verification error:", error);
+            // Don't use handleError here as we're already showing the error in the UI
+            console.error('Verification error:', error);
             throw error;
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -274,6 +317,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     };
 
+    // Add a new method to handle the resend OTP operation specifically for registration
+    const resendVerificationOtp = async (email: string): Promise<any> => {
+        try {
+            setIsLoading(true);
+            const response = await fetch(`${API_URL}/auth/resend-otp`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, type: "verification" }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Không thể gửi lại mã OTP');
+            }
+
+            toast.success("Mã xác thực mới đã được gửi đến email của bạn");
+            return await response.json();
+        } catch (error) {
+            handleError(error, 'Không thể gửi lại mã xác thực:');
+            throw error;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <AuthContext.Provider
             value={{
@@ -289,6 +357,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 verifyResetOtp,
                 resetPassword,
                 resendOtp,
+                resendVerificationOtp, // Add the new method
             }}
         >
             {children}

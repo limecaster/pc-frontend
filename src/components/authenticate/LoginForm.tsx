@@ -71,7 +71,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                     disabled={disabled}
                 />
                 {errors.loginId && (
-                    <span className="text-xs text-red-500 mt-1">{errors.loginId}</span>
+                    <span className="text-xs text-red-500 mt-1">
+                        {errors.loginId}
+                    </span>
                 )}
             </div>
             <div className="flex flex-col gap-1.5">

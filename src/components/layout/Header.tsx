@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +21,7 @@ const Header = () => {
     const [cartCount, setCartCount] = useState(0);
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearching, setIsSearching] = useState(false);
+    const userMenuRef = useRef<HTMLDivElement>(null); // For handling clicks outside of user menu
 
     const { user, isAuthenticated, logout } = useAuth();
 
@@ -46,6 +47,23 @@ const Header = () => {
             setCartCount(count);
         }
     }, []);    
+
+    // Handle clicks outside of user menu
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+                setShowUserMenu(false);
+            }
+        };
+
+        if (showUserMenu) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showUserMenu]);
 
     // Handle search submission
     const handleSearch = (e: React.FormEvent) => {
@@ -88,7 +106,7 @@ const Header = () => {
                 {/* Navigation Icons */}
                 <div className="flex items-center gap-6">
                     {/* User Account */}
-                    <div className="relative">
+                    <div className="relative" ref={userMenuRef}>
                         <button
                             className="flex items-center gap-2 focus:outline-none"
                             onClick={toggleUserMenu}

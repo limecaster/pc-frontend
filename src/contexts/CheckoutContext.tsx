@@ -7,7 +7,6 @@ import React, {
 import { createOrder, createGuestOrder } from "@/api/checkout";
 import { toast } from "react-hot-toast";
 import { validateTokenFormat } from "@/api/auth";
-import { useRouter } from "next/navigation";
 
 interface OrderItem {
     productId: string;
@@ -54,7 +53,6 @@ interface CheckoutProviderProps {
 }
 
 export function CheckoutProvider({ children }: CheckoutProviderProps) {
-    const router = useRouter();
     const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
     const [shippingInfo, setShippingInfo] = useState<ShippingInfo | null>(null);
     const [paymentLoading, setPaymentLoading] = useState(false);

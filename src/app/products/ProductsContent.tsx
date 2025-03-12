@@ -191,7 +191,6 @@ const ProductsContent: React.FC = () => {
                 }
                 response.products = sortedProducts;
             }
-            
             setProducts(response.products);
             setFilteredProducts(response.products);
             setTotalResults(response.total);

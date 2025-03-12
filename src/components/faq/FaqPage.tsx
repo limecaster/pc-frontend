@@ -77,18 +77,18 @@ const FaqPage = () => {
     };
 
     return (
-        <div className="bg-gray-100 text-gray-800">
+        <div className="bg-gray-50 text-gray-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
                 <h1 className="text-3xl font-bold text-center text-gray-800 mb-10">
-                    Frequently Asked Questions
+                    Câu Hỏi Thường Gặp
                 </h1>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* FAQ Column */}
+                    {/* Cột FAQ */}
                     <div>
-                        <div className="bg-white shadow-md rounded-lg p-6">
+                        <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
                             <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                                Common Questions
+                                Câu Hỏi Chung
                             </h2>
 
                             <div className="space-y-3">
@@ -127,22 +127,20 @@ const FaqPage = () => {
                         </div>
                     </div>
 
-                    {/* Contact Form Column */}
+                    {/* Cột Form Liên Hệ */}
                     <div>
-                        <div className="bg-white shadow-md rounded-lg p-6">
+                        <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
                             <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                                Still Have Questions?
+                                Vẫn Còn Câu Hỏi?
                             </h2>
                             <p className="text-gray-600 mb-6">
-                                Send us a message and we'll get back to you as
-                                soon as possible.
+                                Gửi cho chúng tôi một tin nhắn và chúng tôi sẽ phản hồi sớm nhất có thể.
                             </p>
 
                             {formSubmitted && (
                                 <div className="bg-green-100 text-green-800 p-4 rounded-md mb-4">
                                     <p>
-                                        Thank you for your message! We'll
-                                        respond shortly.
+                                        Cảm ơn bạn đã gửi tin nhắn! Chúng tôi sẽ phản hồi sớm.
                                     </p>
                                 </div>
                             )}
@@ -156,7 +154,7 @@ const FaqPage = () => {
                                         htmlFor="name"
                                         className="block text-gray-700 font-medium mb-2"
                                     >
-                                        Your Name
+                                        Tên Của Bạn
                                     </label>
                                     <input
                                         id="name"
@@ -174,7 +172,7 @@ const FaqPage = () => {
                                         htmlFor="email"
                                         className="block text-gray-700 font-medium mb-2"
                                     >
-                                        Email Address
+                                        Địa Chỉ Email
                                     </label>
                                     <input
                                         id="email"
@@ -192,7 +190,7 @@ const FaqPage = () => {
                                         htmlFor="subject"
                                         className="block text-gray-700 font-medium mb-2"
                                     >
-                                        Subject
+                                        Chủ Đề
                                     </label>
                                     <input
                                         id="subject"
@@ -210,7 +208,7 @@ const FaqPage = () => {
                                         htmlFor="message"
                                         className="block text-gray-700 font-medium mb-2"
                                     >
-                                        Your Message
+                                        Tin Nhắn Của Bạn
                                     </label>
                                     <textarea
                                         id="message"
@@ -225,9 +223,9 @@ const FaqPage = () => {
 
                                 <button
                                     type="submit"
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors duration-300"
+                                    className="bg-primary hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors duration-300"
                                 >
-                                    Send Message
+                                    Gửi Tin Nhắn
                                 </button>
                             </form>
                         </div>

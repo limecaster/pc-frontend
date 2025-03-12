@@ -4,6 +4,7 @@ import "flowbite";
 import Image from "next/image";
 import { ManualBuildPCItemCard } from "@/components/manual-build-pc/ManualBuildPCItemCard";
 import { ProductCard } from "@/components/manual-build-pc/ProductCard";
+import { getCompatibleParts } from "@/api/manual-build-pc";
 
 import cpuIcon from "@/assets/icon/pc-parts/cpu.svg";
 import motherboardIcon from "@/assets/icon/pc-parts/motherboard.svg";
@@ -46,7 +47,6 @@ const itemData = [
 
 const ManualBuildPCContent = () => {
     const searchParams = useSearchParams() as any;
-    console.log("Search params:", searchParams);
     const selectedProductsQuery = searchParams?.get("selectedProducts") || "{}";
     const initialSelectedProducts = selectedProductsQuery
         ? JSON.parse(selectedProductsQuery as string)
@@ -58,6 +58,7 @@ const ManualBuildPCContent = () => {
     const [showPopup, setShowPopup] = useState(false);
     const [popupItems, setPopupItems] = useState<any[]>(() => []);
     const [currentCategory, setCurrentCategory] = useState("");
+    const [loading, setLoading] = useState(false); // Add loading state
 
     // Add state for search and sort
     const [searchTerm, setSearchTerm] = useState("");
@@ -81,25 +82,26 @@ const ManualBuildPCContent = () => {
                 label: cat,
             }),
         );
+        setLoading(true); // Set loading to true
+        setShowPopup(true); // Show popup immediately with loading state
+        
         try {
-            const queryParams = new URLSearchParams();
-            queryParams.append("targetLabel", category);
-            queryParams.append("selectedParts", JSON.stringify(selectedParts));
-            queryParams.append("page", page.toString());
-            queryParams.append("limit", itemsPerPage.toString());
-
-            const response = await fetch(
-                `http://localhost:3001/build/manual-build/compatible-parts?${queryParams.toString()}`,
+            const response = await getCompatibleParts(
+                category, 
+                selectedParts, 
+                page, 
+                itemsPerPage
             );
-            const data = await response.json();
-            setPopupItems(data.items || []);
-            setTotalPages(data.totalPages || 1);
+            
+            setPopupItems(response.items);
+            setTotalPages(response.totalPages);
             setCurrentPage(page);
         } catch (error) {
             console.error("Error fetching compatible parts:", error);
             setPopupItems([]);
+        } finally {
+            setLoading(false); // Set loading to false when done
         }
-        setShowPopup(true);
     };
 
     const handlePageChange = (page: number) => {
@@ -225,7 +227,7 @@ const ManualBuildPCContent = () => {
                                 key={label}
                                 imageUrl={
                                     selectedItem?.imageUrl ||
-                                    "https://via.placeholder.com/150"
+                                    "/images/image-placeholder.webp"
                                 }
                                 productName={selectedItem?.name || label}
                                 currentPrice={
@@ -235,6 +237,7 @@ const ManualBuildPCContent = () => {
                                 discountPercentage="0%"
                                 logoUrl=""
                                 category={label}
+                                productUrl={selectedItem?.id || "#"}
                                 buttonLabel="Sửa"
                                 onButtonClick={() => handleSelectClick(label)}
                                 onRemoveClick={() => handleRemovePart(label)}
@@ -350,8 +353,13 @@ const ManualBuildPCContent = () => {
                                     </select>
                                 </form>
 
-                                {/* Items List */}
-                                {popupItems.length === 0 ? (
+                                {/* Items List with Loading State */}
+                                {loading ? (
+                                    <div className="flex flex-col items-center justify-center py-10">
+                                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                                        <p className="mt-3 text-gray-600">Đang tìm kiếm linh kiện tương thích...</p>
+                                    </div>
+                                ) : popupItems.length === 0 ? (
                                     <p className="text-gray-600">
                                         Không có linh kiện tương thích.
                                     </p>
@@ -419,7 +427,7 @@ const ManualBuildPCContent = () => {
                                                     >
                                                         <Image
                                                             src={
-                                                                "https://via.placeholder.com/50"
+                                                                "/images/image-placeholder.webp"
                                                             }
                                                             alt={item.name}
                                                             width={50}

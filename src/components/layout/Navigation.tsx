@@ -259,7 +259,7 @@ const Navigation: React.FC = () => {
                     </span>
                 </Link>
                 <Link
-                    href="#"
+                    href="/faq"
                     className="flex gap-1.5 items-center self-stretch my-auto"
                 >
                     <Image

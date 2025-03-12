@@ -12,6 +12,8 @@ import { Providers } from "./providers";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { CheckoutProvider } from "@/contexts/CheckoutContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { FooterProvider } from "@/contexts/FooterContext";
+import { usePathname } from "next/navigation";
 
 const roboto = Roboto({
     subsets: ["vietnamese"],
@@ -23,20 +25,30 @@ export default function RootLayout({
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+    // Check if the current path is in the admin section
+    const pathname = usePathname();
+    const isAdminPage = pathname?.startsWith("/admin");
+
     return (
         <html lang="en">
-            <body className={`${roboto.className}`}>
+            <body className={`${roboto.className} antialiased`}>
                 <Providers>
                     <WishlistProvider>
                         <CheckoutProvider>
                             <AuthProvider>
-                                <Header />
-                                <Navigation />
-                                <Breadcrumb />
-                                {children}
-                                <Footer />
-                                <Chatbot />
-                                <Toaster position="top-center" />
+                                <FooterProvider>
+                                    {!isAdminPage && (
+                                        <>
+                                            <Header />
+                                            <Navigation />
+                                            <Breadcrumb />
+                                        </>
+                                    )}
+                                    {children}
+                                    {!isAdminPage && <Footer />}
+                                    {!isAdminPage && <Chatbot />}
+                                    {!isAdminPage && <Toaster position="top-center" />}
+                                </FooterProvider>
                             </AuthProvider>
                         </CheckoutProvider>
                     </WishlistProvider>

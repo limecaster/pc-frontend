@@ -13,6 +13,7 @@ export function ProductCard({
     discountPercentage,
     category,
     buttonLabel,
+    productUrl,
     onButtonClick,
     onRemoveClick,
 }: ProductCardProps & {
@@ -24,8 +25,9 @@ export function ProductCard({
         <div className="flex flex-col md:flex-row items-center justify-between p-4 bg-white rounded-md w-full max-w-full">
             <ProductInfo
                 category={category}
-                imageUrl={imageUrl || "https://via.placeholder.com/150"}
+                imageUrl={imageUrl || "/images/image-placeholder.webp"}
                 productName={productName}
+                productUrl={productUrl}
             />
             <div className="flex items-center gap-4 mt-4 md:mt-0 ml-auto">
                 <PriceDisplay
