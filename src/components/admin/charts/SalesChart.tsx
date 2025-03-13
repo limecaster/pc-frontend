@@ -1,12 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
-
-// Import ApexCharts dynamically to avoid SSR issues
-const ReactApexChart = dynamic(() => import("react-apexcharts"), {
-    ssr: false,
-});
+import { useEffect, useState, useMemo } from "react";
+import ChartWrapper from "./ChartWrapper";
 
 interface SalesChartProps {
     title?: string;
@@ -22,184 +17,116 @@ const SalesChart: React.FC<SalesChartProps> = ({
     data = { dates: [], sales: [] },
     isLoading = false,
 }) => {
-    const [chartOptions, setChartOptions] = useState({});
-    const [chartSeries, setChartSeries] = useState<
-        { name: string; data: number[] }[]
-    >([]);
+    // Use useMemo to create stable references
+    const safeTitle = useMemo(() => title ? String(title) : "Sales Overview", [title]);
+    const safeDates = useMemo(() => data?.dates ? [...data.dates] : [], [data?.dates]);
+    const safeSales = useMemo(() => data?.sales ? [...data.sales] : [], [data?.sales]);
 
-    useEffect(() => {
-        // Configure chart options with Flowbite styling
-        setChartOptions({
-            chart: {
-                id: "sales-chart",
-                fontFamily: "Inter, sans-serif",
-                toolbar: {
-                    show: true,
-                    offsetX: 0,
-                    offsetY: 0,
-                    tools: {
-                        download: true,
-                        selection: true,
-                        zoom: true,
-                        zoomin: true,
-                        zoomout: true,
-                        pan: true,
-                    },
-                    export: {
-                        csv: {
-                            filename: "sales-data",
-                            columnDelimiter: ',',
-                            headerCategory: 'Date',
-                            headerValue: 'Value',
-                        },
-                        svg: {
-                            filename: 'sales-chart',
-                        },
-                        png: {
-                            filename: 'sales-chart',
-                        }
-                    },
-                    autoSelected: 'zoom'
-                },
-                zoom: {
-                    enabled: true,
-                    type: 'x',
-                },
-                animations: {
-                    enabled: true,
-                    easing: 'easeinout',
-                    speed: 800,
-                    animateGradually: {
-                        enabled: true,
-                        delay: 150
-                    },
-                    dynamicAnimation: {
-                        enabled: true,
-                        speed: 350
-                    }
-                },
-                background: 'transparent',
+    // Format currency for tooltips
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat('vi-VN', { 
+            style: 'currency', 
+            currency: 'VND',
+            maximumFractionDigits: 0 
+        }).format(value);
+    };
+    
+    // Prepare Chart.js data and options
+    const chartData = {
+        labels: safeDates,
+        datasets: [
+            {
+                label: 'Doanh thu',
+                data: safeSales,
+                backgroundColor: 'rgba(26, 86, 219, 0.1)',
+                borderColor: 'rgba(26, 86, 219, 1)',
+                pointBackgroundColor: 'rgba(26, 86, 219, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(26, 86, 219, 1)',
+                borderWidth: 2,
+                tension: 0.3, // Smoother curve
+                fill: true,
             },
-            colors: ["#1A56DB"],
-            xaxis: {
-                categories: data.dates,
-                labels: {
-                    style: {
-                        colors: "#6B7280",
-                        fontSize: "12px",
-                        fontFamily: "Inter, sans-serif",
-                        fontWeight: 400,
-                    },
-                },
-                axisBorder: {
-                    show: false,
-                },
-                axisTicks: {
-                    show: false,
-                },
-            },
-            yaxis: {
-                labels: {
-                    style: {
-                        colors: "#6B7280",
-                        fontSize: "12px",
-                        fontFamily: "Inter, sans-serif",
-                        fontWeight: 400,
-                    },
-                    formatter: (value: number) => 
-                        new Intl.NumberFormat('vi-VN', { 
-                            style: 'currency', 
-                            currency: 'VND',
-                            maximumFractionDigits: 0 
-                        }).format(value),
-                },
-            },
-            stroke: {
-                curve: "smooth",
-                width: 3,
-            },
-            fill: {
-                type: "gradient",
-                gradient: {
-                    shade: "light",
-                    type: "vertical",
-                    shadeIntensity: 0.5,
-                    opacityFrom: 0.6,
-                    opacityTo: 0.1,
-                    stops: [0, 100],
-                },
-            },
-            dataLabels: {
-                enabled: false,
-            },
-            grid: {
-                show: true,
-                borderColor: "#F3F4F6",
-                strokeDashArray: 1,
-                padding: {
-                    left: 0,
-                    right: 0,
-                },
-                xaxis: {
-                    lines: {
-                        show: true,
-                    },
-                },
-                yaxis: {
-                    lines: {
-                        show: true,
-                    },
-                },
-            },
-            tooltip: {
-                shared: true,
-                intersect: false,
-                theme: "light",
-                style: {
-                    fontSize: '14px',
-                    fontFamily: 'Inter, sans-serif',
-                },
-                y: {
-                    formatter: (value: number) => 
-                        new Intl.NumberFormat('vi-VN', { 
-                            style: 'currency', 
-                            currency: 'VND',
-                            maximumFractionDigits: 0 
-                        }).format(value),
-                },
-            },
+        ],
+    };
+    
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
             legend: {
-                show: true,
-                position: 'top',
-                horizontalAlign: 'right',
-                fontFamily: 'Inter, sans-serif',
-                fontSize: '14px',
-                fontWeight: 500,
-                markers: {
-                    width: 12,
-                    height: 12,
-                    radius: 12,
+                position: 'top' as const,
+                labels: {
+                    font: {
+                        family: 'Roboto, sans-serif',
+                        size: 12,
+                    },
+                    color: '#6B7280',
                 }
             },
-            responsive: [
-                {
-                    breakpoint: 640,
-                    options: {
-                        legend: {
-                            position: "bottom",
-                        },
-                    },
+            tooltip: {
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                titleColor: '#111827',
+                bodyColor: '#4B5563',
+                borderColor: '#E5E7EB',
+                borderWidth: 1,
+                padding: 10,
+                boxPadding: 5,
+                usePointStyle: true,
+                titleFont: {
+                    family: 'Roboto, sans-serif',
+                    size: 14,
                 },
-            ],
-        });
-
-        setChartSeries([
-            {
-                name: "Doanh thu",
-                data: data.sales,
+                bodyFont: {
+                    family: 'Roboto, sans-serif',
+                    size: 12,
+                },
+                callbacks: {
+                    label: function(context: any) {
+                        return `Doanh thu: ${formatCurrency(context.parsed.y)}`;
+                    }
+                }
             },
-        ]);
-    }, [data]);
+        },
+        scales: {
+            x: {
+                grid: {
+                    color: '#F3F4F6',
+                    drawBorder: false,
+                    tickLength: 0,
+                },
+                ticks: {
+                    font: {
+                        family: 'Roboto, sans-serif',
+                        size: 12,
+                    },
+                    color: '#6B7280',
+                },
+            },
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: '#F3F4F6',
+                    drawBorder: false,
+                },
+                ticks: {
+                    font: {
+                        family: 'Roboto, sans-serif',
+                        size: 12,
+                    },
+                    color: '#6B7280',
+                    callback: function(value: any) {
+                        return formatCurrency(value);
+                    }
+                },
+            },
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index',
+        },
+    };
 
     if (isLoading) {
         return (
@@ -232,24 +159,21 @@ const SalesChart: React.FC<SalesChartProps> = ({
     return (
         <div className="p-4 border border-gray-200 rounded-lg shadow-sm bg-white">
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{safeTitle}</h3>
                 <div className="text-sm text-gray-500">
-                    {data.dates.length > 0 && (
+                    {safeDates.length > 0 && (
                         <span>
-                            {data.dates[0]} - {data.dates[data.dates.length - 1]}
+                            {safeDates[0]} - {safeDates[safeDates.length - 1]}
                         </span>
                     )}
                 </div>
             </div>
             <div className="chart-container" style={{ height: "320px" }}>
-                {typeof window !== "undefined" && (
-                    <ReactApexChart
-                        options={chartOptions}
-                        series={chartSeries}
-                        type="area"
-                        height="100%"
-                    />
-                )}
+                <ChartWrapper
+                    type="line"
+                    data={chartData}
+                    options={chartOptions}
+                />
             </div>
         </div>
     );

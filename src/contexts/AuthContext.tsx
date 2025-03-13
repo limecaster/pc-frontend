@@ -9,7 +9,7 @@ const handleError = (error: any, message: string) => {
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { API_URL } from "@/config/constants";
-import { refreshTokenIfNeeded, validateTokenFormat } from "@/api/auth";
+import { refreshTokenIfNeeded, validateTokenFormat, handleAuthError } from "@/api/auth";
 import { toast } from "react-hot-toast";
 
 interface User {
@@ -26,7 +26,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (token: string, userData: any) => void;
-    logout: () => void;
+    logout: (reason?: string) => void;
     checkUserRole: () => string | null;
     // Add missing methods for registration and password reset
     register: (
@@ -84,17 +84,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         initAuth();
     }, []);
 
+    // Check for auth error messages on the auth page
+    useEffect(() => {
+        // Only run this effect when on the authentication page
+        if (window.location.pathname.includes('/authenticate')) {
+            const errorMsg = sessionStorage.getItem('auth_error');
+            if (errorMsg) {
+                toast.error(errorMsg);
+                sessionStorage.removeItem('auth_error');
+            }
+        }
+    }, []);
+
     const login = (token: string, userData: any) => {
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(userData));
         setUser(userData);
     };
 
-    const logout = () => {
+    const logout = (reason?: string) => {
         localStorage.removeItem("token");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("user");
         setUser(null);
+        
+        // Show a toast message if a reason is provided
+        if (reason) {
+            toast.error(reason);
+        }
+        
         // Redirect to login page
         router.push("/authenticate");
     };
@@ -111,6 +129,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             return null;
         }
     };
+
+    // // Expose handleAuthError function to components that need it
+    // // This will make it available through the useAuth hook
+    // const handleAuthenticationError = (message: string) => {
+    //     logout(message);
+    // };
+
+    // Make handleAuthError available globally
+    useEffect(() => {
+        // @ts-ignore - Adding a global function for handling auth errors
+        window.__handleAuthError = (message: string) => {
+            logout(message);
+        };
+    }, []);
 
     // Register a new user
     const register = async (
@@ -357,7 +389,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 verifyResetOtp,
                 resetPassword,
                 resendOtp,
-                resendVerificationOtp, // Add the new method
+                resendVerificationOtp,
             }}
         >
             {children}
@@ -371,4 +403,9 @@ export const useAuth = () => {
         throw new Error("useAuth must be used within an AuthProvider");
     }
     return context;
+};
+
+// Export a global handler that doesn't require React context
+export const handleGlobalAuthError = (message: string) => {
+    handleAuthError(message);
 };

@@ -13,6 +13,7 @@ const pathNameMap: { [key: string]: string } = {
     "manual-build-pc": "Xây dựng cấu hình thủ công",
     "auto-build-pc": "Đề xuất cấu hình",
     products: "Sản phẩm",
+    product: "Sản phẩm",
     profile: "Tài khoản",
     "track-order": "Theo dõi đơn hàng",
     cart: "Giỏ hàng",

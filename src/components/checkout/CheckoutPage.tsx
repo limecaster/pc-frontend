@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { getCart } from "@/api/cart";
 import { useCheckout } from "@/contexts/CheckoutContext"; // Add this import
+import VietnamAddressSelect from "@/components/common/VietnamAddressSelect"; // Import the component
 
 const Alert = dynamic(() => import("@/components/ui/alert").then(mod => mod.Alert), { ssr: false });
 const AlertTitle = dynamic(() => import("@/components/ui/alert").then(mod => mod.AlertTitle), { ssr: false });
@@ -176,52 +177,10 @@ const CheckoutPage: React.FC = () => {
     const [districts, setDistricts] = useState<string[]>([]);
     const [wards, setWards] = useState<string[]>([]);
 
-    useEffect(() => {
-        fetch("/data/hanh-chinh-vn.json")
-            .then((res) => res.json())
-            .then((data) => {
-                setAddressData(data);
-                setProvinces(Object.entries(data).map(([_, details]) => (details as Province).name_with_type));
-            });
-    }, []);
-
-    // Update districts when province changes
-    useEffect(() => {
-        if (formData.province) {
-            const provinceKey = Object.keys(addressData).find(
-                (key) => addressData[key].name_with_type === formData.province
-            );
-            if (provinceKey) {
-                setDistricts(
-                    Object.values(addressData[provinceKey]["quan-huyen"]).map((d) => d.name_with_type)
-                );
-                setFormData((prev) => ({ ...prev, district: "", ward: "" })); // Reset district and ward
-            }
-        }
-    }, [formData.province]);
-
-    // Update wards when district changes
-    useEffect(() => {
-        if (formData.district && formData.province) {
-            const provinceKey = Object.keys(addressData).find(
-                (key) => addressData[key].name_with_type === formData.province
-            );
-            if (provinceKey) {
-                const districtKey = Object.keys(addressData[provinceKey]["quan-huyen"]).find(
-                    (key) =>
-                        addressData[provinceKey]["quan-huyen"][key].name_with_type === formData.district
-                );
-                if (districtKey) {
-                    setWards(
-                        Object.values(addressData[provinceKey]["quan-huyen"][districtKey]["xa-phuong"]).map(
-                            (w) => w.name_with_type
-                        )
-                    );
-                    setFormData((prev) => ({ ...prev, ward: "" })); // Reset ward
-                }
-            }
-        }
-    }, [formData.district]);
+    // Remove these effects as they're now handled by the VietnamAddressSelect component
+    // useEffect for loading administrative data
+    // useEffect for updating districts when province changes
+    // useEffect for updating wards when district changes
 
     // Calculate order totals
     const subtotal = cartItems.reduce(
@@ -434,100 +393,23 @@ const CheckoutPage: React.FC = () => {
                                             />
                                         </div>
 
-                                        {/* Province/City, District, Ward Selectors */}
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            {/* Province/City */}
-                                            <div>
-                                                <label
-                                                    htmlFor="province"
-                                                    className="block text-sm font-medium text-gray-700"
-                                                >
-                                                    Tỉnh/Thành phố
-                                                </label>
-                                                <select
-                                                    id="province"
-                                                    name="province"
-                                                    value={formData.province}
-                                                    onChange={handleInputChange}
-                                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
-                                                    required
-                                                >
-                                                    <option value="">
-                                                        Chọn tỉnh/thành phố
-                                                    </option>
-                                                    {provinces.map((province) => (
-                                                        <option
-                                                            key={province}
-                                                            value={province}
-                                                        >
-                                                            {province}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            {/* District */}
-                                            <div>
-                                                <label
-                                                    htmlFor="district"
-                                                    className="block text-sm font-medium text-gray-700"
-                                                >
-                                                    Quận/Huyện
-                                                </label>
-                                                <select
-                                                    id="district"
-                                                    name="district"
-                                                    value={formData.district}
-                                                    onChange={handleInputChange}
-                                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
-                                                    required
-                                                    disabled={!formData.province}
-                                                >
-                                                    <option value="">
-                                                        Chọn quận/huyện
-                                                    </option>
-                                                    {districts.map((district) => (
-                                                        <option
-                                                            key={district}
-                                                            value={district}
-                                                        >
-                                                            {district}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            {/* Ward */}
-                                            <div>
-                                                <label
-                                                    htmlFor="ward"
-                                                    className="block text-sm font-medium text-gray-700"
-                                                >
-                                                    Xã/Phường
-                                                </label>
-                                                <select
-                                                    id="ward"
-                                                    name="ward"
-                                                    value={formData.ward}
-                                                    onChange={handleInputChange}
-                                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
-                                                    required
-                                                    disabled={!formData.district}
-                                                >
-                                                    <option value="">
-                                                        Chọn xã/phường
-                                                    </option>
-                                                    {wards.map((ward) => (
-                                                        <option
-                                                            key={ward}
-                                                            value={ward}
-                                                        >
-                                                            {ward}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
+                                        {/* Replace the three select boxes with VietnamAddressSelect */}
+                                        <VietnamAddressSelect
+                                            selectedCity={formData.province}
+                                            selectedDistrict={formData.district}
+                                            selectedWard={formData.ward}
+                                            onCityChange={(city) => setFormData(prev => ({ ...prev, province: city }))}
+                                            onDistrictChange={(district) => setFormData(prev => ({ ...prev, district }))}
+                                            onWardChange={(ward) => setFormData(prev => ({ ...prev, ward }))}
+                                            className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                                            required={true}
+                                            selectClassName="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
+                                            labels={{
+                                                city: "Tỉnh/Thành phố",
+                                                district: "Quận/Huyện",
+                                                ward: "Xã/Phường"
+                                            }}
+                                        />
 
                                         {/* Email */}
                                         <div>

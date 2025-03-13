@@ -1,6 +1,5 @@
 import { API_URL } from "@/config/constants";
 
-
 /**
  * Add a single product to the cart
  * @param productId - The ID of the product to add
@@ -31,6 +30,70 @@ export async function addToCart(productId: string, quantity: number = 1) {
         }
 
         return data;
+    } catch (error) {
+        console.error("Error adding to cart:", error);
+        throw error;
+    }
+}
+
+/**
+ * Add a single product to the cart (local storage + backend if logged in)
+ * @param productId The ID of the product to add
+ * @param quantity The quantity to add
+ * @returns Promise with the updated cart
+ */
+export async function addToCartAndSync(productId: string, quantity: number = 1) {
+    try {
+        // First update local storage cart
+        const localCart = JSON.parse(localStorage.getItem("cart") || "[]");
+        
+        // Check if product already exists in cart
+        const existingItemIndex = localCart.findIndex(
+            (item: any) => item.id === productId
+        );
+        
+        if (existingItemIndex >= 0) {
+            // Update quantity if product already exists
+            localCart[existingItemIndex].quantity += quantity;
+        } else {
+            // We need to get product details to add to cart
+            const productResponse = await fetch(`${API_URL}/products/${productId}`);
+            if (!productResponse.ok) {
+                throw new Error("Failed to fetch product details");
+            }
+            
+            const product = await productResponse.json();
+            
+            // Add new product to cart
+            localCart.push({
+                id: product.id,
+                name: product.name,
+                price: product.price,
+                imageUrl: product.imageUrl,
+                quantity: quantity,
+            });
+        }
+        
+        // Save updated cart to localStorage
+        localStorage.setItem("cart", JSON.stringify(localCart));
+        
+        // If user is logged in, sync with the backend
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                await addToCart(productId, quantity);
+            } catch (error) {
+                console.error("Failed to sync cart with server:", error);
+                // Continue even if backend sync fails - we've already updated localStorage
+            }
+        }
+        
+        // Return the updated cart items
+        return {
+            success: true,
+            cart: localCart,
+            message: "Product added to cart successfully"
+        };
     } catch (error) {
         console.error("Error adding to cart:", error);
         throw error;
@@ -235,6 +298,31 @@ export async function clearCart() {
         }
 
         return await response.json();
+    } catch (error) {
+        console.error("Error clearing cart:", error);
+        throw error;
+    }
+}
+
+/**
+ * Clear the entire cart (local storage + backend if logged in)
+ */
+export async function clearCartAndSync() {
+    try {
+        // Clear localStorage cart
+        localStorage.setItem("cart", "[]");
+        
+        // If user is logged in, clear server cart too
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                await clearCart();
+            } catch (error) {
+                console.error("Failed to clear server cart:", error);
+            }
+        }
+        
+        return { success: true, message: "Cart cleared successfully" };
     } catch (error) {
         console.error("Error clearing cart:", error);
         throw error;

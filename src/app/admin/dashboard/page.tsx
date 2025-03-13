@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { Dropdown } from "flowbite-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -23,6 +23,7 @@ import SalesChart from "@/components/admin/charts/SalesChart";
 import ProductsChart from "@/components/admin/charts/ProductsChart";
 import OrderStatusChart from "@/components/admin/charts/OrderStatusChart";
 import StatCard from "@/components/admin/StatCard";
+import ErrorBoundary from "@/components/admin/ErrorBoundary";
 
 // Define interfaces for our data types
 interface DashboardSummary {
@@ -75,14 +76,10 @@ type OrderStatus =
 export default function AdminDashboard() {
     const router = useRouter();
     
-    // Properly unwrap searchParams 
-    const searchParams = useSearchParams() as URLSearchParams;
-    const initialPeriod = searchParams?.get("period") ?? "week";
-    
-    // Initialize state with the unwrapped value
-    const [salesPeriod, setSalesPeriod] = useState(initialPeriod);
-
+    const [salesPeriod, setSalesPeriod] = useState<string>("week");
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
     const [summary, setSummary] = useState<DashboardSummary>({
         totalSales: 0,
         totalOrders: 0,
@@ -108,19 +105,10 @@ export default function AdminDashboard() {
         const fetchData = async () => {
             try {
                 setIsLoading(true);
-                const [
-                    summaryData,
-                    salesDataResult,
-                    productData,
-                    orderData,
-                    recentOrdersData
-                ] = await Promise.all([
-                    fetchDashboardSummary(),
-                    fetchSalesData(salesPeriod),
-                    fetchProductCategories(),
-                    fetchOrderStatuses(),
-                    fetchRecentOrders(5)
-                ]);
+                setError(null);
+                
+                // Load data in sequence rather than parallel to avoid overwhelming the server
+                const summaryData = await fetchDashboardSummary();
                 setSummary({
                     totalSales: summaryData.totalSales || 0,
                     totalOrders: summaryData.totalOrders || 0,
@@ -131,21 +119,31 @@ export default function AdminDashboard() {
                     customersChange: summaryData.customersChange || "0%",
                     productsChange: summaryData.productsChange || "0%",
                 });
+                
+                const salesDataResult = await fetchSalesData(salesPeriod);
                 setSalesData({
                     dates: salesDataResult.dates || [],
                     sales: salesDataResult.sales || [],
                 });
+                
+                const productData = await fetchProductCategories();
                 setProductCategories({
                     categories: productData.categories || [],
                     counts: productData.counts || [],
                 });
+                
+                const orderData = await fetchOrderStatuses();
                 setOrderStatuses({
                     statuses: orderData.statuses || [],
                     counts: orderData.counts || [],
                 });
+                
+                const recentOrdersData = await fetchRecentOrders(5);
                 setRecentOrders(recentOrdersData.orders || []);
             } catch (error) {
                 console.error("Error loading dashboard data:", error);
+                setError("Failed to load dashboard data. Please try again.");
+                
                 if (
                     error instanceof Error &&
                     error.message?.includes("Authentication required")
@@ -156,69 +154,76 @@ export default function AdminDashboard() {
                 setIsLoading(false);
             }
         };
+        
         fetchData();
     }, [salesPeriod, router]);
 
     const handleChangeSalesPeriod = async (period: string) => {
-        setSalesPeriod(period);
-        // Update URL without a full refresh
-        const url = new URL(window.location.href);
-        url.searchParams.set("period", period);
-        window.history.pushState({}, "", url);
-
+        const cleanPeriod = String(period);
+        setSalesPeriod(cleanPeriod);
+        
         try {
             setIsLoading(true);
-            const data = await fetchSalesData(period);
+            const data = await fetchSalesData(cleanPeriod);
             setSalesData({
-                dates: data.dates || [],
-                sales: data.sales || [],
+                dates: [...(data.dates || [])],
+                sales: [...(data.sales || [])],
             });
         } catch (error) {
-            console.error(`Error fetching ${period} sales data:`, error);
+            console.error(`Error fetching ${cleanPeriod} sales data:`, error);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Provide fallback data if no real data is available:
-    const getPlaceholderData = () => {
-        if (!isLoading && (!salesData.dates.length || !salesData.sales.length)) {
+    const getSafeChartData = () => {
+        const placeholderData = {
+            dates: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
+            sales: [4500, 5200, 4800, 5800, 6000, 5600, 7000],
+        };
+        
+        if (!isLoading && salesData.dates.length > 0 && salesData.sales.length > 0) {
             return {
-                dates: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
-                sales: [4500, 5200, 4800, 5800, 6000, 5600, 7000],
+                dates: [...salesData.dates],
+                sales: [...salesData.sales],
             };
         }
-        return salesData;
+        
+        return placeholderData;
     };
 
-    const getPlaceholderCategories = () => {
-        if (
-            !isLoading &&
-            (!productCategories.categories.length ||
-                !productCategories.counts.length)
-        ) {
+    const getSafeCategoriesData = () => {
+        const placeholderData = {
+            categories: ["Laptops", "Desktops", "Components", "Accessories", "Monitors"],
+            counts: [35, 25, 20, 15, 5],
+        };
+        
+        if (!isLoading && productCategories.categories.length > 0 && productCategories.counts.length > 0) {
             return {
-                categories: ["Laptops", "Desktops", "Components", "Accessories", "Monitors"],
-                counts: [35, 25, 20, 15, 5],
+                categories: [...productCategories.categories],
+                counts: [...productCategories.counts],
             };
         }
-        return productCategories;
+        
+        return placeholderData;
     };
 
-    const getPlaceholderOrderStatuses = () => {
-        if (
-            !isLoading &&
-            (!orderStatuses.statuses.length || !orderStatuses.counts.length)
-        ) {
+    const getSafeOrderStatusesData = () => {
+        const placeholderData = {
+            statuses: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"],
+            counts: [12, 8, 15, 30, 5],
+        };
+        
+        if (!isLoading && orderStatuses.statuses.length > 0 && orderStatuses.counts.length > 0) {
             return {
-                statuses: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"],
-                counts: [12, 8, 15, 30, 5],
+                statuses: [...orderStatuses.statuses],
+                counts: [...orderStatuses.counts],
             };
         }
-        return orderStatuses;
+        
+        return placeholderData;
     };
 
-    // Helper function to get status badge color
     const getStatusBadgeClass = (status: string): string => {
         const statusClasses: Record<string, string> = {
             'pending_approval': 'bg-orange-100 text-orange-800',
@@ -235,7 +240,6 @@ export default function AdminDashboard() {
         return statusClasses[status] || 'bg-gray-100 text-gray-800';
     };
 
-    // Helper function to format status labels
     const formatStatusLabel = (status: string): string => {
         const statusLabels: Record<string, string> = {
             'pending_approval': 'Chờ duyệt',
@@ -251,6 +255,23 @@ export default function AdminDashboard() {
         
         return statusLabels[status] || status;
     };
+
+    if (error) {
+        return (
+            <div className="p-4 sm:p-6 lg:p-8 bg-gray-50">
+                <div className="p-6 rounded-lg bg-red-50 border border-red-200">
+                    <h2 className="text-lg font-semibold text-red-800">Error</h2>
+                    <p className="text-sm text-red-600 mt-2">{error}</p>
+                    <button 
+                        className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                        onClick={() => window.location.reload()}
+                    >
+                        Reload page
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 bg-gray-50">
@@ -371,30 +392,44 @@ export default function AdminDashboard() {
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <SalesChart
-                    title={`Biểu đồ doanh thu (${
-                        salesPeriod === "week"
-                            ? "Tuần này"
-                            : salesPeriod === "month"
-                            ? "Tháng này"
-                            : "Năm này"
-                    })`}
-                    data={getPlaceholderData()}
-                    isLoading={isLoading}
-                />
-                <ProductsChart
-                    title="Phân bổ danh mục sản phẩm"
-                    data={getPlaceholderCategories()}
-                    isLoading={isLoading}
-                />
+                <ErrorBoundary>
+                    <Suspense fallback={<div className="h-80 bg-gray-100 rounded-lg animate-pulse"></div>}>
+                        <SalesChart
+                            title={`Biểu đồ doanh thu (${
+                                salesPeriod === "week"
+                                    ? "Tuần này"
+                                    : salesPeriod === "month"
+                                    ? "Tháng này"
+                                    : "Năm này"
+                            })`}
+                            data={getSafeChartData()}
+                            isLoading={isLoading}
+                        />
+                    </Suspense>
+                </ErrorBoundary>
+                
+                <ErrorBoundary>
+                    <Suspense fallback={<div className="h-80 bg-gray-100 rounded-lg animate-pulse"></div>}>
+                        <ProductsChart
+                            title="Phân bổ danh mục sản phẩm"
+                            data={getSafeCategoriesData()}
+                            isLoading={isLoading}
+                        />
+                    </Suspense>
+                </ErrorBoundary>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <OrderStatusChart
-                    title="Trạng thái đơn hàng"
-                    data={getPlaceholderOrderStatuses()}
-                    isLoading={isLoading}
-                />
+                <ErrorBoundary>
+                    <Suspense fallback={<div className="h-80 bg-gray-100 rounded-lg animate-pulse"></div>}>
+                        <OrderStatusChart
+                            title="Trạng thái đơn hàng"
+                            data={getSafeOrderStatusesData()}
+                            isLoading={isLoading}
+                        />
+                    </Suspense>
+                </ErrorBoundary>
+                
                 {/* Recent Orders Table */}
                 <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">

@@ -1,36 +1,16 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { HeartIcon, HeartFilledIcon } from "@radix-ui/react-icons";
 import Cart from "@/assets/icon/shop/Cart.svg";
 import ProductInformation from "@/components/product/ProductInformation";
-import { toast } from "react-hot-toast"; // Add Toaster import
-import { ProductDetails } from "@/types/ProductDetails"; // Corrected path
+import { toast } from "react-hot-toast";
+import { ProductDetails } from "@/types/ProductDetails";
 import { useWishlist } from "@/contexts/WishlistContext";
-
-// Replace the mock data function with an actual API call
-const fetchProduct = async (id: string): Promise<ProductDetails | null> => {
-    try {
-        const response = await fetch(
-            `${
-                process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
-            }/products/${id}`,
-        );
-        console.log("Response:", response);
-
-        if (!response.ok) {
-            throw new Error("Failed to fetch product");
-        }
-
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error("Error fetching product:", error);
-        return null;
-    }
-};
+import { fetchProductById } from "@/api/productDetail";
+import { addToCartAndSync } from "@/api/cart";
 
 const ProductDetailPage = () => {
     useEffect(() => {
@@ -50,12 +30,13 @@ const ProductDetailPage = () => {
     const [cartItemCount, setCartItemCount] = useState(0);
     const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
     const [isWishlist, setIsWishlist] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
         const loadProduct = async () => {
             try {
                 const id = slug;
-                const productData = await fetchProduct(id);
+                const productData = await fetchProductById(id);
                 setProduct(productData);
                 if (productData?.imageUrl) {
                     setMainImage(productData.imageUrl);
@@ -110,36 +91,15 @@ const ProductDetailPage = () => {
         : "";
 
     // Handlers
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         if (!product) return;
 
         try {
-            // Get current cart from localStorage
-            const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
-            console.log("Current cart items:", cartItems);
-            // Check if product already exists in cart
-            const existingItemIndex = cartItems.findIndex(
-                (item: any) => item.id === product.id,
-            );
-
-            if (existingItemIndex >= 0) {
-                // Update quantity if product already exists
-                cartItems[existingItemIndex].quantity += quantity;
-            } else {
-                // Add new product to cart
-                cartItems.push({
-                    id: product.id,
-                    name: product.name,
-                    price: product.price,
-                    imageUrl: product.imageUrl,
-                    quantity: quantity,
-                });
-            }
-
-            // Save updated cart to localStorage
-            localStorage.setItem("cart", JSON.stringify(cartItems));
-
+            // Use the improved cart API function
+            const result = await addToCartAndSync(product.id, quantity);
+            
             // Update cart item count
+            const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
             const newCount = cartItems.reduce(
                 (sum: number, item: any) => sum + item.quantity,
                 0,
@@ -156,8 +116,34 @@ const ProductDetailPage = () => {
         }
     };
 
-    const handleBuyNow = () => {
-        console.log(`Buying now: ${quantity} of product ${product.id}`);
+    const handleBuyNow = async () => {
+        if (!product) return;
+
+        try {
+            // Use the improved cart API
+            await addToCartAndSync(product.id, quantity);
+            
+            // Update cart item count
+            const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
+            const newCount = cartItems.reduce(
+                (sum: number, item: any) => sum + item.quantity,
+                0,
+            );
+            setCartItemCount(newCount);
+            
+            // Show toast notification
+            toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`, {
+                duration: 1500,
+            });
+            
+            // Navigate to checkout after a short delay
+            setTimeout(() => {
+                router.push('/checkout');
+            }, 500);
+        } catch (error) {
+            console.error("Error processing buy now:", error);
+            toast.error("Không thể xử lý yêu cầu. Vui lòng thử lại!");
+        }
     };
 
     const toggleWishlist = async () => {
@@ -575,7 +561,7 @@ const ProductDetailPage = () => {
                         description={product.description}
                         additionalInfo={product.additionalInfo}
                         specifications={product.specifications}
-                        reviews={product.reviews}
+                        productId={product.id}
                     />
                 </div>
 

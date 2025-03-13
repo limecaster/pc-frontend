@@ -62,7 +62,7 @@ const AuthenticateContent: React.FC = () => {
 
                 // Redirect based on role
                 if (response.user.role === "admin") {
-                    router.push("/admin");
+                    router.push("/admin/dashboard");
                 } else if (response.user.role === "staff") {
                     router.push("/staff");
                 } else {
@@ -83,7 +83,7 @@ const AuthenticateContent: React.FC = () => {
             setIsSubmitting(true);
             
             // Call the register function from auth context
-            const result = await register(email, password, username, 
+            await register(email, password, username, 
                 fullName.split(' ')[0] || "", // firstname (first word of fullName)
                 fullName.split(' ').slice(1).join(' ') || "" // lastname (rest of fullName)
             );
@@ -206,8 +206,8 @@ const AuthenticateContent: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-white py-8">
-            <div className="w-full max-w-md shadow-lg rounded-lg overflow-hidden">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-white py-8 b">
+            <div className="w-full max-w-md shadow-lg rounded-lg overflow-hidden border border-gray-200">
                 {currentScreen !== "forgotPassword" && currentScreen !== "verification" && (
                     <LoginTabs activeTab={activeTab} onTabChange={handleTabChange} />
                 )}
