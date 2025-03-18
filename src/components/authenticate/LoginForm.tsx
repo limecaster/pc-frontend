@@ -9,43 +9,49 @@ interface LoginFormProps {
     isSubmitting?: boolean;
 }
 
-export const LoginForm: React.FC<LoginFormProps> = ({ 
-    onSubmit, 
+export const LoginForm: React.FC<LoginFormProps> = ({
+    onSubmit,
     onForgotPassword,
-    isSubmitting = false
+    isSubmitting = false,
 }) => {
     const [loginId, setLoginId] = useState("");
     const [password, setPassword] = useState("");
-    const [errors, setErrors] = useState<{ loginId?: string; password?: string }>({});
+    const [errors, setErrors] = useState<{
+        loginId?: string;
+        password?: string;
+    }>({});
     const { isLoading } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Basic validation
         const newErrors: { loginId?: string; password?: string } = {};
         if (!loginId) newErrors.loginId = "Username hoặc email là bắt buộc";
         if (!password) newErrors.password = "Mật khẩu là bắt buộc";
-        
+
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             return;
         }
-        
+
         // Call the onSubmit function from props
         onSubmit(loginId, password);
     };
-    
-    const handleInputChange = (field: 'loginId' | 'password', value: string) => {
+
+    const handleInputChange = (
+        field: "loginId" | "password",
+        value: string,
+    ) => {
         // Clear the specific error when the user types
-        setErrors(prev => {
-            const updated = {...prev};
+        setErrors((prev) => {
+            const updated = { ...prev };
             delete updated[field];
             return updated;
         });
 
         // Update the appropriate state based on field
-        if (field === 'loginId') {
+        if (field === "loginId") {
             setLoginId(value);
         } else {
             setPassword(value);
@@ -55,7 +61,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     const disabled = isLoading || isSubmitting;
 
     return (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-8 py-6 self-stretch w-full text-gray-800">
+        <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-4 px-8 py-6 self-stretch w-full text-gray-800"
+        >
             <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-neutral-600">
                     Username/Email
@@ -63,7 +72,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 <input
                     type="text"
                     value={loginId}
-                    onChange={(e) => handleInputChange('loginId', e.target.value)}
+                    onChange={(e) =>
+                        handleInputChange("loginId", e.target.value)
+                    }
                     className={`px-2.5 py-3 text-sm bg-white border border-solid rounded-sm focus:outline-none focus:border-primary ${
                         errors.loginId ? "border-red-500" : "border-[#E4E7E9]"
                     }`}
@@ -93,7 +104,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 <input
                     type="password"
                     value={password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    onChange={(e) =>
+                        handleInputChange("password", e.target.value)
+                    }
                     className={`px-2.5 py-3 text-sm bg-white border border-solid rounded-sm focus:outline-none focus:border-primary ${
                         errors.password ? "border-red-500" : "border-[#E4E7E9]"
                     }`}
@@ -101,7 +114,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                     disabled={disabled}
                 />
                 {errors.password && (
-                    <span className="text-xs text-red-500 mt-1">{errors.password}</span>
+                    <span className="text-xs text-red-500 mt-1">
+                        {errors.password}
+                    </span>
                 )}
             </div>
             <button

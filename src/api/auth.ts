@@ -37,7 +37,7 @@ export const refreshTokenIfNeeded = async (): Promise<void> => {
             // Invalid refresh token, clear authentication
             localStorage.removeItem("token");
             localStorage.removeItem("refreshToken");
-            
+
             // Handle logout through the global function
             handleAuthError("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
         }
@@ -51,15 +51,17 @@ export const refreshTokenIfNeeded = async (): Promise<void> => {
  * This will be called from all API responses that encounter 401 errors
  * @param message Optional custom error message
  */
-export const handleAuthError = (message = "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại."): void => {
+export const handleAuthError = (
+    message = "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.",
+): void => {
     // Store the error message in sessionStorage to be picked up by the auth page
     sessionStorage.setItem("auth_error", message);
-    
+
     // Clear user data immediately
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
-    
+
     // Only redirect if we're not already on the authentication page
     const currentPath = window.location.pathname;
     if (!currentPath.includes("/authenticate")) {
@@ -73,14 +75,17 @@ export const handleAuthError = (message = "Phiên đăng nhập hết hạn. Vui
  * @param options Fetch options
  * @returns Promise with the fetch result
  */
-export const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<Response> => {
+export const fetchWithAuth = async (
+    url: string,
+    options: RequestInit = {},
+): Promise<Response> => {
     const response = await fetch(url, options);
-    
+
     // If we get a 401 Unauthorized, handle the auth error
     if (response.status === 401) {
         handleAuthError();
     }
-    
+
     return response;
 };
 

@@ -10,14 +10,14 @@ import {
     faUsers,
     faBox,
     faDownload,
-    faEye
+    faEye,
 } from "@fortawesome/free-solid-svg-icons";
 import {
     fetchDashboardSummary,
     fetchSalesData,
     fetchProductCategories,
     fetchOrderStatuses,
-    fetchRecentOrders
+    fetchRecentOrders,
 } from "@/api/dashboard";
 import SalesChart from "@/components/admin/charts/SalesChart";
 import ProductsChart from "@/components/admin/charts/ProductsChart";
@@ -62,20 +62,20 @@ interface Order {
 }
 
 // Define order status types
-type OrderStatus = 
-    'pending_approval' | 
-    'approved' | 
-    'processing' | 
-    'shipping' | 
-    'delivered' | 
-    'completed' | 
-    'cancelled' | 
-    'payment_success' | 
-    'payment_failure';
+type OrderStatus =
+    | "pending_approval"
+    | "approved"
+    | "processing"
+    | "shipping"
+    | "delivered"
+    | "completed"
+    | "cancelled"
+    | "payment_success"
+    | "payment_failure";
 
 export default function AdminDashboard() {
     const router = useRouter();
-    
+
     const [salesPeriod, setSalesPeriod] = useState<string>("week");
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -90,7 +90,10 @@ export default function AdminDashboard() {
         customersChange: "0%",
         productsChange: "0%",
     });
-    const [salesData, setSalesData] = useState<SalesData>({ dates: [], sales: [] });
+    const [salesData, setSalesData] = useState<SalesData>({
+        dates: [],
+        sales: [],
+    });
     const [productCategories, setProductCategories] = useState<CategoryData>({
         categories: [],
         counts: [],
@@ -106,7 +109,7 @@ export default function AdminDashboard() {
             try {
                 setIsLoading(true);
                 setError(null);
-                
+
                 // Load data in sequence rather than parallel to avoid overwhelming the server
                 const summaryData = await fetchDashboardSummary();
                 setSummary({
@@ -119,31 +122,31 @@ export default function AdminDashboard() {
                     customersChange: summaryData.customersChange || "0%",
                     productsChange: summaryData.productsChange || "0%",
                 });
-                
+
                 const salesDataResult = await fetchSalesData(salesPeriod);
                 setSalesData({
                     dates: salesDataResult.dates || [],
                     sales: salesDataResult.sales || [],
                 });
-                
+
                 const productData = await fetchProductCategories();
                 setProductCategories({
                     categories: productData.categories || [],
                     counts: productData.counts || [],
                 });
-                
+
                 const orderData = await fetchOrderStatuses();
                 setOrderStatuses({
                     statuses: orderData.statuses || [],
                     counts: orderData.counts || [],
                 });
-                
+
                 const recentOrdersData = await fetchRecentOrders(5);
                 setRecentOrders(recentOrdersData.orders || []);
             } catch (error) {
                 console.error("Error loading dashboard data:", error);
                 setError("Failed to load dashboard data. Please try again.");
-                
+
                 if (
                     error instanceof Error &&
                     error.message?.includes("Authentication required")
@@ -154,14 +157,14 @@ export default function AdminDashboard() {
                 setIsLoading(false);
             }
         };
-        
+
         fetchData();
     }, [salesPeriod, router]);
 
     const handleChangeSalesPeriod = async (period: string) => {
         const cleanPeriod = String(period);
         setSalesPeriod(cleanPeriod);
-        
+
         try {
             setIsLoading(true);
             const data = await fetchSalesData(cleanPeriod);
@@ -181,78 +184,102 @@ export default function AdminDashboard() {
             dates: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
             sales: [4500, 5200, 4800, 5800, 6000, 5600, 7000],
         };
-        
-        if (!isLoading && salesData.dates.length > 0 && salesData.sales.length > 0) {
+
+        if (
+            !isLoading &&
+            salesData.dates.length > 0 &&
+            salesData.sales.length > 0
+        ) {
             return {
                 dates: [...salesData.dates],
                 sales: [...salesData.sales],
             };
         }
-        
+
         return placeholderData;
     };
 
     const getSafeCategoriesData = () => {
         const placeholderData = {
-            categories: ["Laptops", "Desktops", "Components", "Accessories", "Monitors"],
+            categories: [
+                "Laptops",
+                "Desktops",
+                "Components",
+                "Accessories",
+                "Monitors",
+            ],
             counts: [35, 25, 20, 15, 5],
         };
-        
-        if (!isLoading && productCategories.categories.length > 0 && productCategories.counts.length > 0) {
+
+        if (
+            !isLoading &&
+            productCategories.categories.length > 0 &&
+            productCategories.counts.length > 0
+        ) {
             return {
                 categories: [...productCategories.categories],
                 counts: [...productCategories.counts],
             };
         }
-        
+
         return placeholderData;
     };
 
     const getSafeOrderStatusesData = () => {
         const placeholderData = {
-            statuses: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"],
+            statuses: [
+                "Pending",
+                "Processing",
+                "Shipped",
+                "Delivered",
+                "Cancelled",
+            ],
             counts: [12, 8, 15, 30, 5],
         };
-        
-        if (!isLoading && orderStatuses.statuses.length > 0 && orderStatuses.counts.length > 0) {
+
+        if (
+            !isLoading &&
+            orderStatuses.statuses.length > 0 &&
+            orderStatuses.counts.length > 0
+        ) {
             return {
                 statuses: [...orderStatuses.statuses],
                 counts: [...orderStatuses.counts],
             };
         }
-        
+
         return placeholderData;
     };
 
     const getStatusBadgeClass = (status: string): string => {
         const statusClasses: Record<string, string> = {
-            'pending_approval': 'bg-orange-100 text-orange-800',
-            'approved': 'bg-blue-100 text-blue-800',
-            'processing': 'bg-blue-100 text-blue-800',
-            'shipping': 'bg-yellow-100 text-yellow-800',
-            'delivered': 'bg-green-100 text-green-800',
-            'completed': 'bg-green-100 text-green-800',
-            'cancelled': 'bg-red-100 text-red-800',
-            'payment_success': 'bg-green-100 text-green-800',
-            'payment_failure': 'bg-red-100 text-red-800',
+            pending_approval: "bg-orange-100 text-orange-800",
+            approved: "bg-blue-100 text-blue-800",
+            processing: "bg-blue-100 text-blue-800",
+            shipping: "bg-yellow-100 text-yellow-800",
+            delivered: "bg-green-100 text-green-800",
+            completed: "bg-green-100 text-green-800",
+            cancelled: "bg-red-100 text-red-800",
+            payment_success: "bg-green-100 text-green-800",
+            payment_failure: "bg-red-100 text-red-800",
         };
-        
-        return statusClasses[status] || 'bg-gray-100 text-gray-800';
+
+        return statusClasses[status] || "bg-gray-100 text-gray-800";
     };
 
     const formatStatusLabel = (status: string): string => {
         const statusLabels: Record<string, string> = {
-            'pending_approval': 'Chờ duyệt',
-            'approved': 'Đã duyệt',
-            'processing': 'Đang xử lý',
-            'shipping': 'Đang giao hàng',
-            'delivered': 'Đã giao hàng',
-            'completed': 'Hoàn thành',
-            'cancelled': 'Đã hủy',
-            'payment_success': 'Thanh toán thành công',
-            'payment_failure': 'Thanh toán thất bại',
+            pending_approval: "Chờ duyệt",
+            approved: "Đã duyệt",
+            processing: "Đang xử lý",
+            shipping: "Đang giao hàng",
+            delivered: "Đã giao hàng",
+            completed: "Hoàn thành",
+            cancelled: "Đã hủy",
+            payment_success: "Thanh toán thành công",
+            payment_failure: "Thanh toán thất bại",
         };
-        
+
         return statusLabels[status] || status;
     };
 
@@ -260,9 +287,11 @@ export default function AdminDashboard() {
         return (
             <div className="p-4 sm:p-6 lg:p-8 bg-gray-50">
                 <div className="p-6 rounded-lg bg-red-50 border border-red-200">
-                    <h2 className="text-lg font-semibold text-red-800">Error</h2>
+                    <h2 className="text-lg font-semibold text-red-800">
+                        Error
+                    </h2>
                     <p className="text-sm text-red-600 mt-2">{error}</p>
-                    <button 
+                    <button
                         className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                         onClick={() => window.location.reload()}
                     >
@@ -290,8 +319,8 @@ export default function AdminDashboard() {
                             salesPeriod === "week"
                                 ? "Tuần này"
                                 : salesPeriod === "month"
-                                ? "Tháng này"
-                                : "Năm này"
+                                  ? "Tháng này"
+                                  : "Năm này"
                         }`}
                         color="light"
                         size="sm"
@@ -329,8 +358,8 @@ export default function AdminDashboard() {
                         summary.salesChange.includes("+")
                             ? "positive"
                             : summary.salesChange.includes("-")
-                            ? "negative"
-                            : "neutral"
+                              ? "negative"
+                              : "neutral"
                     }
                     isLoading={isLoading}
                     icon={
@@ -348,8 +377,8 @@ export default function AdminDashboard() {
                         summary.ordersChange.includes("+")
                             ? "positive"
                             : summary.ordersChange.includes("-")
-                            ? "negative"
-                            : "neutral"
+                              ? "negative"
+                              : "neutral"
                     }
                     isLoading={isLoading}
                     icon={
@@ -367,8 +396,8 @@ export default function AdminDashboard() {
                         summary.customersChange.includes("+")
                             ? "positive"
                             : summary.customersChange.includes("-")
-                            ? "negative"
-                            : "neutral"
+                              ? "negative"
+                              : "neutral"
                     }
                     isLoading={isLoading}
                     icon={
@@ -382,8 +411,8 @@ export default function AdminDashboard() {
                         summary.productsChange.includes("+")
                             ? "positive"
                             : summary.productsChange.includes("-")
-                            ? "negative"
-                            : "neutral"
+                              ? "negative"
+                              : "neutral"
                     }
                     isLoading={isLoading}
                     icon={<FontAwesomeIcon icon={faBox} className="w-5 h-5" />}
@@ -393,23 +422,31 @@ export default function AdminDashboard() {
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <ErrorBoundary>
-                    <Suspense fallback={<div className="h-80 bg-gray-100 rounded-lg animate-pulse"></div>}>
+                    <Suspense
+                        fallback={
+                            <div className="h-80 bg-gray-100 rounded-lg animate-pulse"></div>
+                        }
+                    >
                         <SalesChart
                             title={`Biểu đồ doanh thu (${
                                 salesPeriod === "week"
                                     ? "Tuần này"
                                     : salesPeriod === "month"
-                                    ? "Tháng này"
-                                    : "Năm này"
+                                      ? "Tháng này"
+                                      : "Năm này"
                             })`}
                             data={getSafeChartData()}
                             isLoading={isLoading}
                         />
                     </Suspense>
                 </ErrorBoundary>
-                
+
                 <ErrorBoundary>
-                    <Suspense fallback={<div className="h-80 bg-gray-100 rounded-lg animate-pulse"></div>}>
+                    <Suspense
+                        fallback={
+                            <div className="h-80 bg-gray-100 rounded-lg animate-pulse"></div>
+                        }
+                    >
                         <ProductsChart
                             title="Phân bổ danh mục sản phẩm"
                             data={getSafeCategoriesData()}
@@ -421,7 +458,11 @@ export default function AdminDashboard() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <ErrorBoundary>
-                    <Suspense fallback={<div className="h-80 bg-gray-100 rounded-lg animate-pulse"></div>}>
+                    <Suspense
+                        fallback={
+                            <div className="h-80 bg-gray-100 rounded-lg animate-pulse"></div>
+                        }
+                    >
                         <OrderStatusChart
                             title="Trạng thái đơn hàng"
                             data={getSafeOrderStatusesData()}
@@ -429,7 +470,7 @@ export default function AdminDashboard() {
                         />
                     </Suspense>
                 </ErrorBoundary>
-                
+
                 {/* Recent Orders Table */}
                 <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">
@@ -476,25 +517,35 @@ export default function AdminDashboard() {
                                         recentOrders.map((order) => (
                                             <tr key={order.id}>
                                                 <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                                                    #{order.orderNumber || order.id}
+                                                    #
+                                                    {order.orderNumber ||
+                                                        order.id}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-gray-500">
                                                     {order.customerName}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-gray-500">
-                                                    {order.total.toLocaleString()}₫
+                                                    {order.total.toLocaleString()}
+                                                    ₫
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
-                                                        {formatStatusLabel(order.status)}
+                                                    <span
+                                                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}
+                                                    >
+                                                        {formatStatusLabel(
+                                                            order.status,
+                                                        )}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-sm">
-                                                    <a 
+                                                    <a
                                                         href={`/admin/orders/${order.id}`}
                                                         className="text-blue-600 hover:underline"
                                                     >
-                                                        <FontAwesomeIcon icon={faEye} className="mr-1" />
+                                                        <FontAwesomeIcon
+                                                            icon={faEye}
+                                                            className="mr-1"
+                                                        />
                                                         Xem
                                                     </a>
                                                 </td>
@@ -502,7 +553,10 @@ export default function AdminDashboard() {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={5} className="px-4 py-3 text-sm text-gray-500 text-center">
+                                            <td
+                                                colSpan={5}
+                                                className="px-4 py-3 text-sm text-gray-500 text-center"
+                                            >
                                                 Không có đơn hàng nào
                                             </td>
                                         </tr>
@@ -510,7 +564,10 @@ export default function AdminDashboard() {
                                 </tbody>
                             </table>
                             <div className="mt-4 text-center">
-                                <a href="/admin/orders" className="text-sm text-blue-600 hover:underline">
+                                <a
+                                    href="/admin/orders"
+                                    className="text-sm text-blue-600 hover:underline"
+                                >
                                     Xem tất cả đơn hàng
                                 </a>
                             </div>

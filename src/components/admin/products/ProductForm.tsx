@@ -3,8 +3,19 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUpload, faTimes, faSave, faArrowLeft, faPlus } from "@fortawesome/free-solid-svg-icons";
-import { createProduct, updateProduct, uploadProductImage, fetchProductCategories } from "@/api/admin-products";
+import {
+    faUpload,
+    faTimes,
+    faSave,
+    faArrowLeft,
+    faPlus,
+} from "@fortawesome/free-solid-svg-icons";
+import {
+    createProduct,
+    updateProduct,
+    uploadProductImage,
+    fetchProductCategories,
+} from "@/api/admin-products";
 import toast from "react-hot-toast";
 
 interface ProductFormProps {
@@ -13,16 +24,16 @@ interface ProductFormProps {
 }
 
 interface FormData {
-  name: string;
-  description: string;
-  price: string;
-  stock_quantity: string;
-  status: string;
-  category: string;
-  images: string[];
-  specifications: Record<string, string>;
-  thumbnail: string;
-  [key: string]: string | string[] | Record<string, string>; // Add this index signature
+    name: string;
+    description: string;
+    price: string;
+    stock_quantity: string;
+    status: string;
+    category: string;
+    images: string[];
+    specifications: Record<string, string>;
+    thumbnail: string;
+    [key: string]: string | string[] | Record<string, string>; // Add this index signature
 }
 
 const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
@@ -30,7 +41,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
     const [loading, setLoading] = useState(false);
     const [imageLoading, setImageLoading] = useState(false);
     const [categories, setCategories] = useState<string[]>([]);
-    
+
     // Form state
     const [formData, setFormData] = useState<FormData>({
         name: "",
@@ -43,15 +54,25 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
         specifications: {} as Record<string, string>,
         thumbnail: "",
     });
-    
+
     // Field for new specification entry
     const [newSpec, setNewSpec] = useState({ key: "", value: "" });
-    
+
     // Load product data for edit mode
     useEffect(() => {
         if (mode === "edit" && product) {
-            const { name, description, price, stock_quantity, status, category, images = [], specifications = {}, thumbnail } = product;
-            
+            const {
+                name,
+                description,
+                price,
+                stock_quantity,
+                status,
+                category,
+                images = [],
+                specifications = {},
+                thumbnail,
+            } = product;
+
             setFormData({
                 name: name || "",
                 description: description || "",
@@ -65,7 +86,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
             });
         }
     }, [product, mode]);
-    
+
     // Load categories
     useEffect(() => {
         const loadCategories = async () => {
@@ -77,58 +98,64 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                 toast.error("Không thể tải danh mục sản phẩm");
             }
         };
-        
+
         loadCategories();
     }, []);
-    
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+
+    const handleChange = (
+        e: React.ChangeEvent<
+            HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+        >,
+    ) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
-    
+
     const handleSpecChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setNewSpec(prev => ({ ...prev, [name]: value }));
+        setNewSpec((prev) => ({ ...prev, [name]: value }));
     };
-    
+
     const addSpecification = () => {
         if (!newSpec.key.trim() || !newSpec.value.trim()) return;
-        
-        setFormData(prev => ({
+
+        setFormData((prev) => ({
             ...prev,
             specifications: {
                 ...prev.specifications,
-                [newSpec.key.trim()]: newSpec.value.trim()
-            }
+                [newSpec.key.trim()]: newSpec.value.trim(),
+            },
         }));
-        
+
         setNewSpec({ key: "", value: "" });
     };
-    
+
     const removeSpecification = (key: string) => {
         const updatedSpecs = { ...formData.specifications };
         delete updatedSpecs[key];
-        
-        setFormData(prev => ({
+
+        setFormData((prev) => ({
             ...prev,
-            specifications: updatedSpecs
+            specifications: updatedSpecs,
         }));
     };
-    
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+
+    const handleImageUpload = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
         if (!e.target.files || e.target.files.length === 0) return;
-        
+
         try {
             setImageLoading(true);
             const file = e.target.files[0];
             const result = await uploadProductImage(file);
-            
+
             if (result.imageUrl) {
-                setFormData(prev => ({
+                setFormData((prev) => ({
                     ...prev,
                     images: [...prev.images, result.imageUrl],
                     // Set as thumbnail if first image
-                    thumbnail: prev.thumbnail || result.imageUrl
+                    thumbnail: prev.thumbnail || result.imageUrl,
                 }));
                 toast.success("Tải ảnh lên thành công");
             }
@@ -139,53 +166,55 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
             setImageLoading(false);
         }
     };
-    
+
     const removeImage = (index: number) => {
         const updatedImages = [...formData.images];
         const removedImage = updatedImages.splice(index, 1)[0];
-        
+
         // If removed image was the thumbnail, set new thumbnail to first image
         let newThumbnail = formData.thumbnail;
         if (formData.thumbnail === removedImage) {
             newThumbnail = updatedImages.length > 0 ? updatedImages[0] : "";
         }
-        
-        setFormData(prev => ({
+
+        setFormData((prev) => ({
             ...prev,
             images: updatedImages,
-            thumbnail: newThumbnail
+            thumbnail: newThumbnail,
         }));
     };
-    
+
     const setAsThumbnail = (imageUrl: string) => {
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
-            thumbnail: imageUrl
+            thumbnail: imageUrl,
         }));
     };
-    
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Validate required fields
-        const requiredFields = ['name', 'price', 'stock_quantity', 'category'];
-        const missingFields = requiredFields.filter(field => !formData[field]);
-        
+        const requiredFields = ["name", "price", "stock_quantity", "category"];
+        const missingFields = requiredFields.filter(
+            (field) => !formData[field],
+        );
+
         if (missingFields.length > 0) {
             toast.error("Vui lòng điền đầy đủ thông tin bắt buộc");
             return;
         }
-        
+
         try {
             setLoading(true);
-            
+
             // Prepare data for submission
             const productData = {
                 ...formData,
                 price: parseFloat(formData.price),
-                stock_quantity: parseInt(formData.stock_quantity)
+                stock_quantity: parseInt(formData.stock_quantity),
             };
-            
+
             if (mode === "add") {
                 await createProduct(productData);
                 toast.success("Tạo sản phẩm thành công");
@@ -193,22 +222,31 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                 await updateProduct(product.id, productData);
                 toast.success("Cập nhật sản phẩm thành công");
             }
-            
+
             // Navigate back to product list
             router.push("/admin/products");
         } catch (error) {
             console.error("Error saving product:", error);
-            toast.error(mode === "add" ? "Không thể tạo sản phẩm" : "Không thể cập nhật sản phẩm");
+            toast.error(
+                mode === "add"
+                    ? "Không thể tạo sản phẩm"
+                    : "Không thể cập nhật sản phẩm",
+            );
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 text-gray-800">
+        <form
+            onSubmit={handleSubmit}
+            className="bg-white rounded-lg shadow p-6 text-gray-800"
+        >
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold">
-                    {mode === "add" ? "Thêm sản phẩm mới" : "Chỉnh sửa sản phẩm"}
+                    {mode === "add"
+                        ? "Thêm sản phẩm mới"
+                        : "Chỉnh sửa sản phẩm"}
                 </h2>
                 <button
                     type="button"
@@ -219,7 +257,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                     Quay lại
                 </button>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 {/* Basic Information */}
                 <div className="space-y-4">
@@ -236,7 +274,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                             required
                         />
                     </div>
-                    
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Danh mục *
@@ -256,7 +294,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                             ))}
                         </select>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -287,7 +325,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                             />
                         </div>
                     </div>
-                    
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Trạng thái
@@ -303,7 +341,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                         </select>
                     </div>
                 </div>
-                
+
                 {/* Images and description */}
                 <div className="space-y-4">
                     <div>
@@ -325,14 +363,17 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                                         "Đang tải..."
                                     ) : (
                                         <>
-                                            <FontAwesomeIcon icon={faUpload} className="mr-2" />
+                                            <FontAwesomeIcon
+                                                icon={faUpload}
+                                                className="mr-2"
+                                            />
                                             Tải ảnh lên
                                         </>
                                     )}
                                 </div>
                             </label>
                         </div>
-                        
+
                         {/* Display images */}
                         {formData.images.length > 0 && (
                             <div className="mt-3 grid grid-cols-3 gap-3">
@@ -352,12 +393,17 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                                             onClick={() => removeImage(index)}
                                             className="absolute -top-2 -right-2 rounded-full bg-red-500 text-white w-6 h-6 flex items-center justify-center"
                                         >
-                                            <FontAwesomeIcon icon={faTimes} className="text-xs" />
+                                            <FontAwesomeIcon
+                                                icon={faTimes}
+                                                className="text-xs"
+                                            />
                                         </button>
                                         {formData.thumbnail !== image && (
                                             <button
                                                 type="button"
-                                                onClick={() => setAsThumbnail(image)}
+                                                onClick={() =>
+                                                    setAsThumbnail(image)
+                                                }
                                                 className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs py-1"
                                             >
                                                 Đặt làm ảnh chính
@@ -373,7 +419,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                             </div>
                         )}
                     </div>
-                    
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Mô tả
@@ -388,11 +434,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                     </div>
                 </div>
             </div>
-            
+
             {/* Specifications */}
             <div className="mb-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-3">Thông số kỹ thuật</h3>
-                
+                <h3 className="text-lg font-medium text-gray-900 mb-3">
+                    Thông số kỹ thuật
+                </h3>
+
                 {/* Form for adding specifications */}
                 <div className="flex space-x-3 mb-4">
                     <div className="flex-1">
@@ -425,33 +473,46 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                         </button>
                     </div>
                 </div>
-                
+
                 {/* Display existing specifications */}
                 <div className="bg-gray-50 rounded-md p-4">
                     {Object.keys(formData.specifications).length > 0 ? (
                         <ul className="divide-y divide-gray-200">
-                            {Object.entries(formData.specifications).map(([key, value]) => (
-                                <li key={key} className="py-2 flex justify-between">
-                                    <div>
-                                        <span className="font-medium text-gray-700">{key}:</span>{" "}
-                                        <span className="text-gray-600">{value}</span>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => removeSpecification(key)}
-                                        className="text-red-500 hover:text-red-700"
+                            {Object.entries(formData.specifications).map(
+                                ([key, value]) => (
+                                    <li
+                                        key={key}
+                                        className="py-2 flex justify-between"
                                     >
-                                        <FontAwesomeIcon icon={faTimes} />
-                                    </button>
-                                </li>
-                            ))}
+                                        <div>
+                                            <span className="font-medium text-gray-700">
+                                                {key}:
+                                            </span>{" "}
+                                            <span className="text-gray-600">
+                                                {value}
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                removeSpecification(key)
+                                            }
+                                            className="text-red-500 hover:text-red-700"
+                                        >
+                                            <FontAwesomeIcon icon={faTimes} />
+                                        </button>
+                                    </li>
+                                ),
+                            )}
                         </ul>
                     ) : (
-                        <p className="text-gray-500">Chưa có thông số kỹ thuật.</p>
+                        <p className="text-gray-500">
+                            Chưa có thông số kỹ thuật.
+                        </p>
                     )}
                 </div>
             </div>
-            
+
             {/* Submit button */}
             <div className="flex justify-end">
                 <button
@@ -464,7 +525,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                     ) : (
                         <>
                             <FontAwesomeIcon icon={faSave} className="mr-2" />
-                            {mode === "add" ? "Tạo sản phẩm" : "Cập nhật sản phẩm"}
+                            {mode === "add"
+                                ? "Tạo sản phẩm"
+                                : "Cập nhật sản phẩm"}
                         </>
                     )}
                 </button>

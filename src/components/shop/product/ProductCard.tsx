@@ -30,7 +30,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     const router = useRouter();
     const [isHovered, setIsHovered] = useState(false);
     const [hoveredButton, setHoveredButton] = useState<string | null>(null);
-    
+
     // Use the wishlist context instead of local state and API calls
     const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
     const inWishlist = isInWishlist(id);
@@ -40,7 +40,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     // Handler for wishlist
     const handleWishlistToggle = async (e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent card click
-        
+
         if (inWishlist) {
             await removeFromWishlist(id);
         } else {
@@ -56,7 +56,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 try {
                     // Use the API function directly instead of fetch
                     await addToCart(id, 1);
-                    
+
                     // Show success notification
                     toast.success(`Đã thêm sản phẩm vào giỏ hàng!`, {
                         duration: 3000,
@@ -64,23 +64,28 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     return;
                 } catch (error: any) {
                     // If unauthorized or token invalid, fall back to localStorage
-                    if (error.message?.includes("Authentication") || error.message?.includes("401")) {
-                        console.log("Authentication failed, using localStorage instead");
+                    if (
+                        error.message?.includes("Authentication") ||
+                        error.message?.includes("401")
+                    ) {
+                        console.log(
+                            "Authentication failed, using localStorage instead",
+                        );
                     } else {
                         // For other API errors, rethrow to be caught by outer catch
                         throw error;
                     }
                 }
             }
-            
+
             // Fallback to localStorage (for unauthenticated users or if API fails)
             const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
-            
+
             // Check if product already exists in cart
             const existingItemIndex = cartItems.findIndex(
                 (item: any) => item.id === id,
             );
-    
+
             if (existingItemIndex >= 0) {
                 // Update quantity if product already exists
                 cartItems[existingItemIndex].quantity += 1;
@@ -94,15 +99,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     quantity: 1,
                 });
             }
-    
+
             // Save updated cart to localStorage
             localStorage.setItem("cart", JSON.stringify(cartItems));
-    
+
             // Show success notification
             toast.success(`Đã thêm sản phẩm vào giỏ hàng!`, {
                 duration: 3000,
             });
-            
         } catch (error) {
             console.error("Error adding to cart:", error);
             toast.error("Không thể thêm vào giỏ hàng. Vui lòng thử lại!");
@@ -202,7 +206,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
                         onMouseEnter={() => setHoveredButton("heart")}
                         onMouseLeave={() => setHoveredButton(null)}
                         onClick={handleWishlistToggle}
-                        aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+                        aria-label={
+                            inWishlist
+                                ? "Remove from wishlist"
+                                : "Add to wishlist"
+                        }
                     >
                         <Image
                             src={Heart}
@@ -284,8 +292,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 </Tooltip>
 
                 {/* Price */}
-                <div className={`font-semibold text-sm ${formattedPrice === "0đ" ? "text-rose-500" : "text-primary"}`}>
-                    {formattedPrice === "0đ" ? "Không kinh doanh" : formattedPrice}
+                <div
+                    className={`font-semibold text-sm ${formattedPrice === "0đ" ? "text-rose-500" : "text-primary"}`}
+                >
+                    {formattedPrice === "0đ"
+                        ? "Không kinh doanh"
+                        : formattedPrice}
                 </div>
             </div>
         </div>

@@ -28,7 +28,9 @@ export interface AutoBuildResponse {
 /**
  * Submits a user's requirements for auto PC building and returns configuration suggestions
  */
-export async function getAutoBuildSuggestions(userInput: string): Promise<AutoBuildResponse> {
+export async function getAutoBuildSuggestions(
+    userInput: string,
+): Promise<AutoBuildResponse> {
     try {
         const response = await fetch(`${API_URL}/build/auto-build`, {
             method: "POST",
@@ -36,11 +38,13 @@ export async function getAutoBuildSuggestions(userInput: string): Promise<AutoBu
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ userInput }),
         });
-        
+
         if (!response.ok) {
-            throw new Error(`Error fetching auto build suggestions: ${response.statusText}`);
+            throw new Error(
+                `Error fetching auto build suggestions: ${response.statusText}`,
+            );
         }
-        
+
         return await response.json();
     } catch (error) {
         console.error("Error fetching auto build suggestions:", error);

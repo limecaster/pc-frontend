@@ -8,7 +8,7 @@ interface ProductsChartProps {
     data?: {
         categories: string[];
         counts: number[];
-        totalCount?: number;  // Add optional totalCount field
+        totalCount?: number; // Add optional totalCount field
     };
     isLoading?: boolean;
 }
@@ -31,10 +31,12 @@ const ProductsChart: React.FC<ProductsChartProps> = ({
         () => (data?.counts ? [...data.counts] : []),
         [data?.counts],
     );
-    
+
     // Use provided totalCount if available, otherwise sum the counts
     const totalProducts = useMemo(
-        () => data?.totalCount || safeCounts.reduce((sum, count) => sum + count, 0),
+        () =>
+            data?.totalCount ||
+            safeCounts.reduce((sum, count) => sum + count, 0),
         [data?.totalCount, safeCounts],
     );
 

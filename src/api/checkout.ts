@@ -24,7 +24,7 @@ export async function createOrder(orderData: any) {
         if (!response.ok) {
             const data = await response.json();
             throw new Error(
-                data.error || `Failed to create order: ${response.status}`
+                data.error || `Failed to create order: ${response.status}`,
             );
         }
 
@@ -53,7 +53,8 @@ export async function createGuestOrder(orderData: any) {
         if (!response.ok) {
             const data = await response.json();
             throw new Error(
-                data.error || `Failed to create guest order: ${response.status}`
+                data.error ||
+                    `Failed to create guest order: ${response.status}`,
             );
         }
 
@@ -82,7 +83,7 @@ export async function processPayment(paymentData: any) {
         if (!response.ok) {
             const data = await response.json();
             throw new Error(
-                data.error || `Failed to process payment: ${response.status}`
+                data.error || `Failed to process payment: ${response.status}`,
             );
         }
 
@@ -109,7 +110,8 @@ export async function checkPaymentStatus(paymentId: string) {
         if (!response.ok) {
             const data = await response.json();
             throw new Error(
-                data.error || `Failed to check payment status: ${response.status}`
+                data.error ||
+                    `Failed to check payment status: ${response.status}`,
             );
         }
 
@@ -128,12 +130,12 @@ export async function checkPaymentStatus(paymentId: string) {
 export async function getOrderDetails(orderId: string | number) {
     try {
         console.log(`Fetching order details for ID: ${orderId}`);
-        
+
         const token = localStorage.getItem("token");
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
         };
-        
+
         if (token) {
             headers.Authorization = `Bearer ${token}`;
             console.log("Token available, adding to Authorization header");
@@ -146,13 +148,14 @@ export async function getOrderDetails(orderId: string | number) {
         });
 
         console.log(`Order details API response status: ${response.status}`);
-        
+
         const data = await response.json();
         console.log("Order details API response data:", data);
-        
+
         if (!response.ok) {
             throw new Error(
-                data.message || `Failed to fetch order details: ${response.status}`
+                data.message ||
+                    `Failed to fetch order details: ${response.status}`,
             );
         }
 
@@ -160,8 +163,11 @@ export async function getOrderDetails(orderId: string | number) {
     } catch (error) {
         console.error("Error fetching order details:", error);
         return {
-            success: false, 
-            message: error instanceof Error ? error.message : "Unknown error fetching order details"
+            success: false,
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Unknown error fetching order details",
         };
     }
 }
@@ -187,7 +193,8 @@ export async function getUserOrderHistory() {
         if (!response.ok) {
             const data = await response.json();
             throw new Error(
-                data.message || `Failed to retrieve order history: ${response.status}`
+                data.message ||
+                    `Failed to retrieve order history: ${response.status}`,
             );
         }
         return await response.json();

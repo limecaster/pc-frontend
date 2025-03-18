@@ -34,7 +34,7 @@ const FilterItem: React.FC<FilterItemProps> = ({
             )}
 
             {checked && type === "checkbox" && (
-                <Image src={Check} alt="Check"/>
+                <Image src={Check} alt="Check" />
             )}
         </div>
     );

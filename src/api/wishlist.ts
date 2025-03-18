@@ -23,7 +23,8 @@ export async function getWishlist() {
             }
             const data = await response.json();
             throw new Error(
-                data.message || `Failed to retrieve wishlist: ${response.status}`,
+                data.message ||
+                    `Failed to retrieve wishlist: ${response.status}`,
             );
         }
 
@@ -58,7 +59,9 @@ export async function addToWishlist(productId: string) {
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.message || "Failed to add product to wishlist");
+            throw new Error(
+                data.message || "Failed to add product to wishlist",
+            );
         }
 
         return data;
@@ -80,13 +83,16 @@ export async function removeFromWishlist(productId: string) {
             throw new Error("Authentication required");
         }
 
-        const response = await fetch(`${API_URL}/wishlist/remove/${productId}`, {
-            method: "DELETE",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
+        const response = await fetch(
+            `${API_URL}/wishlist/remove/${productId}`,
+            {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
             },
-        });
+        );
 
         if (!response.ok) {
             const data = await response.json();

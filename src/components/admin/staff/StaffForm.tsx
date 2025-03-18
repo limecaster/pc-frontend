@@ -31,7 +31,7 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(mode === "edit");
-    
+
     const [formData, setFormData] = useState<FormData>({
         username: "",
         password: "",
@@ -46,7 +46,7 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
         district: "",
         city: "",
     });
-    
+
     // Load staff data for edit mode
     useEffect(() => {
         if (mode === "edit" && staffId) {
@@ -54,7 +54,7 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                 try {
                     setInitialLoading(true);
                     const response = await fetchStaffById(staffId);
-                    
+
                     if (response.success) {
                         setFormData({
                             ...formData,
@@ -79,93 +79,109 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                     setInitialLoading(false);
                 }
             };
-            
+
             loadStaffData();
         }
     }, [staffId, mode]);
-    
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+
+    const handleChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    ) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
-    
+
     const validateForm = (): boolean => {
-        const requiredFields = mode === "add" 
-            ? ['username', 'password', 'confirmPassword', 'email', 'firstname', 'lastname'] 
-            : ['email', 'firstname', 'lastname'];
-            
-        const missingFields = requiredFields.filter(field => !formData[field]);
-        
+        const requiredFields =
+            mode === "add"
+                ? [
+                      "username",
+                      "password",
+                      "confirmPassword",
+                      "email",
+                      "firstname",
+                      "lastname",
+                  ]
+                : ["email", "firstname", "lastname"];
+
+        const missingFields = requiredFields.filter(
+            (field) => !formData[field],
+        );
+
         if (missingFields.length > 0) {
             toast.error("Vui lòng điền đầy đủ thông tin bắt buộc");
             return false;
         }
-        
+
         if (mode === "add" || (mode === "edit" && formData.password)) {
             if (formData.password !== formData.confirmPassword) {
                 toast.error("Mật khẩu xác nhận không khớp");
                 return false;
             }
-            
+
             if (formData.password.length < 6) {
                 toast.error("Mật khẩu phải có ít nhất 6 ký tự");
                 return false;
             }
         }
-        
+
         // Email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(formData.email)) {
             toast.error("Email không hợp lệ");
             return false;
         }
-        
+
         return true;
     };
-    
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!validateForm()) {
             return;
         }
-        
+
         try {
             setLoading(true);
-            
+
             // Remove confirmPassword from data before sending to API
             const { confirmPassword, ...staffData } = formData;
-            
+
             let response;
             if (mode === "add") {
                 response = await createStaff(staffData);
                 toast.success("Tạo tài khoản nhân viên thành công");
             } else if (mode === "edit" && staffId) {
                 // Instead of deleting the property, create a new object without password if it's empty
-                const dataToSend = formData.password 
-                    ? { ...staffData } 
-                    : { 
-                        username: staffData.username,
-                        email: staffData.email,
-                        firstname: staffData.firstname,
-                        lastname: staffData.lastname,
-                        phoneNumber: staffData.phoneNumber,
-                        role: staffData.role,
-                        street: staffData.street,
-                        ward: staffData.ward,
-                        district: staffData.district,
-                        city: staffData.city
+                const dataToSend = formData.password
+                    ? { ...staffData }
+                    : {
+                          username: staffData.username,
+                          email: staffData.email,
+                          firstname: staffData.firstname,
+                          lastname: staffData.lastname,
+                          phoneNumber: staffData.phoneNumber,
+                          role: staffData.role,
+                          street: staffData.street,
+                          ward: staffData.ward,
+                          district: staffData.district,
+                          city: staffData.city,
                       };
-                
+
                 response = await updateStaff(staffId, dataToSend);
                 toast.success("Cập nhật tài khoản nhân viên thành công");
             }
-            
+
             // Navigate back to staff list
             router.push("/admin/staff");
         } catch (error) {
             console.error("Error saving staff data:", error);
-            toast.error(mode === "add" ? "Không thể tạo tài khoản nhân viên" : "Không thể cập nhật tài khoản nhân viên");
+            toast.error(
+                mode === "add"
+                    ? "Không thể tạo tài khoản nhân viên"
+                    : "Không thể cập nhật tài khoản nhân viên",
+            );
         } finally {
             setLoading(false);
         }
@@ -180,10 +196,15 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6">
+        <form
+            onSubmit={handleSubmit}
+            className="bg-white rounded-lg shadow p-6"
+        >
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-gray-900">
-                    {mode === "add" ? "Thêm nhân viên mới" : "Chỉnh sửa thông tin nhân viên"}
+                    {mode === "add"
+                        ? "Thêm nhân viên mới"
+                        : "Chỉnh sửa thông tin nhân viên"}
                 </h2>
                 <button
                     type="button"
@@ -194,7 +215,7 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                     Quay lại
                 </button>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 {/* Basic Information */}
                 <div className="space-y-4">
@@ -212,7 +233,7 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                             disabled={mode === "edit"} // Username can't be changed once created
                         />
                     </div>
-                    
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Họ *
@@ -226,7 +247,7 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                             required
                         />
                     </div>
-                    
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Tên *
@@ -240,7 +261,7 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                             required
                         />
                     </div>
-                    
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Email *
@@ -254,7 +275,7 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                             required
                         />
                     </div>
-                    
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Số điện thoại
@@ -268,7 +289,7 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                         />
                     </div>
                 </div>
-                
+
                 {/* Additional Information */}
                 <div className="space-y-4">
                     <div>
@@ -282,14 +303,20 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                             onChange={handleChange}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             required={mode === "add"}
-                            placeholder={mode === "edit" ? "Để trống nếu không thay đổi" : ""}
+                            placeholder={
+                                mode === "edit"
+                                    ? "Để trống nếu không thay đổi"
+                                    : ""
+                            }
                             minLength={6}
                         />
                     </div>
-                    
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {mode === "add" ? "Xác nhận mật khẩu *" : "Xác nhận mật khẩu mới"}
+                            {mode === "add"
+                                ? "Xác nhận mật khẩu *"
+                                : "Xác nhận mật khẩu mới"}
                         </label>
                         <input
                             type="password"
@@ -301,7 +328,7 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                             minLength={6}
                         />
                     </div>
-                    
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Vai trò
@@ -317,7 +344,7 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                             <option value="manager">Quản lý</option>
                         </select>
                     </div>
-                    
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Địa chỉ
@@ -330,20 +357,26 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                             placeholder="Số nhà, đường"
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 mb-2"
                         />
-                        
+
                         {/* Use the new VietnamAddressSelect component */}
                         <VietnamAddressSelect
                             selectedCity={formData.city}
                             selectedDistrict={formData.district}
                             selectedWard={formData.ward}
-                            onCityChange={(city) => setFormData(prev => ({ ...prev, city }))}
-                            onDistrictChange={(district) => setFormData(prev => ({ ...prev, district }))}
-                            onWardChange={(ward) => setFormData(prev => ({ ...prev, ward }))}
+                            onCityChange={(city) =>
+                                setFormData((prev) => ({ ...prev, city }))
+                            }
+                            onDistrictChange={(district) =>
+                                setFormData((prev) => ({ ...prev, district }))
+                            }
+                            onWardChange={(ward) =>
+                                setFormData((prev) => ({ ...prev, ward }))
+                            }
                         />
                     </div>
                 </div>
             </div>
-            
+
             {/* Submit button */}
             <div className="flex justify-end">
                 <button
@@ -356,7 +389,9 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                     ) : (
                         <>
                             <FontAwesomeIcon icon={faSave} className="mr-2" />
-                            {mode === "add" ? "Tạo nhân viên" : "Cập nhật thông tin"}
+                            {mode === "add"
+                                ? "Tạo nhân viên"
+                                : "Cập nhật thông tin"}
                         </>
                     )}
                 </button>

@@ -1,6 +1,9 @@
 import React from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChevronLeft, faChevronRight } from "@fortawesome/free-solid-svg-icons";
+import {
+    faChevronLeft,
+    faChevronRight,
+} from "@fortawesome/free-solid-svg-icons";
 
 interface PaginationProps {
     currentPage: number;
@@ -8,18 +11,25 @@ interface PaginationProps {
     onPageChange: (page: number) => void;
 }
 
-const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPageChange }) => {
+const Pagination: React.FC<PaginationProps> = ({
+    currentPage,
+    totalPages,
+    onPageChange,
+}) => {
     const renderPageNumbers = () => {
         const pages = [];
         const maxVisiblePages = 5;
-        
-        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+
+        let startPage = Math.max(
+            1,
+            currentPage - Math.floor(maxVisiblePages / 2),
+        );
         let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-        
+
         if (endPage - startPage + 1 < maxVisiblePages) {
             startPage = Math.max(1, endPage - maxVisiblePages + 1);
         }
-        
+
         // First page
         if (startPage > 1) {
             pages.push(
@@ -29,13 +39,17 @@ const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPage
                     className="px-3 py-1 rounded-md hover:bg-gray-200"
                 >
                     1
-                </button>
+                </button>,
             );
             if (startPage > 2) {
-                pages.push(<span key="ellipsis1" className="px-2">...</span>);
+                pages.push(
+                    <span key="ellipsis1" className="px-2">
+                        ...
+                    </span>,
+                );
             }
         }
-        
+
         // Page numbers
         for (let i = startPage; i <= endPage; i++) {
             pages.push(
@@ -49,14 +63,18 @@ const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPage
                     }`}
                 >
                     {i}
-                </button>
+                </button>,
             );
         }
-        
+
         // Last page
         if (endPage < totalPages) {
             if (endPage < totalPages - 1) {
-                pages.push(<span key="ellipsis2" className="px-2">...</span>);
+                pages.push(
+                    <span key="ellipsis2" className="px-2">
+                        ...
+                    </span>,
+                );
             }
             pages.push(
                 <button
@@ -65,10 +83,10 @@ const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPage
                     className="px-3 py-1 rounded-md hover:bg-gray-200"
                 >
                     {totalPages}
-                </button>
+                </button>,
             );
         }
-        
+
         return pages;
     };
 

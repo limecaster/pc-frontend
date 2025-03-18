@@ -14,9 +14,12 @@ const ratingOptions = [
     { id: "5star", value: 5, name: "5 sao" },
 ];
 
-const RatingFilter: React.FC<RatingFilterProps> = ({ onRatingChange, selectedRating }) => {
+const RatingFilter: React.FC<RatingFilterProps> = ({
+    onRatingChange,
+    selectedRating,
+}) => {
     const [selected, setSelected] = useState<string | undefined>(
-        selectedRating ? `${selectedRating}star` : undefined
+        selectedRating ? `${selectedRating}star` : undefined,
     );
 
     // Update internal state when props change
@@ -45,29 +48,28 @@ const RatingFilter: React.FC<RatingFilterProps> = ({ onRatingChange, selectedRat
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="font-medium text-gray-900 text-base">
-                ĐÁNH GIÁ
-            </div>
+            <div className="font-medium text-gray-900 text-base">ĐÁNH GIÁ</div>
 
             <div className="flex flex-col gap-3">
                 {ratingOptions.map((option) => (
-                    <div
-                        key={option.id}
-                        className="flex items-start gap-2"
-                    >
+                    <div key={option.id} className="flex items-start gap-2">
                         <FilterItem
-                            className={selected === option.id ? "bg-primary-500" : ""}
+                            className={
+                                selected === option.id ? "bg-primary-500" : ""
+                            }
                             checked={selected === option.id}
                             type="radio"
-                            onChange={() => handleRatingSelect(option.id, option.value)}
+                            onChange={() =>
+                                handleRatingSelect(option.id, option.value)
+                            }
                         />
                         <div className="flex items-center gap-1">
                             {/* Star display */}
                             <div className="flex">
                                 {[1, 2, 3, 4, 5].map((star) => (
-                                    <span 
-                                        key={star} 
-                                        className={`text-sm ${star <= option.value ? 'text-primary' : 'text-gray-300'}`}
+                                    <span
+                                        key={star}
+                                        className={`text-sm ${star <= option.value ? "text-primary" : "text-gray-300"}`}
                                     >
                                         ★
                                     </span>

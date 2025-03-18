@@ -60,7 +60,6 @@ const DialogTrigger = ({
     children: React.ReactNode;
     asChild?: boolean;
 } & React.HTMLAttributes<HTMLDivElement>) => {
-
     return (
         <div {...props} style={{ cursor: "pointer" }}>
             {asChild

@@ -84,15 +84,15 @@ const ManualBuildPCContent = () => {
         );
         setLoading(true); // Set loading to true
         setShowPopup(true); // Show popup immediately with loading state
-        
+
         try {
             const response = await getCompatibleParts(
-                category, 
-                selectedParts, 
-                page, 
-                itemsPerPage
+                category,
+                selectedParts,
+                page,
+                itemsPerPage,
             );
-            
+
             setPopupItems(response.items);
             setTotalPages(response.totalPages);
             setCurrentPage(page);
@@ -357,7 +357,10 @@ const ManualBuildPCContent = () => {
                                 {loading ? (
                                     <div className="flex flex-col items-center justify-center py-10">
                                         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-                                        <p className="mt-3 text-gray-600">Đang tìm kiếm linh kiện tương thích...</p>
+                                        <p className="mt-3 text-gray-600">
+                                            Đang tìm kiếm linh kiện tương
+                                            thích...
+                                        </p>
                                     </div>
                                 ) : popupItems.length === 0 ? (
                                     <p className="text-gray-600">
@@ -646,6 +649,5 @@ const ManualBuildPCContent = () => {
         </div>
     );
 };
-
 
 export default ManualBuildPCContent;

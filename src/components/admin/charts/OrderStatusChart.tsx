@@ -4,16 +4,16 @@ import { useMemo } from "react";
 import ChartWrapper from "./ChartWrapper";
 
 // Define supported status labels as a type
-type OrderStatusLabel = 
-    | 'Chờ duyệt'
-    | 'Đã duyệt'
-    | 'Đang xử lý'
-    | 'Đang giao hàng'
-    | 'Đã giao hàng'
-    | 'Hoàn thành'
-    | 'Đã hủy'
-    | 'Thanh toán thành công'
-    | 'Thanh toán thất bại'
+type OrderStatusLabel =
+    | "Chờ duyệt"
+    | "Đã duyệt"
+    | "Đang xử lý"
+    | "Đang giao hàng"
+    | "Đã giao hàng"
+    | "Hoàn thành"
+    | "Đã hủy"
+    | "Thanh toán thành công"
+    | "Thanh toán thất bại"
     | string; // Allow other string values too
 
 interface OrderStatusChartProps {
@@ -49,33 +49,36 @@ const OrderStatusChart: React.FC<OrderStatusChartProps> = ({
     );
 
     // Define a mapping of status labels to colors using Record type
-    const statusColorMap = useMemo<Record<OrderStatusLabel, string>>(() => ({
-        'Chờ duyệt': "rgba(249, 115, 22, 0.8)", // Orange - Pending
-        'Đã duyệt': "rgba(59, 130, 246, 0.8)", // Blue - Approved
-        'Đang xử lý': "rgba(14, 165, 233, 0.8)", // Sky Blue - Processing
-        'Đang giao hàng': "rgba(234, 179, 8, 0.8)", // Yellow - Shipping
-        'Đã giao hàng': "rgba(34, 197, 94, 0.8)", // Green - Delivered
-        'Hoàn thành': "rgba(13, 148, 136, 0.8)", // Teal - Completed
-        'Đã hủy': "rgba(225, 29, 72, 0.8)", // Red - Cancelled
-        'Thanh toán thành công': "rgba(16, 185, 129, 0.8)", // Emerald - Payment Success
-        'Thanh toán thất bại': "rgba(239, 68, 68, 0.8)", // Red - Payment Failure
-        // Default color for any other status
-        'default': "rgba(147, 51, 234, 0.8)", // Purple - Other
-    }), []);
+    const statusColorMap = useMemo<Record<OrderStatusLabel, string>>(
+        () => ({
+            "Chờ duyệt": "rgba(249, 115, 22, 0.8)", // Orange - Pending
+            "Đã duyệt": "rgba(59, 130, 246, 0.8)", // Blue - Approved
+            "Đang xử lý": "rgba(14, 165, 233, 0.8)", // Sky Blue - Processing
+            "Đang giao hàng": "rgba(234, 179, 8, 0.8)", // Yellow - Shipping
+            "Đã giao hàng": "rgba(34, 197, 94, 0.8)", // Green - Delivered
+            "Hoàn thành": "rgba(13, 148, 136, 0.8)", // Teal - Completed
+            "Đã hủy": "rgba(225, 29, 72, 0.8)", // Red - Cancelled
+            "Thanh toán thành công": "rgba(16, 185, 129, 0.8)", // Emerald - Payment Success
+            "Thanh toán thất bại": "rgba(239, 68, 68, 0.8)", // Red - Payment Failure
+            // Default color for any other status
+            default: "rgba(147, 51, 234, 0.8)", // Purple - Other
+        }),
+        [],
+    );
 
     // Map status labels to their corresponding colors with type safety
     const backgroundColors = useMemo(() => {
-        return safeStatuses.map(status => 
-            // Use the default color if the status is not in the map
-            statusColorMap[status as OrderStatusLabel] || statusColorMap['default']
+        return safeStatuses.map(
+            (status) =>
+                // Use the default color if the status is not in the map
+                statusColorMap[status as OrderStatusLabel] ||
+                statusColorMap["default"],
         );
     }, [safeStatuses, statusColorMap]);
 
     // Create border colors by adjusting opacity
     const borderColors = useMemo(() => {
-        return backgroundColors.map(color => 
-            color.replace('0.8', '1')
-        );
+        return backgroundColors.map((color) => color.replace("0.8", "1"));
     }, [backgroundColors]);
 
     const chartData = {

@@ -4,16 +4,21 @@ import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface RegisterFormProps {
-    onSubmit: (fullName: string, email: string, password: string, username?: string) => void;
+    onSubmit: (
+        fullName: string,
+        email: string,
+        password: string,
+        username?: string,
+    ) => void;
     isSubmitting?: boolean;
 }
 
-export const RegisterForm: React.FC<RegisterFormProps> = ({ 
+export const RegisterForm: React.FC<RegisterFormProps> = ({
     onSubmit,
-    isSubmitting = false 
+    isSubmitting = false,
 }) => {
     const [email, setEmail] = useState("");
-    const [username, setUsername] = useState(""); 
+    const [username, setUsername] = useState("");
     const [firstname, setFirstname] = useState("");
     const [lastname, setLastname] = useState("");
     const [password, setPassword] = useState("");
@@ -28,75 +33,75 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Initial registration validation
         const newErrors: Record<string, string> = {};
-        
+
         if (!email) {
             newErrors.email = "Email là bắt buộc";
         } else if (!validateEmail(email)) {
             newErrors.email = "Email không hợp lệ";
         }
-        
+
         if (!username) {
             newErrors.username = "Username là bắt buộc";
         } else if (username.length < 3) {
             newErrors.username = "Username phải có ít nhất 3 ký tự";
         }
-        
+
         if (!firstname) {
             newErrors.firstname = "Họ là bắt buộc";
         }
-        
+
         if (!lastname) {
             newErrors.lastname = "Tên là bắt buộc";
         }
-        
+
         if (!password) {
             newErrors.password = "Mật khẩu là bắt buộc";
         } else if (password.length < 6) {
             newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
         }
-        
+
         if (!confirmPassword) {
             newErrors.confirmPassword = "Nhập lại mật khẩu là bắt buộc";
         } else if (password !== confirmPassword) {
             newErrors.confirmPassword = "Mật khẩu không khớp";
         }
-        
+
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             return;
         }
-        
+
         // Submit registration data to parent component
         onSubmit(`${firstname} ${lastname}`, email, password, username);
     };
 
     const handleInputChange = (field: string, value: string) => {
-        setErrors(prev => {
-            const updated = {...prev};
+        setErrors((prev) => {
+            const updated = { ...prev };
             delete updated[field];
             return updated;
         });
 
         switch (field) {
-            case 'email':
+            case "email":
                 setEmail(value);
                 break;
-            case 'username':
+            case "username":
                 setUsername(value);
                 break;
-            case 'firstname':
+            case "firstname":
                 setFirstname(value);
                 break;
-            case 'lastname':
+            case "lastname":
                 setLastname(value);
                 break;
-            case 'password':
+            case "password":
                 setPassword(value);
                 break;
-            case 'confirmPassword':
+            case "confirmPassword":
                 setConfirmPassword(value);
                 break;
             default:
@@ -107,7 +112,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     const disabled = isLoading || isSubmitting;
 
     return (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-8 py-6 self-stretch text-gray-800">
+        <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-4 px-8 py-6 self-stretch text-gray-800"
+        >
             <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-neutral-600">
                     Email
@@ -115,7 +123,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                 <input
                     type="email"
                     value={email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
                     className={`px-2.5 py-3 text-sm bg-white border border-solid rounded-sm focus:outline-none focus:border-primary ${
                         errors.email ? "border-red-500" : "border-[#E4E7E9]"
                     }`}
@@ -123,7 +131,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                     disabled={disabled}
                 />
                 {errors.email && (
-                    <span className="text-xs text-red-500 mt-1">{errors.email}</span>
+                    <span className="text-xs text-red-500 mt-1">
+                        {errors.email}
+                    </span>
                 )}
             </div>
 
@@ -134,7 +144,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                 <input
                     type="text"
                     value={username}
-                    onChange={(e) => handleInputChange('username', e.target.value)}
+                    onChange={(e) =>
+                        handleInputChange("username", e.target.value)
+                    }
                     className={`px-2.5 py-3 text-sm bg-white border border-solid rounded-sm focus:outline-none focus:border-primary ${
                         errors.username ? "border-red-500" : "border-[#E4E7E9]"
                     }`}
@@ -142,7 +154,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                     disabled={disabled}
                 />
                 {errors.username && (
-                    <span className="text-xs text-red-500 mt-1">{errors.username}</span>
+                    <span className="text-xs text-red-500 mt-1">
+                        {errors.username}
+                    </span>
                 )}
             </div>
 
@@ -154,15 +168,21 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                     <input
                         type="text"
                         value={firstname}
-                        onChange={(e) => handleInputChange('firstname', e.target.value)}
+                        onChange={(e) =>
+                            handleInputChange("firstname", e.target.value)
+                        }
                         className={`px-2.5 py-3 text-sm bg-white border border-solid rounded-sm focus:outline-none focus:border-primary ${
-                            errors.firstname ? "border-red-500" : "border-[#E4E7E9]"
+                            errors.firstname
+                                ? "border-red-500"
+                                : "border-[#E4E7E9]"
                         }`}
                         placeholder="Họ"
                         disabled={disabled}
                     />
                     {errors.firstname && (
-                        <span className="text-xs text-red-500 mt-1">{errors.firstname}</span>
+                        <span className="text-xs text-red-500 mt-1">
+                            {errors.firstname}
+                        </span>
                     )}
                 </div>
                 <div className="flex flex-col gap-1.5 flex-1">
@@ -172,15 +192,21 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                     <input
                         type="text"
                         value={lastname}
-                        onChange={(e) => handleInputChange('lastname', e.target.value)}
+                        onChange={(e) =>
+                            handleInputChange("lastname", e.target.value)
+                        }
                         className={`px-2.5 py-3 text-sm bg-white border border-solid rounded-sm focus:outline-none focus:border-primary ${
-                            errors.lastname ? "border-red-500" : "border-[#E4E7E9]"
+                            errors.lastname
+                                ? "border-red-500"
+                                : "border-[#E4E7E9]"
                         }`}
                         placeholder="Tên"
                         disabled={disabled}
                     />
                     {errors.lastname && (
-                        <span className="text-xs text-red-500 mt-1">{errors.lastname}</span>
+                        <span className="text-xs text-red-500 mt-1">
+                            {errors.lastname}
+                        </span>
                     )}
                 </div>
             </div>
@@ -192,7 +218,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                 <input
                     type="password"
                     value={password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    onChange={(e) =>
+                        handleInputChange("password", e.target.value)
+                    }
                     className={`px-2.5 py-3 text-sm bg-white border border-solid rounded-sm focus:outline-none focus:border-primary ${
                         errors.password ? "border-red-500" : "border-[#E4E7E9]"
                     }`}
@@ -200,7 +228,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                     disabled={disabled}
                 />
                 {errors.password && (
-                    <span className="text-xs text-red-500 mt-1">{errors.password}</span>
+                    <span className="text-xs text-red-500 mt-1">
+                        {errors.password}
+                    </span>
                 )}
             </div>
 
@@ -211,15 +241,21 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
                 <input
                     type="password"
                     value={confirmPassword}
-                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                    onChange={(e) =>
+                        handleInputChange("confirmPassword", e.target.value)
+                    }
                     className={`px-2.5 py-3 text-sm bg-white border border-solid rounded-sm focus:outline-none focus:border-primary ${
-                        errors.confirmPassword ? "border-red-500" : "border-[#E4E7E9]"
+                        errors.confirmPassword
+                            ? "border-red-500"
+                            : "border-[#E4E7E9]"
                     }`}
                     placeholder="Nhập lại mật khẩu"
                     disabled={disabled}
                 />
                 {errors.confirmPassword && (
-                    <span className="text-xs text-red-500 mt-1">{errors.confirmPassword}</span>
+                    <span className="text-xs text-red-500 mt-1">
+                        {errors.confirmPassword}
+                    </span>
                 )}
             </div>
 

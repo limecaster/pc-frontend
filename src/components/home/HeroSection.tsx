@@ -28,7 +28,8 @@ const HeroSection: React.FC = () => {
                                     Xây dựng cấu hình PC của bạn
                                 </h1>
                                 <p className="text-white text-lg mb-4">
-                                    Nhận thông báo mới nhất về sản phẩm và ưu đãi
+                                    Nhận thông báo mới nhất về sản phẩm và ưu
+                                    đãi
                                 </p>
                                 <Link
                                     href="/products"

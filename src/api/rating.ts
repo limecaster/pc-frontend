@@ -42,7 +42,9 @@ export const submitRating = async (rating: RatingCommentSubmit) => {
 };
 
 // Get all ratings for a product
-export const getProductRatings = async (productId: string): Promise<RatingComment[]> => {
+export const getProductRatings = async (
+    productId: string,
+): Promise<RatingComment[]> => {
     const response = await fetch(`${API_URL}/ratings/product/${productId}`);
 
     if (!response.ok) {
@@ -73,7 +75,9 @@ export const deleteRating = async (ratingId: number) => {
 };
 
 // Check if the current user has already rated this product
-export const hasUserRatedProduct = async (productId: string): Promise<boolean> => {
+export const hasUserRatedProduct = async (
+    productId: string,
+): Promise<boolean> => {
     const token = localStorage.getItem("token");
 
     if (!token) {

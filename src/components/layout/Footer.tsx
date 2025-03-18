@@ -8,9 +8,12 @@ import doubleCheck from "@/assets/icon/others/Checks.svg";
 
 const Footer: React.FC = () => {
     const { footerRef } = useFooter();
-    
+
     return (
-        <footer ref={footerRef} className="flex flex-col w-full max-md:max-w-full">
+        <footer
+            ref={footerRef}
+            className="flex flex-col w-full max-md:max-w-full"
+        >
             <div className="flex flex-wrap gap-6 items-start py-20 pr-28 pl-20 w-full bg-primary min-h-[400px] max-md:px-5 max-md:max-w-full max-md:flex-col">
                 <div className="flex flex-col grow shrink self-stretch my-auto font-medium min-w-[240px] w-[250px]">
                     <Image

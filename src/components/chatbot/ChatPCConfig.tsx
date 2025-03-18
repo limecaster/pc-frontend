@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { toast } from "react-hot-toast";
 import { addMultipleToCart } from "@/api/cart";
 import { useRouter, usePathname } from "next/navigation";
-import { validateTokenFormat } from '@/api/auth';
+import { validateTokenFormat } from "@/api/auth";
 
 export default function ChatbotPCConfig({
     config,
@@ -27,35 +27,41 @@ export default function ChatbotPCConfig({
         setIsAddingToCart(true);
         try {
             // Check if user is logged in
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem("token");
             if (!token) {
                 toast.error("Vui lòng đăng nhập để thêm vào giỏ hàng!");
-                
+
                 // Redirect to login page with the current path as the returnUrl
-                router.push(`/authenticate?returnUrl=${encodeURIComponent(pathname)}`);
+                router.push(
+                    `/authenticate?returnUrl=${encodeURIComponent(pathname)}`,
+                );
                 return;
             }
-            
+
             // Validate token format
             const isValidFormat = validateTokenFormat();
             if (!isValidFormat) {
                 console.error("Invalid token format detected");
                 // Clear token if it's invalid format
-                localStorage.removeItem('token');
-                localStorage.removeItem('refreshToken');
-                
-                toast.error("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại!");
-                router.push(`/authenticate?returnUrl=${encodeURIComponent(pathname)}`);
+                localStorage.removeItem("token");
+                localStorage.removeItem("refreshToken");
+
+                toast.error(
+                    "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại!",
+                );
+                router.push(
+                    `/authenticate?returnUrl=${encodeURIComponent(pathname)}`,
+                );
                 return;
             }
-            
+
             // Collect all product IDs from the configuration
             const productIds = Object.values(config)
                 .filter((part: any) => part.id)
                 .map((part: any) => part.id);
-            
+
             console.log(`Adding ${productIds.length} products to cart`);
-            
+
             if (productIds.length === 0) {
                 throw new Error("No valid products found in the configuration");
             }
@@ -86,19 +92,28 @@ export default function ChatbotPCConfig({
             } catch (error) {
                 if (error instanceof Error) {
                     console.error("Cart error details:", error.message);
-                    
-                    if (error.message === 'Authentication required' || 
-                        error.message === 'Authentication failed. Please log in again.') {
+
+                    if (
+                        error.message === "Authentication required" ||
+                        error.message ===
+                            "Authentication failed. Please log in again."
+                    ) {
                         // Clear token if it's invalid
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('refreshToken');
-                        
-                        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
-                        
+                        localStorage.removeItem("token");
+                        localStorage.removeItem("refreshToken");
+
+                        toast.error(
+                            "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!",
+                        );
+
                         // Store current path as returnUrl
-                        router.push(`/authenticate?returnUrl=${encodeURIComponent(pathname)}`);
+                        router.push(
+                            `/authenticate?returnUrl=${encodeURIComponent(pathname)}`,
+                        );
                     } else {
-                        toast.error(`Không thể thêm vào giỏ hàng: ${error.message}`);
+                        toast.error(
+                            `Không thể thêm vào giỏ hàng: ${error.message}`,
+                        );
                     }
                 } else {
                     toast.error("Đã có lỗi xảy ra. Vui lòng thử lại!");

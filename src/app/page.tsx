@@ -104,19 +104,43 @@ function CategoryCarousel() {
             WiFiCard: "Card wifi",
             WiredNetworkCard: "Card mạng có dây",
         };
-        
+
         return categoryMap[categoryId] || categoryId;
     };
 
     const categories = [
         { id: "CPU", name: getCategoryName("CPU"), image: "/images/cpu.webp" },
-        { id: "GraphicsCard", name: getCategoryName("GraphicsCard"), image: "/images/vga.jpg" },
-        { id: "Motherboard", name: getCategoryName("Motherboard"), image: "/images/motherboard.jpeg" },
+        {
+            id: "GraphicsCard",
+            name: getCategoryName("GraphicsCard"),
+            image: "/images/vga.jpg",
+        },
+        {
+            id: "Motherboard",
+            name: getCategoryName("Motherboard"),
+            image: "/images/motherboard.jpeg",
+        },
         { id: "RAM", name: getCategoryName("RAM"), image: "/images/ram.png" },
-        { id: "Monitor", name: getCategoryName("Monitor"), image: "/images/monitor.webp" },
-        { id: "PowerSupply", name: getCategoryName("PowerSupply"), image: "/images/psu.jpg" },
-        { id: "InternalHardDrive", name: getCategoryName("InternalHardDrive"), image: "/images/ssd.webp" },
-        { id: "Case", name: getCategoryName("Case"), image: "/images/case.jpg" },
+        {
+            id: "Monitor",
+            name: getCategoryName("Monitor"),
+            image: "/images/monitor.webp",
+        },
+        {
+            id: "PowerSupply",
+            name: getCategoryName("PowerSupply"),
+            image: "/images/psu.jpg",
+        },
+        {
+            id: "InternalHardDrive",
+            name: getCategoryName("InternalHardDrive"),
+            image: "/images/ssd.webp",
+        },
+        {
+            id: "Case",
+            name: getCategoryName("Case"),
+            image: "/images/case.jpg",
+        },
     ];
 
     const NextArrow = (props: CustomArrowProps) => {

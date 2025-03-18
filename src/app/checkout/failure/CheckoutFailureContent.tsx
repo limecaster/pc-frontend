@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 
 const CheckoutFailureContent = () => {
     const searchParams = useSearchParams();
-    const errorMessage = searchParams.get('error');
+    const errorMessage = searchParams.get("error");
 
     useEffect(() => {
         document.title = "B Store - Thanh toán thất bại";

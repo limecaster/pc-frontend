@@ -6,11 +6,11 @@ import { ProductDetails } from "@/types/ProductDetails";
  * @param id The product ID to fetch
  * @returns ProductDetails object or null if not found
  */
-export const fetchProductById = async (id: string): Promise<ProductDetails | null> => {
+export const fetchProductById = async (
+    id: string,
+): Promise<ProductDetails | null> => {
     try {
-        const response = await fetch(
-            `${API_URL}/products/${id}`
-        );
+        const response = await fetch(`${API_URL}/products/${id}`);
 
         if (!response.ok) {
             throw new Error("Failed to fetch product");
@@ -31,13 +31,13 @@ export const fetchProductById = async (id: string): Promise<ProductDetails | nul
  * @returns Array of similar products
  */
 export const fetchSimilarProducts = async (
-    id: string, 
+    id: string,
     category: string,
-    limit: number = 4
+    limit: number = 4,
 ): Promise<ProductDetails[]> => {
     try {
         const response = await fetch(
-            `${API_URL}/products/similar?id=${id}&category=${encodeURIComponent(category)}&limit=${limit}`
+            `${API_URL}/products/similar?id=${id}&category=${encodeURIComponent(category)}&limit=${limit}`,
         );
 
         if (!response.ok) {

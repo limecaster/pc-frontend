@@ -70,15 +70,26 @@ const ProductDetailPage = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[500px] bg-white w-full">
-                <div className="text-xl">Loading product details...</div>
+                <div className="text-xl text-gray-800">
+                    Đang tải thông tin sản phẩm...
+                </div>
             </div>
         );
     }
 
     if (!product) {
         return (
-            <div className="flex items-center justify-center min-h-[500px] bg-white w-full">
-                <div className="text-xl text-red-500">Product not found</div>
+            <div className="flex flex-col items-center justify-center bg-white py-10 w-full">
+                <Image
+                    src={"/images/product-not-found.png"}
+                    alt={"Product not found"}
+                    width={500}
+                    height={500}
+                    priority
+                />
+                <div className="text-xl text-red-500 mt-4 font-semibold">
+                    Không tìm thấy sản phẩm
+                </div>
             </div>
         );
     }
@@ -97,7 +108,7 @@ const ProductDetailPage = () => {
         try {
             // Use the improved cart API function
             const result = await addToCartAndSync(product.id, quantity);
-            
+
             // Update cart item count
             const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
             const newCount = cartItems.reduce(
@@ -122,7 +133,7 @@ const ProductDetailPage = () => {
         try {
             // Use the improved cart API
             await addToCartAndSync(product.id, quantity);
-            
+
             // Update cart item count
             const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
             const newCount = cartItems.reduce(
@@ -130,15 +141,15 @@ const ProductDetailPage = () => {
                 0,
             );
             setCartItemCount(newCount);
-            
+
             // Show toast notification
             toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng!`, {
                 duration: 1500,
             });
-            
+
             // Navigate to checkout after a short delay
             setTimeout(() => {
-                router.push('/checkout');
+                router.push("/checkout");
             }, 500);
         } catch (error) {
             console.error("Error processing buy now:", error);
@@ -446,7 +457,8 @@ const ProductDetailPage = () => {
                                     {isWishlist ? (
                                         <>
                                             <HeartFilledIcon className="text-rose-500" />
-                                            Xóa sản phẩm khỏi danh sách yêu thích
+                                            Xóa sản phẩm khỏi danh sách yêu
+                                            thích
                                         </>
                                     ) : (
                                         <>

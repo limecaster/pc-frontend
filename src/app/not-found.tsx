@@ -8,8 +8,7 @@ import { useEffect } from "react";
 export default function NotFound() {
     useEffect(() => {
         document.title = "404 - Page Not Found";
-    }
-    , []);
+    }, []);
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen text-center bg-white">

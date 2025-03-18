@@ -1,6 +1,9 @@
+"use client";
+
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { fetchSubcategoryValues } from "@/api/product";
 
 // Import assets
 import frame from "@/assets/icon/others/Frame.svg";
@@ -10,90 +13,98 @@ import caretDown from "@/assets/icon/others/CaretDown.svg";
 import phone from "@/assets/icon/others/Phone.svg";
 import phoneCall from "@/assets/icon/others/PhoneCall.svg";
 
-// Enhanced product categories data with subcategories
+// Product categories base data (only most popular subcategories shown)
 const productCategories = [
     {
         title: "Linh kiện PC",
         items: [
-            { 
-                name: "CPU - Bộ vi xử lý", 
-                href: "/products/cpu",
+            {
+                name: "CPU - Bộ vi xử lý",
+                href: "/products?category=CPU",
                 subcategories: [
-                    { title: "Thương hiệu", items: ["Intel", "AMD"] },
-                    { title: "Kiến trúc", items: ["Intel Core i9", "Intel Core i7", "Intel Core i5", "AMD Ryzen 9", "AMD Ryzen 7", "AMD Ryzen 5"] },
-                    { title: "Thế hệ", items: ["Intel Gen 13", "Intel Gen 12", "AMD Zen 4", "AMD Zen 3"] }
-                ]
+                    { title: "Thương hiệu", key: "manufacturer" },
+                    { title: "Socket", key: "socket" },
+                ],
             },
-            { 
-                name: "Mainboard - Bo mạch chủ", 
-                href: "/products/mainboard",
+            {
+                name: "Mainboard - Bo mạch chủ",
+                href: "/products?category=Motherboard",
                 subcategories: [
-                    { title: "Thương hiệu", items: ["Asus", "MSI", "Gigabyte", "ASRock"] },
-                    { title: "Chipset", items: ["Intel Z790", "Intel B760", "AMD X670", "AMD B650"] },
-                    { title: "Kích thước", items: ["ATX", "Micro-ATX", "Mini-ITX"] }
-                ]
+                    { title: "Thương hiệu", key: "manufacturer" },
+                    { title: "Chipset", key: "chipset" },
+                ],
             },
-            { 
-                name: "RAM - Bộ nhớ trong", 
-                href: "/products/ram",
+            {
+                name: "RAM - Bộ nhớ trong",
+                href: "/products?category=RAM",
                 subcategories: [
-                    { title: "Thương hiệu", items: ["Corsair", "G.Skill", "Kingston", "Crucial"] },
-                    { title: "Thế hệ", items: ["DDR5", "DDR4", "DDR3"] },
-                    { title: "Dung lượng", items: ["8GB", "16GB", "32GB", "64GB"] }
-                ]
+                    { title: "Thương hiệu", key: "manufacturer" },
+                    { title: "Dung lượng", key: "moduleSize" },
+                ],
             },
-            { 
-                name: "VGA - Card màn hình", 
-                href: "/products/vga",
+            {
+                name: "VGA - Card màn hình",
+                href: "/products?category=GraphicsCard",
                 subcategories: [
-                    { title: "Thương hiệu", items: ["NVIDIA", "AMD", "Intel"] },
-                    { title: "Series", items: ["NVIDIA RTX 40", "NVIDIA RTX 30", "AMD RX 7000", "AMD RX 6000"] },
-                    { title: "Nhà sản xuất", items: ["ASUS", "MSI", "Gigabyte", "EVGA"] }
-                ]
+                    { title: "Thương hiệu", key: "manufacturer" },
+                    { title: "Chipset", key: "chipset" },
+                ],
             },
-            { name: "SSD - Ổ cứng thể rắn", href: "/products/ssd" },
-            { name: "PSU - Nguồn máy tính", href: "/products/psu" },
-            { name: "Case - Vỏ máy tính", href: "/products/case" },
-        ]
+            {
+                name: "Ổ cứng",
+                href: "/products?category=InternalHardDrive",
+                subcategories: [
+                    { title: "Thương hiệu", key: "manufacturer" },
+                    { title: "Loại", key: "type" },
+                ],
+            },
+            {
+                name: "PSU - Nguồn máy tính",
+                href: "/products?category=PowerSupply",
+            },
+            { name: "Case - Vỏ máy tính", href: "/products?category=Case" },
+        ],
     },
     {
-        title: "Màn hình",
+        title: "Phụ kiện máy tính",
         items: [
-            { name: "Màn hình Gaming", href: "/products/gaming-monitor" },
-            { name: "Màn hình đồ họa", href: "/products/graphic-monitor" },
-            { name: "Màn hình văn phòng", href: "/products/office-monitor" }
-        ]
+            { name: "Màn hình", href: "/products?category=Monitor" },
+            { name: "Bàn phím", href: "/products?category=Keyboard" },
+            { name: "Chuột", href: "/products?category=Mouse" },
+            { name: "Loa máy tính", href: "/products?category=Speaker" },
+            { name: "Kem tản nhiệt", href: "/products?category=ThermalPaste" },
+            { name: "Card wifi", href: "/products?category=WiFiCard" },
+            {
+                name: "Card mạng có dây",
+                href: "/products?category=WiredNetworkCard",
+            },
+        ],
     },
-    {
-        title: "Laptop",
-        items: [
-            { name: "Laptop Gaming", href: "/products/gaming-laptop" },
-            { name: "Laptop văn phòng", href: "/products/office-laptop" },
-            { name: "Laptop đồ họa", href: "/products/design-laptop" },
-        ]
-    },
-    {
-        title: "Thiết bị ngoại vi",
-        items: [
-            { name: "Bàn phím", href: "/products/keyboard" },
-            { name: "Chuột", href: "/products/mouse" },
-            { name: "Tai nghe", href: "/products/headphone" },
-            { name: "Webcam", href: "/products/webcam" },
-        ]
-    }
 ];
 
 const Navigation: React.FC = () => {
+    // Original state variables
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
     const [hoveredItem, setHoveredItem] = useState<number | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // New state for dynamically fetched subcategories
+    const [subcategoryValues, setSubcategoryValues] = useState<
+        Record<string, Record<string, string[]>>
+    >({});
+    const [loadingSubcategories, setLoadingSubcategories] = useState<
+        Record<string, Record<string, boolean>>
+    >({});
 
     // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+            if (
+                dropdownRef.current &&
+                !dropdownRef.current.contains(event.target as Node)
+            ) {
                 setIsDropdownOpen(false);
             }
         };
@@ -128,24 +139,103 @@ const Navigation: React.FC = () => {
         // We'll let the parent handleMouseLeave handle this
     };
 
-    const handleItemMouseEnter = (itemIdx: number) => {
+    // Handle hovering over a category item - fetch subcategories if needed
+    const handleItemMouseEnter = async (
+        categoryIdx: number,
+        itemIdx: number,
+    ) => {
         setHoveredItem(itemIdx);
+
+        const category = productCategories[categoryIdx];
+        const item = category.items[itemIdx];
+
+        // If this item has subcategories defined but we haven't fetched values yet
+        if (item.subcategories && !subcategoryValues[item.href]) {
+            // Extract category code from URL (e.g., "CPU" from "/products?category=CPU")
+            const categoryCode = new URLSearchParams(
+                item.href.split("?")[1],
+            ).get("category");
+            if (!categoryCode) return;
+
+            // Create an empty object for this category if it doesn't exist
+            if (!subcategoryValues[item.href]) {
+                setSubcategoryValues((prev) => ({
+                    ...prev,
+                    [item.href]: {},
+                }));
+                setLoadingSubcategories((prev) => ({
+                    ...prev,
+                    [item.href]: {},
+                }));
+            }
+
+            // Fetch each subcategory's values
+            for (const subcategory of item.subcategories) {
+                // Skip if we've already fetched this subcategory
+                if (subcategoryValues[item.href]?.[subcategory.key]) continue;
+
+                // Set loading state
+                setLoadingSubcategories((prev) => ({
+                    ...prev,
+                    [item.href]: {
+                        ...prev[item.href],
+                        [subcategory.key]: true,
+                    },
+                }));
+
+                try {
+                    // Fetch subcategory values from the API
+                    const values = await fetchSubcategoryValues(
+                        categoryCode,
+                        subcategory.key,
+                    );
+
+                    // Update state with fetched values
+                    setSubcategoryValues((prev) => ({
+                        ...prev,
+                        [item.href]: {
+                            ...prev[item.href],
+                            [subcategory.key]: values,
+                        },
+                    }));
+                } catch (error) {
+                    console.error(
+                        `Error fetching ${subcategory.key} values for ${categoryCode}:`,
+                        error,
+                    );
+                } finally {
+                    // Clear loading state
+                    setLoadingSubcategories((prev) => ({
+                        ...prev,
+                        [item.href]: {
+                            ...prev[item.href],
+                            [subcategory.key]: false,
+                        },
+                    }));
+                }
+            }
+        }
     };
 
     const handleItemMouseLeave = () => {
         setHoveredItem(null);
     };
 
+    const handleLinkClick = (href: string) => {
+        setIsDropdownOpen(false);
+        window.location.href = href;
+    };
+
     return (
         <nav className="flex flex-wrap gap-10 justify-between items-center px-20 py-4 w-full bg-white shadow-sm max-md:px-5 max-md:max-w-full max-md:flex-col">
             <div className="flex flex-wrap gap-6 justify-center items-center self-stretch my-auto text-sm leading-none text-gray-500 min-w-[240px] max-md:max-w-full">
-                <div 
-                    className="flex flex-col self-stretch px-0.5 my-auto font-medium text-zinc-900 w-[203px] relative" 
+                <div
+                    className="flex flex-col self-stretch px-0.5 my-auto font-medium text-zinc-900 w-[203px] relative"
                     ref={dropdownRef}
                     onMouseEnter={handleMouseEnter}
                     onMouseLeave={handleMouseLeave}
                 >
-                    <button 
+                    <button
                         className="flex gap-2 justify-center items-center px-6 py-3.5 bg-gray-100 rounded-sm max-md:px-5"
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     >
@@ -155,62 +245,151 @@ const Navigation: React.FC = () => {
                         <Image
                             src={caretDown}
                             alt=""
-                            className={`object-contain shrink-0 self-stretch my-auto w-3 aspect-square transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`}
+                            className={`object-contain shrink-0 self-stretch my-auto w-3 aspect-square transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : ""}`}
                         />
                     </button>
-                    
+
                     {isDropdownOpen && (
                         <div className="absolute top-full left-0 z-50 mt-1 w-[700px] bg-white shadow-lg rounded-md border border-gray-200">
                             <div className="grid grid-cols-4 gap-4 p-5">
                                 {productCategories.map((category, idx) => (
-                                    <div 
-                                        key={idx} 
+                                    <div
+                                        key={idx}
                                         className="flex flex-col space-y-2 relative"
-                                        onMouseEnter={() => handleCategoryMouseEnter(idx)}
+                                        onMouseEnter={() =>
+                                            handleCategoryMouseEnter(idx)
+                                        }
                                         onMouseLeave={handleCategoryMouseLeave}
                                     >
-                                        <h3 className="font-medium text-zinc-900 pb-2 border-b">{category.title}</h3>
+                                        <h3 className="font-medium text-zinc-900 pb-2 border-b">
+                                            {category.title}
+                                        </h3>
                                         <ul className="space-y-1.5">
-                                            {category.items.map((item, itemIdx) => (
-                                                <li key={itemIdx} 
-                                                    className="relative group"
-                                                    onMouseEnter={() => handleItemMouseEnter(itemIdx)}
-                                                    onMouseLeave={handleItemMouseLeave}>
-                                                    <Link 
-                                                        href={item.href}
-                                                        className="text-gray-600 hover:text-blue-600 hover:underline text-sm block py-1"
-                                                        onClick={() => setIsDropdownOpen(false)}
+                                            {category.items.map(
+                                                (item, itemIdx) => (
+                                                    <li
+                                                        key={itemIdx}
+                                                        className="relative group"
+                                                        onMouseEnter={() =>
+                                                            handleItemMouseEnter(
+                                                                idx,
+                                                                itemIdx,
+                                                            )
+                                                        }
+                                                        onMouseLeave={
+                                                            handleItemMouseLeave
+                                                        }
                                                     >
-                                                        {item.name}
-                                                    </Link>
-                                                    
-                                                    {/* Subcategories dropdown */}
-                                                    {item.subcategories && hoveredCategory === idx && hoveredItem === itemIdx && (
-                                                        <div className="absolute left-full top-0 z-50 ml-0 w-[500px] bg-white shadow-lg rounded-md border border-gray-200 p-5 opacity-100 transition-opacity duration-200 pointer-events-auto">
-                                                            <div className="grid grid-cols-3 gap-4">
-                                                                {item.subcategories.map((subcat, subcatIdx) => (
-                                                                    <div key={subcatIdx} className="flex flex-col space-y-2">
-                                                                        <h4 className="font-medium text-sm text-zinc-900 pb-1 border-b">{subcat.title}</h4>
-                                                                        <ul className="space-y-1">
-                                                                            {subcat.items.map((subItem, subItemIdx) => (
-                                                                                <li key={subItemIdx}>
-                                                                                    <Link
-                                                                                        href={`${item.href}/${subItem.toLowerCase().replace(/\s+/g, '-')}`}
-                                                                                        className="text-gray-600 hover:text-blue-600 hover:underline text-xs block py-0.5"
-                                                                                        onClick={() => setIsDropdownOpen(false)}
-                                                                                    >
-                                                                                        {subItem}
-                                                                                    </Link>
-                                                                                </li>
-                                                                            ))}
-                                                                        </ul>
+                                                        <a
+                                                            href={item.href}
+                                                            className="text-gray-600 hover:text-blue-600 hover:underline text-sm block py-1"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                handleLinkClick(
+                                                                    item.href,
+                                                                );
+                                                            }}
+                                                        >
+                                                            {item.name}
+                                                        </a>
+
+                                                        {/* Dynamically fetched subcategories dropdown */}
+                                                        {item.subcategories &&
+                                                            hoveredCategory ===
+                                                                idx &&
+                                                            hoveredItem ===
+                                                                itemIdx && (
+                                                                <div className="absolute left-full top-0 z-50 ml-0 w-[500px] bg-white shadow-lg rounded-md border border-gray-200 p-5 opacity-100 transition-opacity duration-200 pointer-events-auto">
+                                                                    <div className="grid grid-cols-3 gap-4">
+                                                                        {item.subcategories.map(
+                                                                            (
+                                                                                subcat,
+                                                                                subcatIdx,
+                                                                            ) => (
+                                                                                <div
+                                                                                    key={
+                                                                                        subcatIdx
+                                                                                    }
+                                                                                    className="flex flex-col space-y-2"
+                                                                                >
+                                                                                    <h4 className="font-medium text-sm text-zinc-900 pb-1 border-b">
+                                                                                        {
+                                                                                            subcat.title
+                                                                                        }
+                                                                                    </h4>
+                                                                                    <ul className="space-y-1">
+                                                                                        {loadingSubcategories[
+                                                                                            item
+                                                                                                .href
+                                                                                        ]?.[
+                                                                                            subcat
+                                                                                                .key
+                                                                                        ] ? (
+                                                                                            <li className="text-gray-400 text-xs py-0.5">
+                                                                                                Đang
+                                                                                                tải...
+                                                                                            </li>
+                                                                                        ) : (
+                                                                                            subcategoryValues[
+                                                                                                item
+                                                                                                    .href
+                                                                                            ]?.[
+                                                                                                subcat
+                                                                                                    .key
+                                                                                            ]?.map(
+                                                                                                (
+                                                                                                    value,
+                                                                                                    valueIdx,
+                                                                                                ) => (
+                                                                                                    <li
+                                                                                                        key={
+                                                                                                            valueIdx
+                                                                                                        }
+                                                                                                    >
+                                                                                                        <a
+                                                                                                            href={`${item.href}&${subcat.key}=${encodeURIComponent(value)}`}
+                                                                                                            className="text-gray-600 hover:text-blue-600 hover:underline text-xs block py-0.5"
+                                                                                                            onClick={(
+                                                                                                                e,
+                                                                                                            ) => {
+                                                                                                                e.preventDefault();
+                                                                                                                const subcategoryFilters =
+                                                                                                                    {
+                                                                                                                        [subcat.key]:
+                                                                                                                            [
+                                                                                                                                value,
+                                                                                                                            ],
+                                                                                                                    };
+                                                                                                                const filterParam =
+                                                                                                                    encodeURIComponent(
+                                                                                                                        JSON.stringify(
+                                                                                                                            subcategoryFilters,
+                                                                                                                        ),
+                                                                                                                    );
+                                                                                                                const filterUrl = `${item.href}&subcategories=${filterParam}`;
+                                                                                                                handleLinkClick(
+                                                                                                                    filterUrl,
+                                                                                                                );
+                                                                                                            }}
+                                                                                                        >
+                                                                                                            {
+                                                                                                                value
+                                                                                                            }
+                                                                                                        </a>
+                                                                                                    </li>
+                                                                                                ),
+                                                                                            )
+                                                                                        )}
+                                                                                    </ul>
+                                                                                </div>
+                                                                            ),
+                                                                        )}
                                                                     </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </li>
-                                            ))}
+                                                                </div>
+                                                            )}
+                                                    </li>
+                                                ),
+                                            )}
                                         </ul>
                                     </div>
                                 ))}
@@ -218,8 +397,10 @@ const Navigation: React.FC = () => {
                         </div>
                     )}
                 </div>
+
+                {/* Navigation links */}
                 <Link
-                    href="/track-order" 
+                    href="/track-order"
                     className="flex gap-1.5 items-center self-stretch my-auto"
                 >
                     <Image
@@ -231,6 +412,7 @@ const Navigation: React.FC = () => {
                         Trạng thái đơn hàng
                     </span>
                 </Link>
+
                 <Link
                     href="/manual-build-pc"
                     className="flex gap-1 justify-between items-center self-stretch my-auto w-[143px]"
@@ -253,7 +435,6 @@ const Navigation: React.FC = () => {
                         alt=""
                         className="object-contain shrink-0 self-stretch my-auto w-6 aspect-square"
                     />
-
                     <span className="self-stretch my-auto">
                         Đề xuất cấu hình
                     </span>

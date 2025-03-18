@@ -344,7 +344,10 @@ export async function fetchCustomerGrowth(period = "year") {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `Failed to fetch customer growth: ${response.status}`);
+            throw new Error(
+                errorData.message ||
+                    `Failed to fetch customer growth: ${response.status}`,
+            );
         }
 
         return await response.json();
@@ -377,7 +380,10 @@ export async function fetchTopProducts(limit = 10, period = "month") {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `Failed to fetch top products: ${response.status}`);
+            throw new Error(
+                errorData.message ||
+                    `Failed to fetch top products: ${response.status}`,
+            );
         }
 
         return await response.json();

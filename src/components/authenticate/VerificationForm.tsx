@@ -36,7 +36,7 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({
             setError("Vui lòng nhập mã OTP");
             return;
         }
-        
+
         if (otpCode.length !== 6 || !/^\d+$/.test(otpCode)) {
             setError("Mã OTP phải gồm 6 chữ số");
             return;
@@ -56,8 +56,10 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({
     };
 
     const maskedEmail = email
-        ? email.replace(/^(.{3})(.*)(@.*)$/, (_, a, b, c) => 
-            a + b.replace(/./g, '*') + c)
+        ? email.replace(
+              /^(.{3})(.*)(@.*)$/,
+              (_, a, b, c) => a + b.replace(/./g, "*") + c,
+          )
         : "your email";
 
     return (
@@ -66,8 +68,8 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({
                 Xác thực tài khoản
             </h2>
             <p className="text-gray-600 mb-6 text-center">
-                Chúng tôi đã gửi một mã xác thực đến email {maskedEmail}. 
-                Vui lòng kiểm tra email và nhập mã xác thực để hoàn tất đăng ký.
+                Chúng tôi đã gửi một mã xác thực đến email {maskedEmail}. Vui
+                lòng kiểm tra email và nhập mã xác thực để hoàn tất đăng ký.
             </p>
 
             <form onSubmit={handleSubmit} className="w-full">
@@ -82,7 +84,9 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({
                         maxLength={6}
                     />
                     {error && (
-                        <p className="text-sm text-red-500 text-center">{error}</p>
+                        <p className="text-sm text-red-500 text-center">
+                            {error}
+                        </p>
                     )}
                 </div>
 
@@ -90,7 +94,9 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({
                     type="submit"
                     disabled={isSubmitting}
                     className={`w-full bg-primary text-white py-3 px-4 rounded font-medium ${
-                        isSubmitting ? "opacity-70 cursor-not-allowed" : "hover:bg-primary-dark"
+                        isSubmitting
+                            ? "opacity-70 cursor-not-allowed"
+                            : "hover:bg-primary-dark"
                     }`}
                 >
                     {isSubmitting ? "Đang xử lý..." : "Xác thực"}
@@ -98,9 +104,12 @@ export const VerificationForm: React.FC<VerificationFormProps> = ({
 
                 <div className="mt-4 text-center">
                     <p className="text-sm text-gray-600">
-                        Không nhận được mã? 
+                        Không nhận được mã?
                         {countdown > 0 ? (
-                            <span className="text-gray-500"> Gửi lại sau {countdown}s</span>
+                            <span className="text-gray-500">
+                                {" "}
+                                Gửi lại sau {countdown}s
+                            </span>
                         ) : (
                             <button
                                 type="button"

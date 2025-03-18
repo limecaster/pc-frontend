@@ -73,12 +73,13 @@ const ProductInformation: React.FC<ProductInformationProps> = ({
 
     // Calculate average rating
     const averageRating = reviews.length
-        ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+        ? reviews.reduce((sum, review) => sum + review.rating, 0) /
+          reviews.length
         : 0;
 
     // Count reviews by rating
     const ratingCounts = [0, 0, 0, 0, 0]; // 5 stars, 4 stars, 3 stars, 2 stars, 1 star
-    reviews.forEach(review => {
+    reviews.forEach((review) => {
         if (review.rating >= 1 && review.rating <= 5) {
             ratingCounts[5 - review.rating]++;
         }
@@ -95,7 +96,7 @@ const ProductInformation: React.FC<ProductInformationProps> = ({
                                 "focus:outline-none",
                                 selected
                                     ? "bg-white text-primary shadow"
-                                    : "text-gray-600 hover:bg-white hover:text-primary"
+                                    : "text-gray-600 hover:bg-white hover:text-primary",
                             )
                         }
                     >
@@ -108,7 +109,7 @@ const ProductInformation: React.FC<ProductInformationProps> = ({
                                 "focus:outline-none",
                                 selected
                                     ? "bg-white text-primary shadow"
-                                    : "text-gray-600 hover:bg-white hover:text-primary"
+                                    : "text-gray-600 hover:bg-white hover:text-primary",
                             )
                         }
                     >
@@ -121,7 +122,7 @@ const ProductInformation: React.FC<ProductInformationProps> = ({
                                 "focus:outline-none",
                                 selected
                                     ? "bg-white text-primary shadow"
-                                    : "text-gray-600 hover:bg-white hover:text-primary"
+                                    : "text-gray-600 hover:bg-white hover:text-primary",
                             )
                         }
                     >
@@ -132,8 +133,14 @@ const ProductInformation: React.FC<ProductInformationProps> = ({
                     {/* Description Panel */}
                     <TabPanel className="px-2 py-4 text-gray-700">
                         <div className="prose max-w-none">
-                            <h3 className="text-xl font-semibold mb-4">Mô tả sản phẩm</h3>
-                            <div dangerouslySetInnerHTML={{ __html: description }} />
+                            <h3 className="text-xl font-semibold mb-4">
+                                Mô tả sản phẩm
+                            </h3>
+                            <div
+                                dangerouslySetInnerHTML={{
+                                    __html: description,
+                                }}
+                            />
                             {additionalInfo && (
                                 <div className="mt-6">
                                     <h4 className="text-lg font-medium mb-2">
@@ -153,23 +160,25 @@ const ProductInformation: React.FC<ProductInformationProps> = ({
                         <div className="overflow-x-auto">
                             <table className="w-full border-collapse">
                                 <tbody>
-                                    {formatSpecifications().map((spec, index) => (
-                                        <tr
-                                            key={index}
-                                            className={
-                                                index % 2 === 0
-                                                    ? "bg-gray-50"
-                                                    : "bg-white"
-                                            }
-                                        >
-                                            <td className="py-3 px-4 text-gray-600">
-                                                {spec.name}
-                                            </td>
-                                            <td className="py-3 px-4 font-medium">
-                                                {spec.value}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {formatSpecifications().map(
+                                        (spec, index) => (
+                                            <tr
+                                                key={index}
+                                                className={
+                                                    index % 2 === 0
+                                                        ? "bg-gray-50"
+                                                        : "bg-white"
+                                                }
+                                            >
+                                                <td className="py-3 px-4 text-gray-600">
+                                                    {spec.name}
+                                                </td>
+                                                <td className="py-3 px-4 font-medium">
+                                                    {spec.value}
+                                                </td>
+                                            </tr>
+                                        ),
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -178,13 +187,17 @@ const ProductInformation: React.FC<ProductInformationProps> = ({
                     {/* Reviews Panel */}
                     <TabPanel className="px-2 py-4 text-gray-700">
                         <div className="space-y-6">
-                            <h3 className="text-xl font-semibold">Đánh giá khách hàng</h3>
-                            
+                            <h3 className="text-xl font-semibold">
+                                Đánh giá khách hàng
+                            </h3>
+
                             {/* Rating Summary */}
                             <div className="flex flex-col md:flex-row gap-8 p-4 bg-gray-50 rounded-lg">
                                 {/* Average Rating */}
                                 <div className="flex flex-col items-center justify-center">
-                                    <span className="text-5xl font-bold text-gray-900">{averageRating.toFixed(1)}</span>
+                                    <span className="text-5xl font-bold text-gray-900">
+                                        {averageRating.toFixed(1)}
+                                    </span>
                                     <div className="mt-2">
                                         <StarRating rating={averageRating} />
                                     </div>
@@ -192,22 +205,29 @@ const ProductInformation: React.FC<ProductInformationProps> = ({
                                         ({reviews.length} đánh giá)
                                     </span>
                                 </div>
-                                
+
                                 {/* Rating Breakdown */}
                                 <div className="flex-1">
                                     {[5, 4, 3, 2, 1].map((star) => (
-                                        <div key={star} className="flex items-center gap-2 mb-2">
+                                        <div
+                                            key={star}
+                                            className="flex items-center gap-2 mb-2"
+                                        >
                                             <div className="flex items-center min-w-[60px]">
-                                                <span className="mr-1">{star}</span>
-                                                <span className="text-secondary">★</span>
+                                                <span className="mr-1">
+                                                    {star}
+                                                </span>
+                                                <span className="text-secondary">
+                                                    ★
+                                                </span>
                                             </div>
                                             <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                                <div 
-                                                    className="h-full bg-secondary rounded-full" 
-                                                    style={{ 
-                                                        width: reviews.length 
-                                                            ? `${(ratingCounts[5 - star] / reviews.length) * 100}%` 
-                                                            : '0%' 
+                                                <div
+                                                    className="h-full bg-secondary rounded-full"
+                                                    style={{
+                                                        width: reviews.length
+                                                            ? `${(ratingCounts[5 - star] / reviews.length) * 100}%`
+                                                            : "0%",
                                                     }}
                                                 ></div>
                                             </div>
@@ -220,24 +240,38 @@ const ProductInformation: React.FC<ProductInformationProps> = ({
                             </div>
 
                             {/* Rating Form */}
-                            <RatingForm productId={productId} onRatingSubmitted={fetchReviews} />
-                            
+                            <RatingForm
+                                productId={productId}
+                                onRatingSubmitted={fetchReviews}
+                            />
+
                             {/* Reviews List */}
                             <div className="mt-8">
-                                <h4 className="text-lg font-medium mb-4">Tất cả đánh giá</h4>
+                                <h4 className="text-lg font-medium mb-4">
+                                    Tất cả đánh giá
+                                </h4>
                                 {isLoading ? (
-                                    <div className="text-center py-4">Đang tải đánh giá...</div>
+                                    <div className="text-center py-4">
+                                        Đang tải đánh giá...
+                                    </div>
                                 ) : reviews.length > 0 ? (
                                     <div className="space-y-6">
                                         {reviews.map((review) => (
-                                            <div key={review.id} className="border-b pb-6">
+                                            <div
+                                                key={review.id}
+                                                className="border-b pb-6"
+                                            >
                                                 <div className="flex items-start">
                                                     <div className="mr-4">
                                                         {review.avatar ? (
                                                             <div className="relative w-10 h-10 rounded-full overflow-hidden">
                                                                 <Image
-                                                                    src={review.avatar}
-                                                                    alt={review.username}
+                                                                    src={
+                                                                        review.avatar
+                                                                    }
+                                                                    alt={
+                                                                        review.username
+                                                                    }
                                                                     fill
                                                                     className="object-cover"
                                                                 />
@@ -245,20 +279,37 @@ const ProductInformation: React.FC<ProductInformationProps> = ({
                                                         ) : (
                                                             <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
                                                                 <span className="text-gray-600">
-                                                                    {review.username.charAt(0).toUpperCase()}
+                                                                    {review.username
+                                                                        .charAt(
+                                                                            0,
+                                                                        )
+                                                                        .toUpperCase()}
                                                                 </span>
                                                             </div>
                                                         )}
                                                     </div>
                                                     <div className="flex-1">
                                                         <div className="flex items-center justify-between mb-1">
-                                                            <h5 className="font-medium">{review.username}</h5>
-                                                            <span className="text-sm text-gray-500">{review.date}</span>
+                                                            <h5 className="font-medium">
+                                                                {
+                                                                    review.username
+                                                                }
+                                                            </h5>
+                                                            <span className="text-sm text-gray-500">
+                                                                {review.date}
+                                                            </span>
                                                         </div>
                                                         <div className="mb-2">
-                                                            <StarRating rating={review.rating} size="small" />
+                                                            <StarRating
+                                                                rating={
+                                                                    review.rating
+                                                                }
+                                                                size="small"
+                                                            />
                                                         </div>
-                                                        <p className="text-gray-700">{review.content}</p>
+                                                        <p className="text-gray-700">
+                                                            {review.content}
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>

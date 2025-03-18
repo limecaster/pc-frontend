@@ -47,7 +47,9 @@ export default function RootLayout({
                                     {children}
                                     {!isAdminPage && <Footer />}
                                     {!isAdminPage && <Chatbot />}
-                                    {!isAdminPage && <Toaster position="top-center" />}
+                                    {!isAdminPage && (
+                                        <Toaster position="top-center" />
+                                    )}
                                 </FooterProvider>
                             </AuthProvider>
                         </CheckoutProvider>

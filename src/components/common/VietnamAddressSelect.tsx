@@ -79,10 +79,14 @@ const VietnamAddressSelect: React.FC<VietnamAddressSelectProps> = ({
             .then((res) => res.json())
             .then((data) => {
                 setAddressData(data);
-                setProvinces(Object.entries(data).map(([_, details]) => (details as Province).name_with_type));
+                setProvinces(
+                    Object.entries(data).map(
+                        ([_, details]) => (details as Province).name_with_type,
+                    ),
+                );
                 setIsLoading(false);
             })
-            .catch(error => {
+            .catch((error) => {
                 console.error("Error loading administrative data:", error);
                 toast.error("Không thể tải dữ liệu địa chỉ hành chính");
                 setIsLoading(false);
@@ -93,11 +97,13 @@ const VietnamAddressSelect: React.FC<VietnamAddressSelectProps> = ({
     useEffect(() => {
         if (selectedCity && Object.keys(addressData).length > 0) {
             const provinceKey = Object.keys(addressData).find(
-                (key) => addressData[key].name_with_type === selectedCity
+                (key) => addressData[key].name_with_type === selectedCity,
             );
             if (provinceKey) {
                 setDistricts(
-                    Object.values(addressData[provinceKey]["quan-huyen"]).map((d) => d.name_with_type)
+                    Object.values(addressData[provinceKey]["quan-huyen"]).map(
+                        (d) => d.name_with_type,
+                    ),
                 );
                 // Don't reset district and ward here, let the parent component handle it
             }
@@ -108,20 +114,29 @@ const VietnamAddressSelect: React.FC<VietnamAddressSelectProps> = ({
 
     // Update wards when district changes
     useEffect(() => {
-        if (selectedCity && selectedDistrict && Object.keys(addressData).length > 0) {
+        if (
+            selectedCity &&
+            selectedDistrict &&
+            Object.keys(addressData).length > 0
+        ) {
             const provinceKey = Object.keys(addressData).find(
-                (key) => addressData[key].name_with_type === selectedCity
+                (key) => addressData[key].name_with_type === selectedCity,
             );
             if (provinceKey) {
-                const districtKey = Object.keys(addressData[provinceKey]["quan-huyen"]).find(
+                const districtKey = Object.keys(
+                    addressData[provinceKey]["quan-huyen"],
+                ).find(
                     (key) =>
-                        addressData[provinceKey]["quan-huyen"][key].name_with_type === selectedDistrict
+                        addressData[provinceKey]["quan-huyen"][key]
+                            .name_with_type === selectedDistrict,
                 );
                 if (districtKey) {
                     setWards(
-                        Object.values(addressData[provinceKey]["quan-huyen"][districtKey]["xa-phuong"]).map(
-                            (w) => w.name_with_type
-                        )
+                        Object.values(
+                            addressData[provinceKey]["quan-huyen"][districtKey][
+                                "xa-phuong"
+                            ],
+                        ).map((w) => w.name_with_type),
                     );
                     // Don't reset ward here, let the parent component handle it
                 }
@@ -134,21 +149,21 @@ const VietnamAddressSelect: React.FC<VietnamAddressSelectProps> = ({
     const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const city = e.target.value;
         onCityChange(city);
-        
+
         // Automatically reset district and ward when city changes
         if (city !== selectedCity) {
-            onDistrictChange('');
-            onWardChange('');
+            onDistrictChange("");
+            onWardChange("");
         }
     };
 
     const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const district = e.target.value;
         onDistrictChange(district);
-        
+
         // Automatically reset ward when district changes
         if (district !== selectedDistrict) {
-            onWardChange('');
+            onWardChange("");
         }
     };
 
@@ -164,7 +179,7 @@ const VietnamAddressSelect: React.FC<VietnamAddressSelectProps> = ({
                 <select
                     value={selectedCity}
                     onChange={handleCityChange}
-                    className={`${selectClassName} ${isLoading ? 'cursor-wait' : ''}`}
+                    className={`${selectClassName} ${isLoading ? "cursor-wait" : ""}`}
                     required={required}
                     disabled={isLoading}
                 >
@@ -176,7 +191,7 @@ const VietnamAddressSelect: React.FC<VietnamAddressSelectProps> = ({
                     ))}
                 </select>
             </div>
-            
+
             {/* District */}
             <div>
                 {labels.district && (
@@ -199,7 +214,7 @@ const VietnamAddressSelect: React.FC<VietnamAddressSelectProps> = ({
                     ))}
                 </select>
             </div>
-            
+
             {/* Ward */}
             <div>
                 {labels.ward && (

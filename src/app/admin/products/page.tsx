@@ -7,13 +7,13 @@ import toast from "react-hot-toast";
 
 // Add a proper interface for the product
 interface Product {
-  id: string;
-  name: string;
-  price: number;
-  stock_quantity: number;
-  status: string;
-  category: string;
-  // Add other properties as needed
+    id: string;
+    name: string;
+    price: number;
+    stock_quantity: number;
+    status: string;
+    category: string;
+    // Add other properties as needed
 }
 
 export default function ProductsPage() {
@@ -27,37 +27,42 @@ export default function ProductsPage() {
     const [sortField, setSortField] = useState("createdAt");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
     const [searchQuery, setSearchQuery] = useState("");
-    const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+    const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
+        null,
+    );
 
-    const loadProducts = useCallback(async (page = 1) => {
-        try {
-            setLoading(true);
-            const params: Record<string, string> = {
-                page: page.toString(),
-                limit: "10",
-                sortField: sortField,
-                sortOrder: sortOrder,
-            };
+    const loadProducts = useCallback(
+        async (page = 1) => {
+            try {
+                setLoading(true);
+                const params: Record<string, string> = {
+                    page: page.toString(),
+                    limit: "10",
+                    sortField: sortField,
+                    sortOrder: sortOrder,
+                };
 
-            if (searchQuery) {
-                params.search = searchQuery;
+                if (searchQuery) {
+                    params.search = searchQuery;
+                }
+
+                // Use fetchProducts instead - we'll modify this function to call the admin endpoint
+                const data = await fetchProducts(params);
+                setProducts(data.products || []);
+                setPagination({
+                    currentPage: data.currentPage || 1,
+                    totalPages: data.totalPages || 1,
+                    totalItems: data.totalItems || 0,
+                });
+            } catch (error) {
+                console.error("Error loading products:", error);
+                toast.error("Không thể tải danh sách sản phẩm");
+            } finally {
+                setLoading(false);
             }
-
-            // Use fetchProducts instead - we'll modify this function to call the admin endpoint
-            const data = await fetchProducts(params);
-            setProducts(data.products || []);
-            setPagination({
-                currentPage: data.currentPage || 1,
-                totalPages: data.totalPages || 1,
-                totalItems: data.totalItems || 0,
-            });
-        } catch (error) {
-            console.error("Error loading products:", error);
-            toast.error("Không thể tải danh sách sản phẩm");
-        } finally {
-            setLoading(false);
-        }
-    }, [sortField, sortOrder, searchQuery]);
+        },
+        [sortField, sortOrder, searchQuery],
+    );
 
     useEffect(() => {
         loadProducts(pagination.currentPage);
@@ -103,7 +108,9 @@ export default function ProductsPage() {
     return (
         <div className="p-6 bg-gray-50">
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Quản lý sản phẩm</h1>
+                <h1 className="text-2xl font-bold text-gray-900">
+                    Quản lý sản phẩm
+                </h1>
                 <p className="text-sm text-gray-500 mt-1">
                     Thêm, chỉnh sửa hoặc xóa các sản phẩm trong hệ thống
                 </p>

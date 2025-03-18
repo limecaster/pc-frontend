@@ -20,13 +20,13 @@ const AuthenticateContent: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [registrationEmail, setRegistrationEmail] = useState<string>("");
-    const { 
-        login, 
-        register, 
-        verifyEmail, 
-        isAuthenticated, 
-        checkUserRole, 
-        resendVerificationOtp 
+    const {
+        login,
+        register,
+        verifyEmail,
+        isAuthenticated,
+        checkUserRole,
+        resendVerificationOtp,
     } = useAuth();
     const router = useRouter();
 
@@ -55,7 +55,10 @@ const AuthenticateContent: React.FC = () => {
             setError(null);
             setIsSubmitting(true);
 
-            const response = await unifiedLogin({ username: loginId, password });
+            const response = await unifiedLogin({
+                username: loginId,
+                password,
+            });
 
             if (response.access_token && response.user) {
                 login(response.access_token, response.user);
@@ -71,29 +74,38 @@ const AuthenticateContent: React.FC = () => {
             }
         } catch (err: any) {
             console.error("Login error:", err);
-            setError(err.message || "Login failed. Please check your credentials.");
+            setError(
+                err.message || "Login failed. Please check your credentials.",
+            );
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const handleRegister = async (fullName: string, email: string, password: string, username?: string) => {
+    const handleRegister = async (
+        fullName: string,
+        email: string,
+        password: string,
+        username?: string,
+    ) => {
         try {
             setError(null);
             setIsSubmitting(true);
-            
+
             // Call the register function from auth context
-            await register(email, password, username, 
-                fullName.split(' ')[0] || "", // firstname (first word of fullName)
-                fullName.split(' ').slice(1).join(' ') || "" // lastname (rest of fullName)
+            await register(
+                email,
+                password,
+                username,
+                fullName.split(" ")[0] || "", // firstname (first word of fullName)
+                fullName.split(" ").slice(1).join(" ") || "", // lastname (rest of fullName)
             );
-            
+
             // Save the email for verification screen
             setRegistrationEmail(email);
-            
-            // Show verification screen 
+
+            // Show verification screen
             setCurrentScreen("verification");
-            
         } catch (err: any) {
             console.error("Registration error:", err);
             setError(err.message || "Registration failed. Please try again.");
@@ -106,17 +118,19 @@ const AuthenticateContent: React.FC = () => {
         try {
             setError(null);
             setIsSubmitting(true);
-            
+
             await verifyEmail(registrationEmail, otpCode);
-            
+
             // Verification successful - redirect to login
             toast.success("Xác thực email thành công! Bạn có thể đăng nhập.");
             setActiveTab("login");
             setCurrentScreen("login");
-            
         } catch (err: any) {
             console.error("Verification error:", err);
-            setError(err.message || "Xác thực thất bại. Vui lòng kiểm tra lại mã OTP.");
+            setError(
+                err.message ||
+                    "Xác thực thất bại. Vui lòng kiểm tra lại mã OTP.",
+            );
         } finally {
             setIsSubmitting(false);
         }
@@ -128,7 +142,7 @@ const AuthenticateContent: React.FC = () => {
             setError("Không thể gửi lại mã xác thực. Email không hợp lệ.");
             return;
         }
-        
+
         try {
             setIsSubmitting(true);
             await resendVerificationOtp(registrationEmail);
@@ -140,7 +154,11 @@ const AuthenticateContent: React.FC = () => {
         }
     };
 
-    const handleForgotPasswordSubmit = async (email: string, otpCode?: string, newPassword?: string) => {
+    const handleForgotPasswordSubmit = async (
+        email: string,
+        otpCode?: string,
+        newPassword?: string,
+    ) => {
         // This would be called when the forgot password flow is completed
         // We can redirect back to login
         setCurrentScreen("login");
@@ -179,13 +197,16 @@ const AuthenticateContent: React.FC = () => {
             case "register":
                 return (
                     <>
-                        <RegisterForm onSubmit={handleRegister} isSubmitting={isSubmitting} />
+                        <RegisterForm
+                            onSubmit={handleRegister}
+                            isSubmitting={isSubmitting}
+                        />
                         <SocialLogin />
                     </>
                 );
             case "verification":
                 return (
-                    <VerificationForm 
+                    <VerificationForm
                         email={registrationEmail}
                         onSubmit={handleVerification}
                         onResend={handleResendVerification}
@@ -208,13 +229,19 @@ const AuthenticateContent: React.FC = () => {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-white py-8 b">
             <div className="w-full max-w-md shadow-lg rounded-lg overflow-hidden border border-gray-200">
-                {currentScreen !== "forgotPassword" && currentScreen !== "verification" && (
-                    <LoginTabs activeTab={activeTab} onTabChange={handleTabChange} />
-                )}
+                {currentScreen !== "forgotPassword" &&
+                    currentScreen !== "verification" && (
+                        <LoginTabs
+                            activeTab={activeTab}
+                            onTabChange={handleTabChange}
+                        />
+                    )}
 
                 {error && (
                     <div className="px-8 py-2 mt-4 bg-red-100 text-red-700 text-sm">
-                        {error === "Invalid credentials" ? "Tên đăng nhập hoặc mật khẩu không chính xác" : error}
+                        {error === "Invalid credentials"
+                            ? "Tên đăng nhập hoặc mật khẩu không chính xác"
+                            : error}
                     </div>
                 )}
 

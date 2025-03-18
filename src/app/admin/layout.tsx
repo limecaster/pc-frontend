@@ -19,7 +19,9 @@ function AdminContent({ children }: { children: React.ReactNode }) {
     const { isCollapsed } = useAdminSidebar();
 
     return (
-        <div className={`${roboto.className} antialiased flex h-screen bg-gray-100`}>
+        <div
+            className={`${roboto.className} antialiased flex h-screen bg-gray-100`}
+        >
             <AdminSidebar />
             <div
                 className={`flex-1 transition-all duration-300 ${

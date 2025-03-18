@@ -59,46 +59,49 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
 }) => {
     // Map the order status to human-readable Vietnamese
     const getStatusText = (statusCode: string) => {
-        const statusMap: Record<string, { text: string; color: string; bgColor: string }> = {
+        const statusMap: Record<
+            string,
+            { text: string; color: string; bgColor: string }
+        > = {
             pending_approval: {
                 text: "Chờ xác nhận",
                 color: "text-yellow-800",
-                bgColor: "bg-yellow-100"
+                bgColor: "bg-yellow-100",
             },
-            approved: { 
-                text: "Đã xác nhận", 
+            approved: {
+                text: "Đã xác nhận",
                 color: "text-blue-800",
-                bgColor: "bg-blue-100" 
+                bgColor: "bg-blue-100",
             },
-            processing: { 
-                text: "Đang xử lý", 
+            processing: {
+                text: "Đang xử lý",
                 color: "text-blue-800",
-                bgColor: "bg-blue-100" 
+                bgColor: "bg-blue-100",
             },
-            shipped: { 
-                text: "Đang giao hàng", 
+            shipped: {
+                text: "Đang giao hàng",
                 color: "text-purple-800",
-                bgColor: "bg-purple-100" 
+                bgColor: "bg-purple-100",
             },
-            delivered: { 
-                text: "Đã giao hàng", 
+            delivered: {
+                text: "Đã giao hàng",
                 color: "text-green-800",
-                bgColor: "bg-green-100" 
+                bgColor: "bg-green-100",
             },
-            completed: { 
-                text: "Hoàn thành", 
+            completed: {
+                text: "Hoàn thành",
                 color: "text-green-800",
-                bgColor: "bg-green-100" 
+                bgColor: "bg-green-100",
             },
-            cancelled: { 
-                text: "Đã hủy", 
+            cancelled: {
+                text: "Đã hủy",
                 color: "text-red-800",
-                bgColor: "bg-red-100" 
+                bgColor: "bg-red-100",
             },
-            refunded: { 
-                text: "Đã hoàn tiền", 
+            refunded: {
+                text: "Đã hoàn tiền",
                 color: "text-orange-800",
-                bgColor: "bg-orange-100" 
+                bgColor: "bg-orange-100",
             },
         };
 
@@ -106,7 +109,7 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
             statusMap[statusCode] || {
                 text: "Không xác định",
                 color: "text-gray-800",
-                bgColor: "bg-gray-100"
+                bgColor: "bg-gray-100",
             }
         );
     };
@@ -115,7 +118,7 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
 
     function formatOrderDate(orderDate: string): React.ReactNode {
         const date = new Date(orderDate);
-        const formattedDate = `${date.toLocaleTimeString()} ${date.toLocaleDateString('vi-VN')}`;
+        const formattedDate = `${date.toLocaleTimeString()} ${date.toLocaleDateString("vi-VN")}`;
         return formattedDate;
     }
 
@@ -150,8 +153,12 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
                         Đơn hàng #{orderNumber}
                     </h1>
                     <div className="flex items-center mb-2">
-                        <p className="text-gray-600 mr-4">Đặt ngày: {formatOrderDate(orderDate)}</p>
-                        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusInfo.bgColor} ${statusInfo.color}`}>
+                        <p className="text-gray-600 mr-4">
+                            Đặt ngày: {formatOrderDate(orderDate)}
+                        </p>
+                        <span
+                            className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusInfo.bgColor} ${statusInfo.color}`}
+                        >
                             {statusInfo.text}
                         </span>
                     </div>
@@ -258,7 +265,9 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
                                         <div
                                             key={item.id}
                                             className={`flex flex-col sm:flex-row items-start pb-4 hover:bg-gray-50 p-2 rounded ${
-                                                index !== items.length - 1 ? "border-b border-gray-300" : ""
+                                                index !== items.length - 1
+                                                    ? "border-b border-gray-300"
+                                                    : ""
                                             }`}
                                         >
                                             <div className="sm:w-20 h-20 relative mb-2 sm:mb-0">
@@ -282,7 +291,9 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
                                                         SL: {item.quantity}
                                                     </p>
                                                     <p className="font-medium">
-                                                        {formatCurrency(item.price)}
+                                                        {formatCurrency(
+                                                            item.price,
+                                                        )}
                                                     </p>
                                                 </div>
                                             </div>
@@ -296,7 +307,8 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
                                     Sản phẩm đã mua
                                 </h2>
                                 <p className="text-gray-500 py-4 text-center">
-                                    Thông tin sản phẩm không khả dụng hoặc cần xác thực thêm.
+                                    Thông tin sản phẩm không khả dụng hoặc cần
+                                    xác thực thêm.
                                 </p>
                             </div>
                         )}
@@ -345,7 +357,9 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
                                 <div className="border-t border-gray-300 pt-2 mt-2 bg-gray-50 p-3 rounded">
                                     <div className="flex justify-between font-bold">
                                         <span>Tổng cộng</span>
-                                        <span className="text-blue-700">{formatCurrency(total)}</span>
+                                        <span className="text-blue-700">
+                                            {formatCurrency(total)}
+                                        </span>
                                     </div>
                                 </div>
                             </div>

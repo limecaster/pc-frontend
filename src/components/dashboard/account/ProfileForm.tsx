@@ -57,16 +57,16 @@ const ProfileForm: React.FC = () => {
 
         try {
             setIsLoading(true);
-            
+
             // Make sure gender has a default value
             const updatedProfile = {
                 ...profile,
                 gender: profile.gender || "male",
             };
-            
+
             console.log("Submitting profile:", updatedProfile);
             await updateProfile(updatedProfile);
-            
+
             // Success
             setIsEditing(false);
             toast.success("Thông tin cá nhân đã được cập nhật!");

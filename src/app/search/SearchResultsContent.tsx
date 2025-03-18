@@ -14,35 +14,45 @@ import { searchProducts } from "@/api/product";
 
 const SearchResultsContent: React.FC = () => {
     const searchParams = useSearchParams();
-    const query = searchParams.get('q') || '';
-    
+    const query = searchParams.get("q") || "";
+
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [products, setProducts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [totalResults, setTotalResults] = useState(0);
     const [error, setError] = useState<string | null>(null);
-    
-    const [activeFilters, setActiveFilters] = useState<Array<{id: string, text: string}>>([]);
-    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+    const [activeFilters, setActiveFilters] = useState<
+        Array<{ id: string; text: string }>
+    >([]);
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(
+        null,
+    );
     const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-    const [priceRange, setPriceRange] = useState<[number, number]>([0, 100_000_000]);
-    const [selectedRating, setSelectedRating] = useState<number | undefined>(undefined);
+    const [priceRange, setPriceRange] = useState<[number, number]>([
+        0, 100_000_000,
+    ]);
+    const [selectedRating, setSelectedRating] = useState<number | undefined>(
+        undefined,
+    );
     const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
 
     useEffect(() => {
         document.title = `Search results for "${query}" - B Store`;
-        
+
         // Add search query as an active filter
         if (query) {
-            setActiveFilters([{ id: 'search-query', text: `Tìm kiếm: ${query}` }]);
+            setActiveFilters([
+                { id: "search-query", text: `Tìm kiếm: ${query}` },
+            ]);
         }
-        
+
         // Reset to first page when query changes
         setCurrentPage(1);
         fetchSearchResults(1);
     }, [query]);
-    
+
     useEffect(() => {
         // Fetch results when page changes
         if (query) {
@@ -77,18 +87,18 @@ const SearchResultsContent: React.FC = () => {
 
     const fetchSearchResults = async (page: number) => {
         if (!query) return;
-        
+
         setIsLoading(true);
         setError(null);
         try {
             const results = await searchProducts(
-                query, 
-                page, 
-                12, 
+                query,
+                page,
+                12,
                 selectedBrands.length > 0 ? selectedBrands : undefined,
                 priceRange[0] > 0 ? priceRange[0] : undefined,
                 priceRange[1] < 100_000_000 ? priceRange[1] : undefined,
-                selectedRating
+                selectedRating,
             );
             setProducts(results.products);
             setTotalResults(results.total);
@@ -105,18 +115,22 @@ const SearchResultsContent: React.FC = () => {
     };
 
     const handleRemoveFilter = (id: string) => {
-        if (id === 'search-query') {
+        if (id === "search-query") {
             // Redirect to products page if removing the search query filter
-            window.location.href = '/products';
-        } else if (id.startsWith('brand-')) {
-            const brandName = id.replace('brand-', '');
-            setSelectedBrands(prev => prev.filter(brand => brand !== brandName));
-        } else if (id === 'price-range') {
+            window.location.href = "/products";
+        } else if (id.startsWith("brand-")) {
+            const brandName = id.replace("brand-", "");
+            setSelectedBrands((prev) =>
+                prev.filter((brand) => brand !== brandName),
+            );
+        } else if (id === "price-range") {
             setPriceRange([0, 100_000_000]);
-        } else if (id === 'rating-filter') {
+        } else if (id === "rating-filter") {
             setSelectedRating(undefined);
         } else {
-            setActiveFilters(activeFilters.filter((filter) => filter.id !== id));
+            setActiveFilters(
+                activeFilters.filter((filter) => filter.id !== id),
+            );
         }
     };
 
@@ -127,37 +141,44 @@ const SearchResultsContent: React.FC = () => {
 
     const handleBrandSelect = (brands: string[]) => {
         setSelectedBrands(brands);
-        
+
         // Update active filters for brands
-        const currentFilters = activeFilters.filter(filter => !filter.id.startsWith('brand-'));
-        const brandFilters = brands.map(brand => ({
+        const currentFilters = activeFilters.filter(
+            (filter) => !filter.id.startsWith("brand-"),
+        );
+        const brandFilters = brands.map((brand) => ({
             id: `brand-${brand}`,
-            text: `Thương hiệu: ${brand}`
+            text: `Thương hiệu: ${brand}`,
         }));
-        
+
         setActiveFilters([...currentFilters, ...brandFilters]);
     };
 
     const handlePriceChange = (minPrice: number, maxPrice: number) => {
         setPriceRange([minPrice, maxPrice]);
         setCurrentPage(1); // Reset to first page when changing price
-        
+
         // Update active filters
         updatePriceFilter(minPrice, maxPrice);
     };
-    
+
     const updatePriceFilter = (min: number, max: number) => {
         // Remove existing price filters
-        const currentFilters = activeFilters.filter(filter => filter.id !== 'price-range');
-        
+        const currentFilters = activeFilters.filter(
+            (filter) => filter.id !== "price-range",
+        );
+
         // Only add price filter if it's not the default range
         if (min > 0 || max < 100_000_000) {
-            const formatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
+            const formatter = new Intl.NumberFormat("vi-VN", {
+                style: "currency",
+                currency: "VND",
+            });
             const filterText = `Giá: ${formatter.format(min)} - ${formatter.format(max)}`;
-            
+
             setActiveFilters([
                 ...currentFilters,
-                { id: 'price-range', text: filterText }
+                { id: "price-range", text: filterText },
             ]);
         } else {
             setActiveFilters(currentFilters);
@@ -166,13 +187,18 @@ const SearchResultsContent: React.FC = () => {
 
     const updateRatingFilter = (rating?: number) => {
         // Remove existing rating filters
-        const currentFilters = activeFilters.filter(filter => filter.id !== 'rating-filter');
-        
+        const currentFilters = activeFilters.filter(
+            (filter) => filter.id !== "rating-filter",
+        );
+
         // Add new rating filter if defined
         if (rating !== undefined) {
             setActiveFilters([
                 ...currentFilters,
-                { id: 'rating-filter', text: `Đánh giá: Từ ${rating} sao trở lên` }
+                {
+                    id: "rating-filter",
+                    text: `Đánh giá: Từ ${rating} sao trở lên`,
+                },
             ]);
         } else {
             setActiveFilters(currentFilters);
@@ -194,12 +220,12 @@ const SearchResultsContent: React.FC = () => {
             {/* Left Column - Filters - with fixed width */}
             <div className="w-full md:w-[280px] flex-shrink-0">
                 <div className="flex flex-col gap-4">
-                    <CategoryFilter 
+                    <CategoryFilter
                         onCategorySelect={handleCategorySelect}
                         selectedCategory={selectedCategory}
                     />
                     <div className="h-px bg-gray-200 w-full" />
-                    <PriceFilter 
+                    <PriceFilter
                         onPriceChange={handlePriceChange}
                         initialMinPrice={priceRange[0]}
                         initialMaxPrice={priceRange[1]}
@@ -210,7 +236,7 @@ const SearchResultsContent: React.FC = () => {
                         selectedBrands={selectedBrands}
                     />
                     <div className="h-px bg-gray-200 w-full" />
-                    <RatingFilter 
+                    <RatingFilter
                         onRatingChange={handleRatingChange}
                         selectedRating={selectedRating}
                     />
@@ -220,8 +246,8 @@ const SearchResultsContent: React.FC = () => {
             {/* Right Column - Products - flexible width */}
             <div className="flex-1 min-w-0 drop-shadow-lg rounded-lg bg-white p-4">
                 {/* Search and Sort - Set isGlobalSearch to false for local filtering */}
-                <SearchSort 
-                    initialQuery={query} 
+                <SearchSort
+                    initialQuery={query}
                     products={products}
                     onFilteredProductsChange={handleFilteredProductsChange}
                 />

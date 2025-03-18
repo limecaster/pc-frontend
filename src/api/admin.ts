@@ -135,9 +135,9 @@ export async function adminLogin(credentials: {
 
         const response = await fetch(`${API_URL}/auth/admin/login`, {
             method: "POST",
-            headers: { 
+            headers: {
                 "Content-Type": "application/json",
-                "Accept": "application/json"
+                Accept: "application/json",
             },
             body: JSON.stringify(credentials),
             // Remove credentials: 'include' if not using cookies
@@ -166,7 +166,9 @@ export async function adminLogin(credentials: {
 
         if (!response.ok) {
             console.error("Admin login failed:", response.status, data);
-            throw new Error(data.message || `Login failed with status: ${response.status}`);
+            throw new Error(
+                data.message || `Login failed with status: ${response.status}`,
+            );
         }
 
         console.log("Admin login successful, received token and user data");
@@ -183,7 +185,7 @@ export async function adminLogin(credentials: {
             // Make sure role is explicitly set
             const userData = {
                 ...data.user,
-                role: data.user.role || "admin" // Ensure the role is set correctly
+                role: data.user.role || "admin", // Ensure the role is set correctly
             };
 
             console.log("Storing user data with role:", userData.role);

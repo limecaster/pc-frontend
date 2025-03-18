@@ -464,11 +464,12 @@ const AutoBuildPCContent: React.FC = () => {
                                                                 </svg>
                                                                 <span className="text-xs text-gray-800 dark:text-gray-300 ml-1">
                                                                     Benchmark:{" "}
-                                                                    {
-                                                                        partData.benchmarkScore === 0
-                                                                            ? "Không có thông tin"
-                                                                            : partData.benchmarkScore.toFixed(1)
-                                                                    }
+                                                                    {partData.benchmarkScore ===
+                                                                    0
+                                                                        ? "Không có thông tin"
+                                                                        : partData.benchmarkScore.toFixed(
+                                                                              1,
+                                                                          )}
                                                                 </span>
                                                             </div>
                                                         </div>

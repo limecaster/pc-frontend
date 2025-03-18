@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faUser,
@@ -13,14 +12,12 @@ import {
     faSignOutAlt,
     faUserCircle,
 } from "@fortawesome/free-solid-svg-icons";
-import SearchSort from "@/components/shop/SearchSort";
+// Import the new SearchBar component instead of SearchSort
+import SearchBar from "@/components/ui/SearchBar";
 
 const Header = () => {
-    const router = useRouter();
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [cartCount, setCartCount] = useState(0);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [isSearching, setIsSearching] = useState(false);
     const userMenuRef = useRef<HTMLDivElement>(null); // For handling clicks outside of user menu
 
     const { user, isAuthenticated, logout } = useAuth();
@@ -42,16 +39,19 @@ const Header = () => {
             const items = JSON.parse(cartItems);
             const count = items.reduce(
                 (acc: number, item: any) => acc + item.quantity,
-                0
+                0,
             );
             setCartCount(count);
         }
-    }, []);    
+    }, []);
 
     // Handle clicks outside of user menu
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+            if (
+                userMenuRef.current &&
+                !userMenuRef.current.contains(event.target as Node)
+            ) {
                 setShowUserMenu(false);
             }
         };
@@ -64,23 +64,6 @@ const Header = () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, [showUserMenu]);
-
-    // Handle search submission
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!searchQuery.trim()) return;
-        
-        setIsSearching(true);
-        try {
-            // Redirect to search page with the query parameter
-            router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-        } catch (error) {
-            console.error("Search error:", error);
-        } finally {
-            setIsSearching(false);
-            setSearchQuery(""); // Clear search input after submission
-        }
-    };
 
     return (
         <header className="bg-primary shadow-md">
@@ -98,9 +81,12 @@ const Header = () => {
                     </span>
                 </Link>
 
-                {/* Search Bar - Use SearchSort component with isGlobalSearch */}
+                {/* Search Bar - Use the new SearchBar component with autocomplete */}
                 <div className="hidden md:block flex-1 max-w-xl mx-6">
-                    <SearchSort isGlobalSearch={true} />
+                    <SearchBar
+                        placeholder="Tìm kiếm sản phẩm..."
+                        className="w-full"
+                    />
                 </div>
 
                 {/* Navigation Icons */}
@@ -223,9 +209,9 @@ const Header = () => {
                 </div>
             </div>
 
-            {/* Mobile Search - Use SearchSort component with isGlobalSearch */}
+            {/* Mobile Search - Also use the new SearchBar component */}
             <div className="md:hidden px-4 py-2">
-                <SearchSort isGlobalSearch={true} />
+                <SearchBar placeholder="Tìm kiếm sản phẩm..." />
             </div>
         </header>
     );

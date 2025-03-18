@@ -59,16 +59,17 @@ export function WishlistProvider({ children }: WishlistProviderProps) {
             setWishlistItems(productIds);
         } catch (error: any) {
             console.error("Error fetching wishlist:", error);
-            
+
             // Check if this is an authentication error (401)
-            if (error.message && (
-                error.message.includes("Authentication failed") ||
-                error.message.includes("Token expired") ||
-                error.message.includes("Invalid token")
-            )) {
+            if (
+                error.message &&
+                (error.message.includes("Authentication failed") ||
+                    error.message.includes("Token expired") ||
+                    error.message.includes("Invalid token"))
+            ) {
                 logout("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
             }
-            
+
             setWishlistItems([]);
         } finally {
             setLoading(false);
@@ -99,18 +100,19 @@ export function WishlistProvider({ children }: WishlistProviderProps) {
             });
         } catch (error: any) {
             console.error("Error adding to wishlist:", error);
-            
+
             // Check if this is an authentication error (401)
-            if (error.message && (
-                error.message.includes("Authentication failed") ||
-                error.message.includes("Token expired") ||
-                error.message.includes("Invalid token") ||
-                error.message.includes("Authentication required")
-            )) {
+            if (
+                error.message &&
+                (error.message.includes("Authentication failed") ||
+                    error.message.includes("Token expired") ||
+                    error.message.includes("Invalid token") ||
+                    error.message.includes("Authentication required"))
+            ) {
                 logout("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
                 return;
             }
-            
+
             toast.error(
                 "Không thể thêm vào danh sách yêu thích. Vui lòng thử lại!",
             );
@@ -133,18 +135,19 @@ export function WishlistProvider({ children }: WishlistProviderProps) {
             });
         } catch (error: any) {
             console.error("Error removing from wishlist:", error);
-            
+
             // Check if this is an authentication error (401)
-            if (error.message && (
-                error.message.includes("Authentication failed") ||
-                error.message.includes("Token expired") ||
-                error.message.includes("Invalid token") ||
-                error.message.includes("Authentication required")
-            )) {
+            if (
+                error.message &&
+                (error.message.includes("Authentication failed") ||
+                    error.message.includes("Token expired") ||
+                    error.message.includes("Invalid token") ||
+                    error.message.includes("Authentication required"))
+            ) {
                 logout("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
                 return;
             }
-            
+
             toast.error(
                 "Không thể xóa khỏi danh sách yêu thích. Vui lòng thử lại!",
             );

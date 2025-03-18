@@ -1,9 +1,4 @@
-import React, {
-    createContext,
-    useState,
-    useContext,
-    ReactNode,
-} from "react";
+import React, { createContext, useState, useContext, ReactNode } from "react";
 import { createOrder, createGuestOrder } from "@/api/checkout";
 import { toast } from "react-hot-toast";
 import { validateTokenFormat } from "@/api/auth";
@@ -126,8 +121,9 @@ export function CheckoutProvider({ children }: CheckoutProviderProps) {
             // If order created successfully, store order data and return
             if (orderResponse && orderResponse.success) {
                 const orderId = orderResponse.order.id;
-                const orderNumber = orderResponse.order.orderNumber || `ORDER-${orderId}`;
-                
+                const orderNumber =
+                    orderResponse.order.orderNumber || `ORDER-${orderId}`;
+
                 // Store order data for success page
                 localStorage.setItem(
                     "latestOrder",
@@ -147,7 +143,7 @@ export function CheckoutProvider({ children }: CheckoutProviderProps) {
                         shippingFee: 0,
                         discount: 0,
                         total,
-                        status: "pending_approval"
+                        status: "pending_approval",
                     }),
                 );
 

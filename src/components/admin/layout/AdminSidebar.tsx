@@ -16,7 +16,7 @@ import {
     faBars,
     faAngleDown,
     faAngleRight,
-    faUserShield
+    faUserShield,
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminSidebar } from "@/contexts/AdminSidebarContext";
@@ -47,9 +47,21 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
             path: "/admin/products",
             icon: faBox,
             submenu: [
-                { title: "Danh sách sản phẩm", path: "/admin/products", icon: faBox },
-                { title: "Thêm sản phẩm", path: "/admin/products/add", icon: faBox },
-                { title: "Danh mục", path: "/admin/products/categories", icon: faBox },
+                {
+                    title: "Danh sách sản phẩm",
+                    path: "/admin/products",
+                    icon: faBox,
+                },
+                {
+                    title: "Thêm sản phẩm",
+                    path: "/admin/products/add",
+                    icon: faBox,
+                },
+                {
+                    title: "Danh mục",
+                    path: "/admin/products/categories",
+                    icon: faBox,
+                },
             ],
         },
         {
@@ -101,21 +113,21 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
             // Exact match - always active
             return true;
         }
-        
+
         // For top-level items with submenu, don't highlight them based on child paths
         if (item?.submenu) {
             // Only highlight parent if it's exactly the current path
             return pathname === path;
         }
-        
+
         // For items without submenu or submenu items themselves
         // Check if current path starts with this path AND
         // the next character (if it exists) is a slash
         if (pathname?.startsWith(path) && pathname.length > path.length) {
             const nextChar = pathname.charAt(path.length);
-            return nextChar === '/';
+            return nextChar === "/";
         }
-        
+
         return false;
     };
 
@@ -132,7 +144,7 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
 
             {/* Overlay for mobile */}
             {isMobileOpen && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden transition-all duration-300"
                     onClick={() => setIsMobileOpen(false)}
                 />
@@ -148,14 +160,22 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
                     {/* Sidebar header */}
                     <div className="flex items-center justify-between p-5 border-b border-slate-700/50">
                         {!isCollapsed && (
-                            <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-blue-600">Admin Panel</h2>
+                            <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-blue-600">
+                                Admin Panel
+                            </h2>
                         )}
                         <button
                             onClick={toggleCollapse}
                             className="p-2 rounded-full hover:bg-slate-700/50 text-blue-400 hover:text-blue-300 transition-colors duration-200"
-                            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                            aria-label={
+                                isCollapsed
+                                    ? "Expand sidebar"
+                                    : "Collapse sidebar"
+                            }
                         >
-                            <FontAwesomeIcon icon={isCollapsed ? faAngleRight : faAngleDown} />
+                            <FontAwesomeIcon
+                                icon={isCollapsed ? faAngleRight : faAngleDown}
+                            />
                         </button>
                     </div>
 
@@ -167,13 +187,17 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
                                     {item.submenu ? (
                                         <div className="block">
                                             <button
-                                                onClick={() => toggleExpanded(item.title)}
+                                                onClick={() =>
+                                                    toggleExpanded(item.title)
+                                                }
                                                 className={`flex items-center rounded-lg w-full p-3 ${
                                                     isActive(item.path, item)
                                                         ? "bg-gradient-to-r from-blue-700 to-blue-600 text-white shadow-md shadow-blue-900/30"
                                                         : "hover:bg-slate-700/50 text-slate-200 hover:text-white"
                                                 } ${
-                                                    isCollapsed ? "justify-center" : "justify-between"
+                                                    isCollapsed
+                                                        ? "justify-center"
+                                                        : "justify-between"
                                                 } transition-all duration-200`}
                                             >
                                                 <div className="flex items-center">
@@ -181,12 +205,17 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
                                                         icon={item.icon}
                                                         className={`${isCollapsed ? "text-lg" : "mr-3 text-blue-400 group-hover:text-blue-300"}`}
                                                     />
-                                                    {!isCollapsed && <span className="tracking-wide">{item.title}</span>}
+                                                    {!isCollapsed && (
+                                                        <span className="tracking-wide">
+                                                            {item.title}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 {!isCollapsed && (
                                                     <FontAwesomeIcon
                                                         icon={
-                                                            expanded === item.title
+                                                            expanded ===
+                                                            item.title
                                                                 ? faAngleDown
                                                                 : faAngleRight
                                                         }
@@ -195,28 +224,46 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
                                                     />
                                                 )}
                                             </button>
-                                            {!isCollapsed && expanded === item.title && (
-                                                <ul className="mt-2 space-y-1 pl-4 animated-dropdown">
-                                                    {item.submenu.map((subItem) => (
-                                                        <li key={subItem.path} className="group">
-                                                            <Link
-                                                                href={subItem.path}
-                                                                className={`flex items-center p-2 rounded-md ${
-                                                                    isActive(subItem.path)
-                                                                        ? "bg-blue-600/30 text-blue-300"
-                                                                        : "hover:bg-slate-700/30 text-slate-300 hover:text-white"
-                                                                } transition-colors duration-200`}
-                                                            >
-                                                                <FontAwesomeIcon
-                                                                    icon={subItem.icon}
-                                                                    className="mr-3 text-blue-400 group-hover:text-blue-300"
-                                                                />
-                                                                <span className="text-sm">{subItem.title}</span>
-                                                            </Link>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            )}
+                                            {!isCollapsed &&
+                                                expanded === item.title && (
+                                                    <ul className="mt-2 space-y-1 pl-4 animated-dropdown">
+                                                        {item.submenu.map(
+                                                            (subItem) => (
+                                                                <li
+                                                                    key={
+                                                                        subItem.path
+                                                                    }
+                                                                    className="group"
+                                                                >
+                                                                    <Link
+                                                                        href={
+                                                                            subItem.path
+                                                                        }
+                                                                        className={`flex items-center p-2 rounded-md ${
+                                                                            isActive(
+                                                                                subItem.path,
+                                                                            )
+                                                                                ? "bg-blue-600/30 text-blue-300"
+                                                                                : "hover:bg-slate-700/30 text-slate-300 hover:text-white"
+                                                                        } transition-colors duration-200`}
+                                                                    >
+                                                                        <FontAwesomeIcon
+                                                                            icon={
+                                                                                subItem.icon
+                                                                            }
+                                                                            className="mr-3 text-blue-400 group-hover:text-blue-300"
+                                                                        />
+                                                                        <span className="text-sm">
+                                                                            {
+                                                                                subItem.title
+                                                                            }
+                                                                        </span>
+                                                                    </Link>
+                                                                </li>
+                                                            ),
+                                                        )}
+                                                    </ul>
+                                                )}
                                         </div>
                                     ) : (
                                         <Link
@@ -226,16 +273,24 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
                                                     ? "bg-gradient-to-r from-blue-700 to-blue-600 shadow-md shadow-blue-900/30"
                                                     : "hover:bg-slate-700/50"
                                             } p-3 ${
-                                                isCollapsed ? "justify-center" : ""
+                                                isCollapsed
+                                                    ? "justify-center"
+                                                    : ""
                                             } transition-all duration-200 group`}
                                         >
                                             <FontAwesomeIcon
                                                 icon={item.icon}
                                                 className={`${isCollapsed ? "text-lg" : "mr-3"} ${
-                                                    isActive(item.path) ? "text-white" : "text-blue-400 group-hover:text-blue-300"
+                                                    isActive(item.path)
+                                                        ? "text-white"
+                                                        : "text-blue-400 group-hover:text-blue-300"
                                                 }`}
                                             />
-                                            {!isCollapsed && <span className="tracking-wide">{item.title}</span>}
+                                            {!isCollapsed && (
+                                                <span className="tracking-wide">
+                                                    {item.title}
+                                                </span>
+                                            )}
                                         </Link>
                                     )}
                                 </li>
@@ -255,7 +310,9 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
                                 icon={faSignOutAlt}
                                 className={`${isCollapsed ? "text-lg" : "mr-3"} text-red-400 group-hover:text-red-300`}
                             />
-                            {!isCollapsed && <span className="tracking-wide">Đăng xuất</span>}
+                            {!isCollapsed && (
+                                <span className="tracking-wide">Đăng xuất</span>
+                            )}
                         </button>
                     </div>
                 </div>
@@ -267,7 +324,7 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
                     animation: slideDown 0.2s ease-out forwards;
                     transform-origin: top center;
                 }
-                
+
                 @keyframes slideDown {
                     from {
                         opacity: 0;

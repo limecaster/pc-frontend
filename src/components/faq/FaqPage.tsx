@@ -134,13 +134,15 @@ const FaqPage = () => {
                                 Vẫn Còn Câu Hỏi?
                             </h2>
                             <p className="text-gray-600 mb-6">
-                                Gửi cho chúng tôi một tin nhắn và chúng tôi sẽ phản hồi sớm nhất có thể.
+                                Gửi cho chúng tôi một tin nhắn và chúng tôi sẽ
+                                phản hồi sớm nhất có thể.
                             </p>
 
                             {formSubmitted && (
                                 <div className="bg-green-100 text-green-800 p-4 rounded-md mb-4">
                                     <p>
-                                        Cảm ơn bạn đã gửi tin nhắn! Chúng tôi sẽ phản hồi sớm.
+                                        Cảm ơn bạn đã gửi tin nhắn! Chúng tôi sẽ
+                                        phản hồi sớm.
                                     </p>
                                 </div>
                             )}

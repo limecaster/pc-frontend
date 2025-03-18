@@ -22,7 +22,7 @@ interface AddressData {
     ward: string;
     district: string;
     city: string;
-    isDefault?: boolean; 
+    isDefault?: boolean;
 }
 
 // Get user profile
@@ -122,7 +122,9 @@ export async function getAddresses(): Promise<AddressData[]> {
 }
 
 // Add a new address
-export async function addAddress(addressData: AddressData): Promise<AddressData> {
+export async function addAddress(
+    addressData: AddressData,
+): Promise<AddressData> {
     const token = localStorage.getItem("token");
     if (!token) {
         throw new Error("Authentication required");
@@ -146,20 +148,26 @@ export async function addAddress(addressData: AddressData): Promise<AddressData>
 }
 
 // Update an address
-export async function updateAddress(id: number, addressData: AddressData): Promise<AddressData> {
+export async function updateAddress(
+    id: number,
+    addressData: AddressData,
+): Promise<AddressData> {
     const token = localStorage.getItem("token");
     if (!token) {
         throw new Error("Authentication required");
     }
 
-    const response = await fetch(`${API_URL}/dashboard/account/addresses/${id}`, {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+    const response = await fetch(
+        `${API_URL}/dashboard/account/addresses/${id}`,
+        {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(addressData),
         },
-        body: JSON.stringify(addressData),
-    });
+    );
 
     if (!response.ok) {
         const error = await response.json();
@@ -176,12 +184,15 @@ export async function deleteAddress(id: number): Promise<any> {
         throw new Error("Authentication required");
     }
 
-    const response = await fetch(`${API_URL}/dashboard/account/addresses/${id}`, {
-        method: "DELETE",
-        headers: {
-            Authorization: `Bearer ${token}`,
+    const response = await fetch(
+        `${API_URL}/dashboard/account/addresses/${id}`,
+        {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
         },
-    });
+    );
 
     if (!response.ok) {
         const error = await response.json();

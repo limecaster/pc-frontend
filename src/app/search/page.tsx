@@ -4,7 +4,13 @@ import SearchResultsContent from "./SearchResultsContent";
 
 const SearchPage: React.FC = () => {
     return (
-        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-white">Loading...</div>}>
+        <Suspense
+            fallback={
+                <div className="flex items-center justify-center min-h-screen bg-white">
+                    Loading...
+                </div>
+            }
+        >
             <SearchResultsContent />
         </Suspense>
     );

@@ -13,9 +13,18 @@ import { getCart } from "@/api/cart";
 import { useCheckout } from "@/contexts/CheckoutContext"; // Add this import
 import VietnamAddressSelect from "@/components/common/VietnamAddressSelect"; // Import the component
 
-const Alert = dynamic(() => import("@/components/ui/alert").then(mod => mod.Alert), { ssr: false });
-const AlertTitle = dynamic(() => import("@/components/ui/alert").then(mod => mod.AlertTitle), { ssr: false });
-const AlertDescription = dynamic(() => import("@/components/ui/alert").then(mod => mod.AlertDescription), { ssr: false });
+const Alert = dynamic(
+    () => import("@/components/ui/alert").then((mod) => mod.Alert),
+    { ssr: false },
+);
+const AlertTitle = dynamic(
+    () => import("@/components/ui/alert").then((mod) => mod.AlertTitle),
+    { ssr: false },
+);
+const AlertDescription = dynamic(
+    () => import("@/components/ui/alert").then((mod) => mod.AlertDescription),
+    { ssr: false },
+);
 
 type Ward = {
     name_with_type: string;
@@ -59,11 +68,11 @@ interface CheckoutFormData {
 const CheckoutPage: React.FC = () => {
     const router = useRouter();
     const { createCheckoutOrder } = useCheckout(); // Extract the function from context
-    
+
     // Changed to avoid hydration mismatch - initialize with empty array
     const [cartItems, setCartItems] = useState<Product[]>([]);
     const [isLoadingCart, setIsLoadingCart] = useState(true);
-    
+
     // Load cart data from both localStorage and API when component mounts
     useEffect(() => {
         const loadCart = async () => {
@@ -75,46 +84,78 @@ const CheckoutPage: React.FC = () => {
                         const response = await getCart();
                         if (response.success && response.cart) {
                             console.log("Cart loaded from API:", response.cart);
-                            
+
                             // Map cart items from API to the Product interface with safety checks
-                            const apiCartItems = response.cart.items?.map((item: any) => {
-                                console.log("Processing cart item:", item);
-                                
-                                // Handle both possible structures:
-                                // 1. Item with nested product object: { product: { id, name, ... }, quantity, ... }
-                                // 2. Item with flat structure: { id, productId, productName, quantity, ... }
-                                
-                                if (item.productId && item.productName) {
-                                    // Flat structure
-                                    return {
-                                        id: item.productId,
-                                        name: item.productName,
-                                        price: parseFloat(item.price || item.subPrice / item.quantity) || 0,
-                                        quantity: item.quantity || 1,
-                                        imageUrl: item.imageUrl || '/images/placeholder.png'
-                                    };
-                                } else if (item.product) {
-                                    // Nested structure
-                                    return {
-                                        id: item.product.id || `temp-${Date.now()}-${Math.random()}`,
-                                        name: item.product.name || "Unknown Product",
-                                        price: parseFloat(item.product.price) || 0,
-                                        quantity: item.quantity || 1,
-                                        imageUrl: item.product.imageUrl || 
-                                                  (item.product.images && item.product.images[0]) || 
-                                                  '/images/placeholder.png'
-                                    };
-                                } else {
-                                    console.error("Unrecognized cart item structure:", item);
-                                    return null;
-                                }
-                            }).filter(Boolean) || []; // Filter out any null items
-                            
+                            const apiCartItems =
+                                response.cart.items
+                                    ?.map((item: any) => {
+                                        console.log(
+                                            "Processing cart item:",
+                                            item,
+                                        );
+
+                                        // Handle both possible structures:
+                                        // 1. Item with nested product object: { product: { id, name, ... }, quantity, ... }
+                                        // 2. Item with flat structure: { id, productId, productName, quantity, ... }
+
+                                        if (
+                                            item.productId &&
+                                            item.productName
+                                        ) {
+                                            // Flat structure
+                                            return {
+                                                id: item.productId,
+                                                name: item.productName,
+                                                price:
+                                                    parseFloat(
+                                                        item.price ||
+                                                            item.subPrice /
+                                                                item.quantity,
+                                                    ) || 0,
+                                                quantity: item.quantity || 1,
+                                                imageUrl:
+                                                    item.imageUrl ||
+                                                    "/images/placeholder.png",
+                                            };
+                                        } else if (item.product) {
+                                            // Nested structure
+                                            return {
+                                                id:
+                                                    item.product.id ||
+                                                    `temp-${Date.now()}-${Math.random()}`,
+                                                name:
+                                                    item.product.name ||
+                                                    "Unknown Product",
+                                                price:
+                                                    parseFloat(
+                                                        item.product.price,
+                                                    ) || 0,
+                                                quantity: item.quantity || 1,
+                                                imageUrl:
+                                                    item.product.imageUrl ||
+                                                    (item.product.images &&
+                                                        item.product
+                                                            .images[0]) ||
+                                                    "/images/placeholder.png",
+                                            };
+                                        } else {
+                                            console.error(
+                                                "Unrecognized cart item structure:",
+                                                item,
+                                            );
+                                            return null;
+                                        }
+                                    })
+                                    .filter(Boolean) || []; // Filter out any null items
+
                             console.log("Processed cart items:", apiCartItems);
                             setCartItems(apiCartItems);
-                            
+
                             // Also update localStorage for consistency
-                            localStorage.setItem("cart", JSON.stringify(apiCartItems));
+                            localStorage.setItem(
+                                "cart",
+                                JSON.stringify(apiCartItems),
+                            );
                             return;
                         }
                     } catch (error) {
@@ -122,21 +163,29 @@ const CheckoutPage: React.FC = () => {
                         // Fall back to localStorage if API fails
                     }
                 }
-                
+
                 // If API call fails or user is not logged in, try localStorage
                 const storedCart = localStorage.getItem("cart");
                 if (storedCart) {
                     try {
                         const parsedCart = JSON.parse(storedCart);
-                        console.log("Cart loaded from localStorage:", parsedCart);
-                        
+                        console.log(
+                            "Cart loaded from localStorage:",
+                            parsedCart,
+                        );
+
                         // Ensure all cart items have necessary properties
-                        const validCartItems = parsedCart.filter((item: any) => 
-                            item && typeof item === 'object' && item.id);
-                            
+                        const validCartItems = parsedCart.filter(
+                            (item: any) =>
+                                item && typeof item === "object" && item.id,
+                        );
+
                         setCartItems(validCartItems);
                     } catch (error) {
-                        console.error("Error parsing cart from localStorage:", error);
+                        console.error(
+                            "Error parsing cart from localStorage:",
+                            error,
+                        );
                         setCartItems([]);
                     }
                 }
@@ -147,13 +196,14 @@ const CheckoutPage: React.FC = () => {
                 setIsLoadingCart(false);
             }
         };
-        
+
         loadCart();
     }, []);
 
     // Save to localStorage whenever cart changes
     useEffect(() => {
-        if (!isLoadingCart) { // Only update localStorage after initial load
+        if (!isLoadingCart) {
+            // Only update localStorage after initial load
             localStorage.setItem("cart", JSON.stringify(cartItems));
         }
     }, [cartItems, isLoadingCart]);
@@ -212,10 +262,12 @@ const CheckoutPage: React.FC = () => {
 
     const [paymentData, setPaymentData] = useState<any>(null);
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-    const [paymentStep, setPaymentStep] = useState<'details' | 'payment'>('details');
+    const [paymentStep, setPaymentStep] = useState<"details" | "payment">(
+        "details",
+    );
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    const [displayOrderId, setDisplayOrderId] = useState<string>('');
+    const [displayOrderId, setDisplayOrderId] = useState<string>("");
 
     useEffect(() => {
         setDisplayOrderId(`ORDER-${Date.now()}`);
@@ -224,14 +276,20 @@ const CheckoutPage: React.FC = () => {
     // Handle form submission
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Validate form
-        if (!formData.fullName || !formData.province || !formData.district || 
-            !formData.ward || !formData.email || !formData.phone) {
+        if (
+            !formData.fullName ||
+            !formData.province ||
+            !formData.district ||
+            !formData.ward ||
+            !formData.email ||
+            !formData.phone
+        ) {
             setErrorMessage("Vui lòng điền đầy đủ thông tin");
             return;
         }
-        
+
         // Validate cart
         if (cartItems.length === 0) {
             setErrorMessage("Giỏ hàng của bạn đang trống");
@@ -240,11 +298,11 @@ const CheckoutPage: React.FC = () => {
 
         setIsProcessingPayment(true);
         setErrorMessage(null);
-        
+
         try {
             // Format the complete address
             const fullAddress = `${formData.houseNumber}, ${formData.streetName}, ${formData.ward}, ${formData.district}, ${formData.province}`;
-            
+
             // Create order data
             const orderData = {
                 items: cartItems,
@@ -254,29 +312,34 @@ const CheckoutPage: React.FC = () => {
                     phone: formData.phone,
                     address: fullAddress,
                 },
-                notes: formData.notes
+                notes: formData.notes,
             };
 
             // Use checkout context to create order
             const result = await createCheckoutOrder(
-                orderData.items.map(item => ({ ...item, productId: item.id })),
+                orderData.items.map((item) => ({
+                    ...item,
+                    productId: item.id,
+                })),
                 orderData.shippingInfo,
-                orderData.notes
+                orderData.notes,
             );
-            
+
             if (result && result.success) {
                 // Clear cart
                 setCartItems([]);
-                localStorage.removeItem('cart');
-                
+                localStorage.removeItem("cart");
+
                 // Navigate to success page
-                router.push('/checkout/success');
+                router.push("/checkout/success");
             } else {
                 throw new Error("Failed to create order");
             }
         } catch (error) {
-            console.error('Error creating order:', error);
-            setErrorMessage(`Có lỗi xảy ra khi đặt hàng: ${(error as Error).message}`);
+            console.error("Error creating order:", error);
+            setErrorMessage(
+                `Có lỗi xảy ra khi đặt hàng: ${(error as Error).message}`,
+            );
         } finally {
             setIsProcessingPayment(false);
         }
@@ -285,15 +348,15 @@ const CheckoutPage: React.FC = () => {
     const handlePaymentSuccess = () => {
         // Clear cart after successful payment
         setCartItems([]);
-        localStorage.removeItem('cart');
-        
+        localStorage.removeItem("cart");
+
         // Redirect to success page
-        router.push('/checkout/success');
+        router.push("/checkout/success");
     };
 
     const handlePaymentError = (error: string) => {
         setErrorMessage(error);
-        setPaymentStep('details');
+        setPaymentStep("details");
     };
 
     // Remove item from cart
@@ -314,7 +377,9 @@ const CheckoutPage: React.FC = () => {
         <div className="w-full bg-gray-100 py-8">
             <div className="container mx-auto px-4">
                 <h1 className="text-2xl font-bold text-gray-800 mb-8">
-                    {paymentStep === 'details' ? 'Thanh toán' : 'Xác nhận thanh toán'}
+                    {paymentStep === "details"
+                        ? "Thanh toán"
+                        : "Xác nhận thanh toán"}
                 </h1>
 
                 {errorMessage && (
@@ -324,7 +389,7 @@ const CheckoutPage: React.FC = () => {
                     </Alert>
                 )}
 
-                {paymentStep === 'details' ? (
+                {paymentStep === "details" ? (
                     <form onSubmit={handleSubmit}>
                         <div className="flex flex-col lg:flex-row gap-8 text-gray-700">
                             {/* Left column - Checkout form */}
@@ -398,16 +463,31 @@ const CheckoutPage: React.FC = () => {
                                             selectedCity={formData.province}
                                             selectedDistrict={formData.district}
                                             selectedWard={formData.ward}
-                                            onCityChange={(city) => setFormData(prev => ({ ...prev, province: city }))}
-                                            onDistrictChange={(district) => setFormData(prev => ({ ...prev, district }))}
-                                            onWardChange={(ward) => setFormData(prev => ({ ...prev, ward }))}
+                                            onCityChange={(city) =>
+                                                setFormData((prev) => ({
+                                                    ...prev,
+                                                    province: city,
+                                                }))
+                                            }
+                                            onDistrictChange={(district) =>
+                                                setFormData((prev) => ({
+                                                    ...prev,
+                                                    district,
+                                                }))
+                                            }
+                                            onWardChange={(ward) =>
+                                                setFormData((prev) => ({
+                                                    ...prev,
+                                                    ward,
+                                                }))
+                                            }
                                             className="grid grid-cols-1 md:grid-cols-3 gap-4"
                                             required={true}
                                             selectClassName="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
                                             labels={{
                                                 city: "Tỉnh/Thành phố",
                                                 district: "Quận/Huyện",
-                                                ward: "Xã/Phường"
+                                                ward: "Xã/Phường",
                                             }}
                                         />
 
@@ -483,8 +563,9 @@ const CheckoutPage: React.FC = () => {
                                             </label>
                                         </div>
                                         <p className="text-sm text-gray-500">
-                                            Sau khi bấm Đặt hàng, bạn sẽ được chuyển đến
-                                            trang thanh toán an toàn để hoàn tất đơn hàng.
+                                            Sau khi bấm Đặt hàng, bạn sẽ được
+                                            chuyển đến trang thanh toán an toàn
+                                            để hoàn tất đơn hàng.
                                         </p>
                                     </div>
                                 </div>
@@ -532,17 +613,25 @@ const CheckoutPage: React.FC = () => {
                                                 >
                                                     <div className="flex-shrink-0 w-16 h-16 border border-gray-200 rounded-md overflow-hidden">
                                                         <Image
-                                                            src={item.imageUrl || '/images/placeholder.png'}
-                                                            alt={item.name || 'Product'}
+                                                            src={
+                                                                item.imageUrl ||
+                                                                "/images/placeholder.png"
+                                                            }
+                                                            alt={
+                                                                item.name ||
+                                                                "Product"
+                                                            }
                                                             width={64}
                                                             height={64}
                                                             className="w-full h-full object-contain"
                                                         />
                                                     </div>
                                                     <div className="flex-grow w-0">
-                                                        <Tooltip content={item.name}>
+                                                        <Tooltip
+                                                            content={item.name}
+                                                        >
                                                             <h3 className="text-sm font-medium text-gray-900 truncate">
-                                                                <Link 
+                                                                <Link
                                                                     href={`/product/${item.id}`}
                                                                     className="hover:text-primary transition-colors"
                                                                 >
@@ -551,17 +640,22 @@ const CheckoutPage: React.FC = () => {
                                                             </h3>
                                                         </Tooltip>
                                                         <span className="text-sm text-gray-500">
-                                                            {item.quantity} x{" "}
+                                                            {item.quantity}{" "}
+                                                            x{" "}
                                                         </span>
                                                         <span className="text-sm font-medium text-primary">
-                                                            {formatCurrency(item.price)}
+                                                            {formatCurrency(
+                                                                item.price,
+                                                            )}
                                                         </span>
                                                     </div>
                                                     <div className="flex-shrink-0">
                                                         <button
                                                             type="button"
                                                             onClick={() =>
-                                                                removeItem(item.id)
+                                                                removeItem(
+                                                                    item.id,
+                                                                )
                                                             }
                                                             className="text-red-500 hover:text-red-700"
                                                         >
@@ -590,7 +684,9 @@ const CheckoutPage: React.FC = () => {
                                             <p className="text-secondary">
                                                 {deliveryFee === 0
                                                     ? "Miễn phí"
-                                                    : formatCurrency(deliveryFee)}
+                                                    : formatCurrency(
+                                                          deliveryFee,
+                                                      )}
                                             </p>
                                         </div>
 
@@ -599,7 +695,9 @@ const CheckoutPage: React.FC = () => {
                                                 <p>Giảm giá</p>
                                                 <p className="text-green-600 font-medium">
                                                     -
-                                                    {formatCurrency(discountAmount)}
+                                                    {formatCurrency(
+                                                        discountAmount,
+                                                    )}
                                                 </p>
                                             </div>
                                         )}
@@ -622,7 +720,9 @@ const CheckoutPage: React.FC = () => {
                                             hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 
                                             focus:ring-primary text-center block transition-colors disabled:opacity-70"
                                         >
-                                            {isProcessingPayment ? "Đang xử lý..." : "Đặt hàng"}
+                                            {isProcessingPayment
+                                                ? "Đang xử lý..."
+                                                : "Đặt hàng"}
                                         </button>
                                     </div>
 
@@ -648,14 +748,14 @@ const CheckoutPage: React.FC = () => {
                         <p className="text-gray-600 mb-6 text-center">
                             Vui lòng hoàn tất thanh toán để xác nhận đơn hàng.
                         </p>
-                        <PayOSPayment 
-                            paymentData={paymentData} 
+                        <PayOSPayment
+                            paymentData={paymentData}
                             onSuccess={handlePaymentSuccess}
                             onError={handlePaymentError}
                         />
                         <div className="mt-6 text-center">
                             <button
-                                onClick={() => setPaymentStep('details')}
+                                onClick={() => setPaymentStep("details")}
                                 className="text-primary hover:text-primary-dark font-medium"
                             >
                                 Quay lại thông tin thanh toán

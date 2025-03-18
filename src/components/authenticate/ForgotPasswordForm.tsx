@@ -196,15 +196,15 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
                     {stage === "email"
                         ? "Quên mật khẩu"
                         : stage === "otp"
-                        ? "Nhập mã xác thực"
-                        : "Đặt lại mật khẩu"}
+                          ? "Nhập mã xác thực"
+                          : "Đặt lại mật khẩu"}
                 </h3>
                 <p className="mt-2 text-sm text-gray-600">
                     {stage === "email"
                         ? "Nhập email của bạn để nhận mã xác thực đặt lại mật khẩu"
                         : stage === "otp"
-                        ? `Chúng tôi đã gửi mã OTP đến email ${email}`
-                        : "Tạo mật khẩu mới cho tài khoản của bạn"}
+                          ? `Chúng tôi đã gửi mã OTP đến email ${email}`
+                          : "Tạo mật khẩu mới cho tài khoản của bạn"}
                 </p>
             </div>
 
@@ -346,10 +346,10 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
                         {isLoading
                             ? "ĐANG XỬ LÝ..."
                             : stage === "email"
-                            ? "GỬI MÃ XÁC THỰC"
-                            : stage === "otp"
-                            ? "XÁC THỰC"
-                            : "ĐẶT LẠI MẬT KHẨU"}
+                              ? "GỬI MÃ XÁC THỰC"
+                              : stage === "otp"
+                                ? "XÁC THỰC"
+                                : "ĐẶT LẠI MẬT KHẨU"}
                     </span>
                 </LoginButton>
 

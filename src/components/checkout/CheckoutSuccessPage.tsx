@@ -16,15 +16,15 @@ interface OrderItem {
     imageUrl?: string;
 }
 enum OrderStatus {
-    PENDING_APPROVAL = 'pending_approval',
-    APPROVED = 'approved',
-    PAYMENT_SUCCESS = 'payment_success',
-    PAYMENT_FAILURE = 'payment_failure',
-    PROCESSING = 'processing',
-    SHIPPING = 'shipping',
-    DELIVERED = 'delivered',
-    CANCELLED = 'cancelled',
-    COMPLETED = 'completed',
+    PENDING_APPROVAL = "pending_approval",
+    APPROVED = "approved",
+    PAYMENT_SUCCESS = "payment_success",
+    PAYMENT_FAILURE = "payment_failure",
+    PROCESSING = "processing",
+    SHIPPING = "shipping",
+    DELIVERED = "delivered",
+    CANCELLED = "cancelled",
+    COMPLETED = "completed",
 }
 interface CheckoutSuccessComponentProps {
     orderId?: string;
@@ -45,9 +45,12 @@ interface CheckoutSuccessComponentProps {
     orderNumber?: string;
 }
 
-const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (props) => {
+const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (
+    props,
+) => {
     const searchParams = useSearchParams();
-    const [orderDetails, setOrderDetails] = useState<CheckoutSuccessComponentProps | null>(null);
+    const [orderDetails, setOrderDetails] =
+        useState<CheckoutSuccessComponentProps | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -56,46 +59,60 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
         const loadOrderDetails = async () => {
             setLoading(true);
             setError(null);
-            
+
             console.log("Loading order details...");
-            
+
             try {
                 // First check if we have a saved order in localStorage
-                const savedOrder = localStorage.getItem('latestOrder');
-                console.log("Saved order from localStorage:", savedOrder ? "Found" : "Not found");
-                
+                const savedOrder = localStorage.getItem("latestOrder");
+                console.log(
+                    "Saved order from localStorage:",
+                    savedOrder ? "Found" : "Not found",
+                );
+
                 if (savedOrder) {
                     try {
                         const parsedOrder = JSON.parse(savedOrder);
-                        console.log("Parsed order from localStorage:", parsedOrder);
-                        
+                        console.log(
+                            "Parsed order from localStorage:",
+                            parsedOrder,
+                        );
+
                         // Format the date
-                        parsedOrder.orderDate = new Date(parsedOrder.orderDate).toLocaleDateString("vi-VN", {
+                        parsedOrder.orderDate = new Date(
+                            parsedOrder.orderDate,
+                        ).toLocaleDateString("vi-VN", {
                             year: "numeric",
                             month: "long",
                             day: "numeric",
                             hour: "2-digit",
                             minute: "2-digit",
                         });
-                        
+
                         // Process the order items to ensure they have image/imageUrl
-                        const processedItems = parsedOrder.orderItems?.map((item: OrderItem) => ({
-                            ...item,
-                            image: item.image || item.imageUrl || "/products/placeholder.jpg",
-                        })) || [];
-                        
+                        const processedItems =
+                            parsedOrder.orderItems?.map((item: OrderItem) => ({
+                                ...item,
+                                image:
+                                    item.image ||
+                                    item.imageUrl ||
+                                    "/products/placeholder.jpg",
+                            })) || [];
+
                         parsedOrder.orderItems = processedItems;
                         setOrderDetails(parsedOrder);
-                        
+
                         console.log("Order details set from localStorage");
-                        
+
                         // Don't remove from localStorage immediately to allow for page refreshes
                         // We'll clear it after a delay
                         setTimeout(() => {
-                            localStorage.removeItem('latestOrder');
-                            console.log("Cleared latestOrder from localStorage after delay");
+                            localStorage.removeItem("latestOrder");
+                            console.log(
+                                "Cleared latestOrder from localStorage after delay",
+                            );
                         }, 30000); // 30 seconds delay
-                        
+
                         setLoading(false);
                         return;
                     } catch (e) {
@@ -103,54 +120,69 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                         // Continue to fetch from server if parsing fails
                     }
                 }
-                
+
                 // If no localStorage data, try to get order ID from URL
-                const orderId = searchParams.get('orderId');
+                const orderId = searchParams.get("orderId");
                 console.log("Order ID from URL params:", orderId);
-                
+
                 if (!orderId) {
                     setError("Không tìm thấy thông tin đơn hàng");
                     setLoading(false);
                     return;
                 }
-                
+
                 // Fetch order details from server
                 console.log("Fetching order from server with ID:", orderId);
                 const response = await getOrderDetails(orderId);
                 console.log("Server response for order details:", response);
-                
+
                 if (response.success && response.order) {
                     // Transform server response to match expected format
                     const serverOrder: CheckoutSuccessComponentProps = {
                         orderId: response.order.id.toString(),
                         orderNumber: response.order.orderNumber,
-                        orderDate: new Date(response.order.orderDate).toLocaleDateString("vi-VN", {
+                        orderDate: new Date(
+                            response.order.orderDate,
+                        ).toLocaleDateString("vi-VN", {
                             year: "numeric",
                             month: "long",
                             day: "numeric",
                             hour: "2-digit",
                             minute: "2-digit",
                         }),
-                        orderItems: response.order.items?.map((item: any) => ({
-                            id: item.product?.id || "",
-                            name: item.product?.name || "Unknown Product",
-                            price: item.product ? (item.subPrice / item.quantity) : 0, // Calculate unit price safely
-                            quantity: item.quantity || 1,
-                            imageUrl: item.product?.imageUrl || "/images/image-placeholer.webp",
-                        })) || [],
+                        orderItems:
+                            response.order.items?.map((item: any) => ({
+                                id: item.product?.id || "",
+                                name: item.product?.name || "Unknown Product",
+                                price: item.product
+                                    ? item.subPrice / item.quantity
+                                    : 0, // Calculate unit price safely
+                                quantity: item.quantity || 1,
+                                imageUrl:
+                                    item.product?.imageUrl ||
+                                    "/images/image-placeholer.webp",
+                            })) || [],
                         shippingAddress: {
-                            fullName: response.order.customer?.fullName || "Khách hàng",
-                            address: response.order.deliveryAddress?.split(',')[0] || "",
-                            city: response.order.deliveryAddress?.split(',').slice(1).join(',') || "",
+                            fullName:
+                                response.order.customer?.fullName ||
+                                "Khách hàng",
+                            address:
+                                response.order.deliveryAddress?.split(",")[0] ||
+                                "",
+                            city:
+                                response.order.deliveryAddress
+                                    ?.split(",")
+                                    .slice(1)
+                                    .join(",") || "",
                             phone: response.order.customer?.phoneNumber || "",
                         },
                         paymentMethod: response.order.paymentMethod || "PayOS",
                         subtotal: response.order.total || 0,
                         shippingFee: 0,
                         discount: 0,
-                        total: response.order.total || 0
+                        total: response.order.total || 0,
                     };
-                    
+
                     console.log("Processed server order data:", serverOrder);
                     setOrderDetails(serverOrder);
                 } else {
@@ -159,18 +191,23 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                         console.log("Using props as fallback:", props);
                         setOrderDetails(props);
                     } else {
-                        throw new Error(response.message || "Invalid server response format");
+                        throw new Error(
+                            response.message ||
+                                "Invalid server response format",
+                        );
                     }
                 }
             } catch (error) {
                 console.error("Failed to load order details:", error);
-                
+
                 // Check for fallback order in URL parameters
                 if (props.orderId) {
                     console.log("Using props as fallback after error:", props);
                     setOrderDetails(props);
                 } else {
-                    setError("Không thể tải thông tin đơn hàng. Vui lòng thử lại sau.");
+                    setError(
+                        "Không thể tải thông tin đơn hàng. Vui lòng thử lại sau.",
+                    );
                 }
             } finally {
                 setLoading(false);
@@ -188,7 +225,7 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
             maximumFractionDigits: 0,
         }).format(amount);
     };
-    
+
     // Show loading state
     if (loading) {
         return (
@@ -196,21 +233,34 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                 <div className="container mx-auto px-4">
                     <div className="bg-white rounded-lg shadow-md p-8 max-w-2xl mx-auto text-center">
                         <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent mb-4"></div>
-                        <p className="text-gray-600">Đang tải thông tin đơn hàng...</p>
+                        <p className="text-gray-600">
+                            Đang tải thông tin đơn hàng...
+                        </p>
                     </div>
                 </div>
             </div>
         );
     }
-    
+
     // Show error state
     if (error || !orderDetails) {
         return (
             <div className="w-full bg-gray-100 py-16 min-h-screen">
                 <div className="container mx-auto px-4">
                     <div className="bg-white rounded-lg shadow-md p-8 max-w-2xl mx-auto text-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-12 w-12 text-red-500 mx-auto mb-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                            />
                         </svg>
                         <h1 className="text-2xl font-bold text-gray-800 mb-2">
                             Có lỗi xảy ra
@@ -229,7 +279,7 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
             </div>
         );
     }
-    
+
     // Destructure from orderDetails
     const {
         orderId,
@@ -241,7 +291,7 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
         shippingFee,
         discount,
         total,
-        orderNumber
+        orderNumber,
     } = orderDetails;
 
     return (
@@ -256,11 +306,13 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                         Đặt hàng thành công!
                     </h1>
                     <p className="text-gray-600 mb-4 text-center">
-                        Cảm ơn bạn đã mua sắm tại B Store. Đơn hàng của bạn đang chờ xác nhận từ nhân viên. 
-                        Chúng tôi sẽ liên hệ với bạn sớm để xác nhận đơn hàng.
+                        Cảm ơn bạn đã mua sắm tại B Store. Đơn hàng của bạn đang
+                        chờ xác nhận từ nhân viên. Chúng tôi sẽ liên hệ với bạn
+                        sớm để xác nhận đơn hàng.
                     </p>
                     <div className="bg-gray-200 px-4 py-2 rounded-md text-sm text-gray-900">
-                        <span className="font-medium">Mã đơn hàng:</span> {orderNumber || orderId}
+                        <span className="font-medium">Mã đơn hàng:</span>{" "}
+                        {orderNumber || orderId}
                     </div>
                 </div>
 
@@ -275,35 +327,81 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                             </h2>
                             <div className="space-y-2">
                                 <p className="text-gray-600">
-                                    <span className="font-medium">Ngày đặt hàng:</span>{" "}
+                                    <span className="font-medium">
+                                        Ngày đặt hàng:
+                                    </span>{" "}
                                     {orderDate}
                                 </p>
                                 <p className="text-gray-600">
-                                    <span className="font-medium">Trạng thái:</span>{" "}
-                                    <span className={`font-medium ${
-                                        orderDetails?.status === OrderStatus.PAYMENT_SUCCESS ? "text-green-600" :
-                                        orderDetails?.status === OrderStatus.PENDING_APPROVAL ? "text-yellow-600" :
-                                        orderDetails?.status === OrderStatus.APPROVED ? "text-blue-600" :
-                                        orderDetails?.status === OrderStatus.PAYMENT_FAILURE ? "text-red-600" :
-                                        orderDetails?.status === OrderStatus.PROCESSING ? "text-orange-600" :
-                                        orderDetails?.status === OrderStatus.SHIPPING ? "text-indigo-600" :
-                                        orderDetails?.status === OrderStatus.DELIVERED ? "text-purple-600" :
-                                        orderDetails?.status === OrderStatus.CANCELLED ? "text-gray-600" :
-                                        orderDetails?.status === OrderStatus.COMPLETED ? "text-green-600" : "text-gray-600"
-                                    }`}>
-                                        {orderDetails?.status === OrderStatus.PAYMENT_SUCCESS ? "Đã thanh toán" :
-                                        orderDetails?.status === OrderStatus.PENDING_APPROVAL ? "Chờ phê duyệt" :
-                                        orderDetails?.status === OrderStatus.APPROVED ? "Đã phê duyệt" :
-                                        orderDetails?.status === OrderStatus.PAYMENT_FAILURE ? "Thanh toán thất bại" :
-                                        orderDetails?.status === OrderStatus.PROCESSING ? "Đang xử lý" :
-                                        orderDetails?.status === OrderStatus.SHIPPING ? "Đang giao hàng" :
-                                        orderDetails?.status === OrderStatus.DELIVERED ? "Đã giao hàng" :
-                                        orderDetails?.status === OrderStatus.CANCELLED ? "Đã hủy" :
-                                        orderDetails?.status === OrderStatus.COMPLETED ? "Hoàn thành" : "Không xác định"}
+                                    <span className="font-medium">
+                                        Trạng thái:
+                                    </span>{" "}
+                                    <span
+                                        className={`font-medium ${
+                                            orderDetails?.status ===
+                                            OrderStatus.PAYMENT_SUCCESS
+                                                ? "text-green-600"
+                                                : orderDetails?.status ===
+                                                    OrderStatus.PENDING_APPROVAL
+                                                  ? "text-yellow-600"
+                                                  : orderDetails?.status ===
+                                                      OrderStatus.APPROVED
+                                                    ? "text-blue-600"
+                                                    : orderDetails?.status ===
+                                                        OrderStatus.PAYMENT_FAILURE
+                                                      ? "text-red-600"
+                                                      : orderDetails?.status ===
+                                                          OrderStatus.PROCESSING
+                                                        ? "text-orange-600"
+                                                        : orderDetails?.status ===
+                                                            OrderStatus.SHIPPING
+                                                          ? "text-indigo-600"
+                                                          : orderDetails?.status ===
+                                                              OrderStatus.DELIVERED
+                                                            ? "text-purple-600"
+                                                            : orderDetails?.status ===
+                                                                OrderStatus.CANCELLED
+                                                              ? "text-gray-600"
+                                                              : orderDetails?.status ===
+                                                                  OrderStatus.COMPLETED
+                                                                ? "text-green-600"
+                                                                : "text-gray-600"
+                                        }`}
+                                    >
+                                        {orderDetails?.status ===
+                                        OrderStatus.PAYMENT_SUCCESS
+                                            ? "Đã thanh toán"
+                                            : orderDetails?.status ===
+                                                OrderStatus.PENDING_APPROVAL
+                                              ? "Chờ phê duyệt"
+                                              : orderDetails?.status ===
+                                                  OrderStatus.APPROVED
+                                                ? "Đã phê duyệt"
+                                                : orderDetails?.status ===
+                                                    OrderStatus.PAYMENT_FAILURE
+                                                  ? "Thanh toán thất bại"
+                                                  : orderDetails?.status ===
+                                                      OrderStatus.PROCESSING
+                                                    ? "Đang xử lý"
+                                                    : orderDetails?.status ===
+                                                        OrderStatus.SHIPPING
+                                                      ? "Đang giao hàng"
+                                                      : orderDetails?.status ===
+                                                          OrderStatus.DELIVERED
+                                                        ? "Đã giao hàng"
+                                                        : orderDetails?.status ===
+                                                            OrderStatus.CANCELLED
+                                                          ? "Đã hủy"
+                                                          : orderDetails?.status ===
+                                                              OrderStatus.COMPLETED
+                                                            ? "Hoàn thành"
+                                                            : "Không xác định"}
                                     </span>
                                 </p>
                                 <p className="text-gray-600">
-                                    <span className="font-medium">Phương thức thanh toán:</span>{" "}
+                                    <span className="font-medium">
+                                        Phương thức thanh toán:
+                                    </span>{" "}
                                     {paymentMethod}
                                 </p>
                             </div>
@@ -316,19 +414,27 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                             </h2>
                             <div className="space-y-2">
                                 <p className="text-gray-600">
-                                    <span className="font-medium">Người nhận:</span>{" "}
+                                    <span className="font-medium">
+                                        Người nhận:
+                                    </span>{" "}
                                     {shippingAddress?.fullName}
                                 </p>
                                 <p className="text-gray-600">
-                                    <span className="font-medium">Địa chỉ:</span>{" "}
+                                    <span className="font-medium">
+                                        Địa chỉ:
+                                    </span>{" "}
                                     {shippingAddress?.address}
                                 </p>
                                 <p className="text-gray-600">
-                                    <span className="font-medium">Thành phố:</span>{" "}
+                                    <span className="font-medium">
+                                        Thành phố:
+                                    </span>{" "}
                                     {shippingAddress?.city}
                                 </p>
                                 <p className="text-gray-600">
-                                    <span className="font-medium">Số điện thoại:</span>{" "}
+                                    <span className="font-medium">
+                                        Số điện thoại:
+                                    </span>{" "}
                                     {shippingAddress?.phone}
                                 </p>
                             </div>
@@ -341,23 +447,28 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                             </h2>
                             <ol className="list-decimal list-inside space-y-2 text-gray-600">
                                 <li>
-                                    Nhân viên sẽ xác nhận thông tin đơn hàng của bạn trong vòng 24 giờ.
+                                    Nhân viên sẽ xác nhận thông tin đơn hàng của
+                                    bạn trong vòng 24 giờ.
                                 </li>
                                 <li>
-                                    Sau khi đơn hàng được xác nhận, bạn sẽ nhận được email thông báo và cập nhật trạng thái đơn hàng.
+                                    Sau khi đơn hàng được xác nhận, bạn sẽ nhận
+                                    được email thông báo và cập nhật trạng thái
+                                    đơn hàng.
                                 </li>
                                 <li>
-                                    {paymentMethod === "PayOS" ? 
-                                      "Đơn hàng sẽ được xử lý và gửi đi sau khi thanh toán thành công." : 
-                                      "Bạn có thể thanh toán khi nhận hàng theo phương thức đã chọn."}
+                                    {paymentMethod === "PayOS"
+                                        ? "Đơn hàng sẽ được xử lý và gửi đi sau khi thanh toán thành công."
+                                        : "Bạn có thể thanh toán khi nhận hàng theo phương thức đã chọn."}
                                 </li>
                                 <li>
-                                    Thời gian giao hàng dự kiến: 3-5 ngày làm việc.
+                                    Thời gian giao hàng dự kiến: 3-5 ngày làm
+                                    việc.
                                 </li>
                             </ol>
                             <div className="mt-4 bg-blue-50 p-4 rounded-md">
                                 <p className="text-blue-700 font-medium">
-                                    Bạn có thể theo dõi trạng thái đơn hàng trong phần "Đơn hàng" của tài khoản.
+                                    Bạn có thể theo dõi trạng thái đơn hàng
+                                    trong phần "Đơn hàng" của tài khoản.
                                 </p>
                                 <div className="mt-2">
                                     <Link
@@ -396,7 +507,10 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                                     >
                                         <div className="w-16 h-16 border border-gray-200 rounded overflow-hidden flex-shrink-0">
                                             <Image
-                                                src={item.imageUrl || "/products/placeholder.jpg"}
+                                                src={
+                                                    item.imageUrl ||
+                                                    "/products/placeholder.jpg"
+                                                }
                                                 alt={item.name}
                                                 width={64}
                                                 height={64}
@@ -411,7 +525,7 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                                                 {item.name}
                                             </Link>
                                             <span className="mt-1 text-sm text-gray-500">
-                                                {item.quantity} x 
+                                                {item.quantity} x
                                             </span>
                                             <span className="mt-1 ml-1 text-sm font-medium text-primary">
                                                 {formatCurrency(item.price)}
@@ -424,11 +538,17 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                             {/* Order Summary */}
                             <div className="mt-6 space-y-2">
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600">Tạm tính:</span>
-                                    <span className="font-medium text-primary">{formatCurrency(subtotal || 0)}</span>
+                                    <span className="text-gray-600">
+                                        Tạm tính:
+                                    </span>
+                                    <span className="font-medium text-primary">
+                                        {formatCurrency(subtotal || 0)}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600">Phí vận chuyển:</span>
+                                    <span className="text-gray-600">
+                                        Phí vận chuyển:
+                                    </span>
                                     <span className="font-medium text-green-600">
                                         {shippingFee === 0
                                             ? "Miễn phí"
@@ -444,7 +564,9 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                                     </div>
                                 )} */}
                                 <div className="border-t border-gray-200 mt-4 pt-4 flex justify-between">
-                                    <span className="font-medium text-gray-900">Tổng cộng:</span>
+                                    <span className="font-medium text-gray-900">
+                                        Tổng cộng:
+                                    </span>
                                     <span className="font-bold text-primary">
                                         {formatCurrency(total || 0)}
                                     </span>
@@ -458,18 +580,27 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = (p
                                 Bạn cần giúp đỡ?
                             </h2>
                             <p className="text-gray-600 mb-4">
-                                Nếu bạn có bất kỳ câu hỏi nào về đơn hàng, vui lòng liên hệ với chúng tôi.
+                                Nếu bạn có bất kỳ câu hỏi nào về đơn hàng, vui
+                                lòng liên hệ với chúng tôi.
                             </p>
                             <div className="space-y-2">
                                 <p className="text-gray-600">
                                     <span className="font-medium">Email:</span>{" "}
-                                    <a href="mailto:support@bstore.com" className="text-primary hover:underline">
+                                    <a
+                                        href="mailto:support@bstore.com"
+                                        className="text-primary hover:underline"
+                                    >
                                         support@bstore.com
                                     </a>
                                 </p>
                                 <p className="text-gray-600">
-                                    <span className="font-medium">Hotline:</span>{" "}
-                                    <a href="tel:1900123456" className="text-primary hover:underline">
+                                    <span className="font-medium">
+                                        Hotline:
+                                    </span>{" "}
+                                    <a
+                                        href="tel:1900123456"
+                                        className="text-primary hover:underline"
+                                    >
                                         1900 123 456
                                     </a>
                                 </p>

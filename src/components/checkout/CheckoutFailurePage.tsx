@@ -8,20 +8,24 @@ interface CheckoutFailurePageProps {
     errorMessage?: string;
 }
 
-const CheckoutFailurePage: React.FC<CheckoutFailurePageProps> = ({ errorMessage }) => {
-    const [error, setError] = useState<string>(errorMessage || "Không thể hoàn tất thanh toán");
+const CheckoutFailurePage: React.FC<CheckoutFailurePageProps> = ({
+    errorMessage,
+}) => {
+    const [error, setError] = useState<string>(
+        errorMessage || "Không thể hoàn tất thanh toán",
+    );
 
     useEffect(() => {
         // Check if there's an error message in the URL
-        if (typeof window !== 'undefined') {
+        if (typeof window !== "undefined") {
             const urlParams = new URLSearchParams(window.location.search);
-            const errorParam = urlParams.get('error');
+            const errorParam = urlParams.get("error");
             if (errorParam) {
                 setError(decodeURIComponent(errorParam));
             }
         }
     }, []);
-    
+
     return (
         <div className="w-full bg-gray-100 py-16 min-h-screen">
             <div className="container mx-auto px-4">
@@ -33,9 +37,7 @@ const CheckoutFailurePage: React.FC<CheckoutFailurePageProps> = ({ errorMessage 
                         <h1 className="text-2xl font-bold text-gray-800 mb-2">
                             Thanh toán không thành công
                         </h1>
-                        <p className="text-gray-600 mb-6">
-                            {error}
-                        </p>
+                        <p className="text-gray-600 mb-6">{error}</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-md">
                             <Link
                                 href="/checkout"
@@ -58,7 +60,9 @@ const CheckoutFailurePage: React.FC<CheckoutFailurePageProps> = ({ errorMessage 
                         </h2>
                         <ul className="list-disc pl-5 space-y-2 text-gray-600">
                             <li>Thông tin thanh toán không hợp lệ</li>
-                            <li>Tài khoản của bạn không đủ số dư để thanh toán</li>
+                            <li>
+                                Tài khoản của bạn không đủ số dư để thanh toán
+                            </li>
                             <li>Hết thời gian thực hiện thanh toán</li>
                             <li>Lỗi kết nối mạng</li>
                             <li>Lỗi hệ thống từ cổng thanh toán</li>
@@ -70,17 +74,24 @@ const CheckoutFailurePage: React.FC<CheckoutFailurePageProps> = ({ errorMessage 
                             Bạn cần hỗ trợ?
                         </h3>
                         <p className="text-gray-600 mb-2">
-                            Vui lòng liên hệ với bộ phận chăm sóc khách hàng của chúng tôi:
+                            Vui lòng liên hệ với bộ phận chăm sóc khách hàng của
+                            chúng tôi:
                         </p>
                         <p className="text-gray-600">
                             <span className="font-medium">Email:</span>{" "}
-                            <a href="mailto:support@bstore.com" className="text-primary hover:underline">
+                            <a
+                                href="mailto:support@bstore.com"
+                                className="text-primary hover:underline"
+                            >
                                 support@bstore.com
                             </a>
                         </p>
                         <p className="text-gray-600">
                             <span className="font-medium">Hotline:</span>{" "}
-                            <a href="tel:1900123456" className="text-primary hover:underline">
+                            <a
+                                href="tel:1900123456"
+                                className="text-primary hover:underline"
+                            >
                                 1900 123 456
                             </a>
                         </p>

@@ -7,7 +7,7 @@ const Cart = () => {
     useEffect(() => {
         document.title = "B Store - Giỏ hàng";
     }, []);
-    
+
     return (
         <ProtectedRoute>
             <CartPage />

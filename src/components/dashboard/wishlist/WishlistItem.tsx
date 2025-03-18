@@ -57,9 +57,7 @@ const WishlistItem: React.FC<WishlistItemProps> = ({
     return (
         <li className="p-4 sm:p-6 flex flex-col sm:flex-row items-start gap-4">
             <div className="flex-shrink-0">
-                <Link
-                    href={`/product/${product.id}`}
-                >
+                <Link href={`/product/${product.id}`}>
                     <Image
                         src={product.imageUrl}
                         alt={product.name}
@@ -71,9 +69,7 @@ const WishlistItem: React.FC<WishlistItemProps> = ({
             </div>
 
             <div className="flex-grow">
-                <Link
-                    href={`/product/${product.id}`}
-                >
+                <Link href={`/product/${product.id}`}>
                     <h3 className="text-lg font-medium text-gray-900 hover:text-primary">
                         {product.name}
                     </h3>

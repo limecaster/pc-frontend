@@ -46,7 +46,8 @@ export default function EditStaffPage() {
             <div className="p-6 bg-gray-50">
                 <div className="bg-white rounded-lg shadow p-6 flex justify-center items-center h-64">
                     <div className="text-center text-red-500">
-                        Không tìm thấy thông tin nhân viên hoặc bạn không có quyền truy cập.
+                        Không tìm thấy thông tin nhân viên hoặc bạn không có
+                        quyền truy cập.
                     </div>
                 </div>
             </div>
@@ -56,7 +57,9 @@ export default function EditStaffPage() {
     return (
         <div className="p-6 bg-gray-50 text-gray-800">
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Chỉnh sửa thông tin nhân viên</h1>
+                <h1 className="text-2xl font-bold text-gray-900">
+                    Chỉnh sửa thông tin nhân viên
+                </h1>
                 <p className="text-sm text-gray-500 mt-1">
                     Cập nhật thông tin tài khoản nhân viên
                 </p>

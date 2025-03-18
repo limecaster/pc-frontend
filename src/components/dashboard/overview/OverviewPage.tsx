@@ -370,9 +370,7 @@ const DashboardOverview: React.FC = () => {
                                     <div className="ml-3 flex-1 min-w-0">
                                         <Tooltip content={product.name}>
                                             <Link
-                                                href={`/product/${
-                                                    product.id
-                                                }`}
+                                                href={`/product/${product.id}`}
                                                 className="text-sm font-medium text-gray-900 hover:text-primary truncate block"
                                             >
                                                 {product.name}

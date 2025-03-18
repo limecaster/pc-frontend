@@ -4,7 +4,12 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import CartItem from "./CartItem";
-import { getCart, addMultipleToCart, updateCartItemQuantity, removeCartItem } from "@/api/cart";
+import {
+    getCart,
+    addMultipleToCart,
+    updateCartItemQuantity,
+    removeCartItem,
+} from "@/api/cart";
 import VietQRLogo from "@/assets/VietQRLogo.png";
 
 export interface CartItem {
@@ -33,20 +38,26 @@ const CartPage: React.FC = () => {
         const loadCart = async () => {
             setLoading(true);
             setError(null);
-            
+
             try {
                 // Always load localStorage cart first for immediate display
                 const localCart = loadLocalCart();
                 setCartItems(localCart);
-                
+
                 // If authenticated, fetch server cart and merge
                 if (isAuthenticated) {
                     const serverCart = await fetchServerCart();
                     if (serverCart && serverCart.length > 0) {
-                        const mergedCart = mergeServerAndLocalCarts(serverCart, localCart);
+                        const mergedCart = mergeServerAndLocalCarts(
+                            serverCart,
+                            localCart,
+                        );
                         setCartItems(mergedCart);
                         // Save merged cart back to localStorage
-                        localStorage.setItem("cart", JSON.stringify(mergedCart));
+                        localStorage.setItem(
+                            "cart",
+                            JSON.stringify(mergedCart),
+                        );
                     } else if (localCart.length > 0) {
                         // Sync local cart to server if server cart is empty
                         await syncLocalCartToServer(localCart);
@@ -59,7 +70,7 @@ const CartPage: React.FC = () => {
                 setLoading(false);
             }
         };
-        
+
         loadCart();
     }, [isAuthenticated]);
 
@@ -83,14 +94,17 @@ const CartPage: React.FC = () => {
                     price: item.price,
                     quantity: item.quantity,
                     imageUrl: item.imageUrl, // Assuming this pattern for images
-                    slug: item.productId
+                    slug: item.productId,
                 }));
             }
             return [];
         } catch (error) {
             console.error("Error fetching cart from server:", error);
             // If there's an authentication error, we'll just use the local cart
-            if (error instanceof Error && error.message.includes("Authentication")) {
+            if (
+                error instanceof Error &&
+                error.message.includes("Authentication")
+            ) {
                 setIsAuthenticated(false);
             }
             return [];
@@ -98,13 +112,18 @@ const CartPage: React.FC = () => {
     };
 
     // Merge server and local carts
-    const mergeServerAndLocalCarts = (serverCart: CartItem[], localCart: CartItem[]): CartItem[] => {
+    const mergeServerAndLocalCarts = (
+        serverCart: CartItem[],
+        localCart: CartItem[],
+    ): CartItem[] => {
         const mergedCart = [...serverCart];
-        
+
         // Add items from local cart that don't exist in server cart or update quantities
-        localCart.forEach(localItem => {
-            const serverItemIndex = mergedCart.findIndex(item => item.id === localItem.id);
-            
+        localCart.forEach((localItem) => {
+            const serverItemIndex = mergedCart.findIndex(
+                (item) => item.id === localItem.id,
+            );
+
             if (serverItemIndex === -1) {
                 // Item exists only in local cart, add it
                 mergedCart.push(localItem);
@@ -112,27 +131,27 @@ const CartPage: React.FC = () => {
                 // Item exists in both, take the higher quantity
                 mergedCart[serverItemIndex].quantity = Math.max(
                     mergedCart[serverItemIndex].quantity,
-                    localItem.quantity
+                    localItem.quantity,
                 );
             }
         });
-        
+
         return mergedCart;
     };
 
     // Sync local cart to server
     const syncLocalCartToServer = async (localCart: CartItem[]) => {
         if (!isAuthenticated || localCart.length === 0) return;
-        
+
         try {
             // Extract product IDs from local cart, with duplicates for quantity
             const productIds: string[] = [];
-            localCart.forEach(item => {
+            localCart.forEach((item) => {
                 for (let i = 0; i < item.quantity; i++) {
                     productIds.push(item.id);
                 }
             });
-            
+
             await addMultipleToCart(productIds);
         } catch (error) {
             console.error("Error syncing local cart to server:", error);
@@ -149,12 +168,12 @@ const CartPage: React.FC = () => {
         if (newQuantity < 1) return;
 
         // Update local state
-        setCartItems(prevItems =>
-            prevItems.map(item =>
-                item.id === id ? { ...item, quantity: newQuantity } : item
-            )
+        setCartItems((prevItems) =>
+            prevItems.map((item) =>
+                item.id === id ? { ...item, quantity: newQuantity } : item,
+            ),
         );
-        
+
         // Sync with server if authenticated
         if (isAuthenticated) {
             try {
@@ -169,8 +188,8 @@ const CartPage: React.FC = () => {
     // Handle item removal
     const removeItem = async (id: string) => {
         // Update local state
-        setCartItems(prevItems => prevItems.filter(item => item.id !== id));
-        
+        setCartItems((prevItems) => prevItems.filter((item) => item.id !== id));
+
         // Sync with server if authenticated
         if (isAuthenticated) {
             try {
@@ -213,13 +232,15 @@ const CartPage: React.FC = () => {
                 {loading ? (
                     <div className="text-center py-16">
                         <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div>
-                        <p className="mt-4 text-gray-600">Đang tải giỏ hàng...</p>
+                        <p className="mt-4 text-gray-600">
+                            Đang tải giỏ hàng...
+                        </p>
                     </div>
                 ) : error ? (
                     <div className="text-center py-16 text-red-500">
                         <p>{error}</p>
-                        <button 
-                            onClick={() => window.location.reload()} 
+                        <button
+                            onClick={() => window.location.reload()}
                             className="mt-4 text-primary hover:underline"
                         >
                             Thử lại
@@ -343,7 +364,9 @@ const CartPage: React.FC = () => {
                                     </div>
 
                                     <div className="border-t border-gray-200 pt-4 flex justify-between text-lg font-medium">
-                                        <p className="text-gray-900">Tổng cộng</p>
+                                        <p className="text-gray-900">
+                                            Tổng cộng
+                                        </p>
                                         <p className="text-primary font-semibold">
                                             {formatCurrency(total)}
                                         </p>
@@ -354,7 +377,9 @@ const CartPage: React.FC = () => {
                                     <Link
                                         href="/checkout"
                                         className={`w-full bg-primary py-3 px-4 rounded-md text-white font-medium hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-center block transition-colors ${
-                                            cartItems.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                                            cartItems.length === 0
+                                                ? "opacity-50 cursor-not-allowed"
+                                                : ""
                                         }`}
                                         onClick={(e) => {
                                             if (cartItems.length === 0) {
@@ -376,7 +401,7 @@ const CartPage: React.FC = () => {
                                     </button>
                                 </div>
                             </div>
-                            
+
                             {/* Coupon usage */}
                             <div className="mt-6 bg-white rounded-lg shadow p-6">
                                 <h2 className="text-sm font-medium text-gray-900 mb-4">
@@ -388,9 +413,7 @@ const CartPage: React.FC = () => {
                                         placeholder="Nhập mã giảm giá"
                                         className="w-full border border-gray-200 rounded-md p-2"
                                     />
-                                    <button
-                                        className="bg-primary text-white font-medium px-4 py-2 rounded-md"
-                                    >
+                                    <button className="bg-primary text-white font-medium px-4 py-2 rounded-md">
                                         Áp dụng
                                     </button>
                                 </div>

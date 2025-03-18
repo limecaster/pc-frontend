@@ -21,8 +21,8 @@ const StatCard: React.FC<StatCardProps> = ({
         changeType === "positive"
             ? "text-green-600 bg-green-100"
             : changeType === "negative"
-            ? "text-red-600 bg-red-100"
-            : "text-gray-600 bg-gray-100";
+              ? "text-red-600 bg-red-100"
+              : "text-gray-600 bg-gray-100";
 
     if (isLoading) {
         return (

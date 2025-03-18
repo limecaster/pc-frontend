@@ -2,10 +2,22 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { fetchAllStaff, deleteStaff, deactivateStaff, activateStaff } from "@/api/admin-staff";
+import {
+    fetchAllStaff,
+    deleteStaff,
+    deactivateStaff,
+    activateStaff,
+} from "@/api/admin-staff";
 import toast from "react-hot-toast";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faTrash, faBan, faCheckCircle, faPlus, faSearch } from "@fortawesome/free-solid-svg-icons";
+import {
+    faEdit,
+    faTrash,
+    faBan,
+    faCheckCircle,
+    faPlus,
+    faSearch,
+} from "@fortawesome/free-solid-svg-icons";
 import Pagination from "@/components/common/Pagination";
 
 interface Staff {
@@ -34,7 +46,7 @@ export default function StaffPage() {
         try {
             setLoading(true);
             const response = await fetchAllStaff(page, 10);
-            
+
             if (response.success) {
                 setStaff(response.staff);
                 setPagination({
@@ -74,7 +86,7 @@ export default function StaffPage() {
 
         try {
             const response = await deleteStaff(id);
-            
+
             if (response.success) {
                 toast.success("Xóa nhân viên thành công");
                 loadStaff(pagination.currentPage);
@@ -86,10 +98,14 @@ export default function StaffPage() {
     };
 
     const toggleStaffStatus = async (id: number, currentStatus: string) => {
-        const isActive = currentStatus === 'active';
-        const actionText = isActive ? 'vô hiệu hóa' : 'kích hoạt';
-        
-        if (!window.confirm(`Bạn có chắc chắn muốn ${actionText} nhân viên này?`)) {
+        const isActive = currentStatus === "active";
+        const actionText = isActive ? "vô hiệu hóa" : "kích hoạt";
+
+        if (
+            !window.confirm(
+                `Bạn có chắc chắn muốn ${actionText} nhân viên này?`,
+            )
+        ) {
             return;
         }
 
@@ -100,13 +116,18 @@ export default function StaffPage() {
             } else {
                 response = await activateStaff(id);
             }
-            
+
             if (response.success) {
-                toast.success(`${isActive ? 'Vô hiệu hóa' : 'Kích hoạt'} nhân viên thành công`);
+                toast.success(
+                    `${isActive ? "Vô hiệu hóa" : "Kích hoạt"} nhân viên thành công`,
+                );
                 loadStaff(pagination.currentPage);
             }
         } catch (error) {
-            console.error(`Error ${isActive ? 'deactivating' : 'activating'} staff:`, error);
+            console.error(
+                `Error ${isActive ? "deactivating" : "activating"} staff:`,
+                error,
+            );
             toast.error(`Không thể ${actionText} nhân viên`);
         }
     };
@@ -115,7 +136,9 @@ export default function StaffPage() {
         <div className="p-6 bg-gray-50 text-gray-800">
             <div className="mb-6 flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Quản lý nhân viên</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">
+                        Quản lý nhân viên
+                    </h1>
                     <p className="text-sm text-gray-500 mt-1">
                         Quản lý tài khoản nhân viên trong hệ thống
                     </p>
@@ -157,22 +180,40 @@ export default function StaffPage() {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th
+                                    scope="col"
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
                                     ID
                                 </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th
+                                    scope="col"
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
                                     Tên
                                 </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th
+                                    scope="col"
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
                                     Email
                                 </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th
+                                    scope="col"
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
                                     Vai trò
                                 </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th
+                                    scope="col"
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
                                     Trạng thái
                                 </th>
-                                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th
+                                    scope="col"
+                                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
                                     Hành động
                                 </th>
                             </tr>
@@ -180,13 +221,19 @@ export default function StaffPage() {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-4 text-center">
+                                    <td
+                                        colSpan={6}
+                                        className="px-6 py-4 text-center"
+                                    >
                                         Đang tải...
                                     </td>
                                 </tr>
                             ) : staff.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-4 text-center">
+                                    <td
+                                        colSpan={6}
+                                        className="px-6 py-4 text-center"
+                                    >
                                         Không tìm thấy nhân viên nào
                                     </td>
                                 </tr>
@@ -198,7 +245,8 @@ export default function StaffPage() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm font-medium text-gray-900">
-                                                {staffMember.firstname} {staffMember.lastname}
+                                                {staffMember.firstname}{" "}
+                                                {staffMember.lastname}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -210,41 +258,78 @@ export default function StaffPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                ${staffMember.status === 'active' ? 
-                                                    'bg-green-100 text-green-800' : 
-                                                    'bg-red-100 text-red-800'}`}>
-                                                {staffMember.status === 'active' ? 'Hoạt động' : 'Vô hiệu hóa'}
+                                            <span
+                                                className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                ${
+                                                    staffMember.status ===
+                                                    "active"
+                                                        ? "bg-green-100 text-green-800"
+                                                        : "bg-red-100 text-red-800"
+                                                }`}
+                                            >
+                                                {staffMember.status === "active"
+                                                    ? "Hoạt động"
+                                                    : "Vô hiệu hóa"}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <button
-                                                onClick={() => router.push(`/admin/staff/${staffMember.id}`)}
+                                                onClick={() =>
+                                                    router.push(
+                                                        `/admin/staff/${staffMember.id}`,
+                                                    )
+                                                }
                                                 className="text-indigo-600 hover:text-indigo-900 mr-3"
                                                 title="Chỉnh sửa"
                                             >
-                                                <FontAwesomeIcon icon={faEdit} />
+                                                <FontAwesomeIcon
+                                                    icon={faEdit}
+                                                />
                                             </button>
-                                            
+
                                             {/* Toggle activation status button */}
                                             <button
-                                                onClick={() => toggleStaffStatus(staffMember.id, staffMember.status)}
+                                                onClick={() =>
+                                                    toggleStaffStatus(
+                                                        staffMember.id,
+                                                        staffMember.status,
+                                                    )
+                                                }
                                                 className={`${
-                                                    staffMember.status === 'active' 
-                                                        ? 'text-yellow-600 hover:text-yellow-900' 
-                                                        : 'text-green-600 hover:text-green-900'
+                                                    staffMember.status ===
+                                                    "active"
+                                                        ? "text-yellow-600 hover:text-yellow-900"
+                                                        : "text-green-600 hover:text-green-900"
                                                 } mr-3`}
-                                                title={staffMember.status === 'active' ? 'Vô hiệu hóa' : 'Kích hoạt'}
+                                                title={
+                                                    staffMember.status ===
+                                                    "active"
+                                                        ? "Vô hiệu hóa"
+                                                        : "Kích hoạt"
+                                                }
                                             >
-                                                <FontAwesomeIcon icon={staffMember.status === 'active' ? faBan : faCheckCircle} />
+                                                <FontAwesomeIcon
+                                                    icon={
+                                                        staffMember.status ===
+                                                        "active"
+                                                            ? faBan
+                                                            : faCheckCircle
+                                                    }
+                                                />
                                             </button>
-                                            
+
                                             <button
-                                                onClick={() => handleDeleteStaff(staffMember.id)}
+                                                onClick={() =>
+                                                    handleDeleteStaff(
+                                                        staffMember.id,
+                                                    )
+                                                }
                                                 className="text-red-600 hover:text-red-900"
                                                 title="Xóa"
                                             >
-                                                <FontAwesomeIcon icon={faTrash} />
+                                                <FontAwesomeIcon
+                                                    icon={faTrash}
+                                                />
                                             </button>
                                         </td>
                                     </tr>

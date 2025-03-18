@@ -16,7 +16,7 @@ export const LoginButton: React.FC<LoginButtonProps> = ({
     variant = "primary",
     className = "",
     onClick,
-    disabled = false
+    disabled = false,
 }) => {
     const baseStyles =
         "flex gap-2 justify-center items-center px-6 w-full text-sm font-bold tracking-normal leading-10 rounded-sm";

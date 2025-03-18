@@ -15,10 +15,10 @@ interface CompatiblePartsResponse {
  * Fetches compatible parts for a specific category in manual PC building
  */
 export async function getCompatibleParts(
-    targetLabel: string, 
-    selectedParts: SelectedPart[], 
+    targetLabel: string,
+    selectedParts: SelectedPart[],
     page: number = 1,
-    limit: number = 10
+    limit: number = 10,
 ): Promise<CompatiblePartsResponse> {
     try {
         const queryParams = new URLSearchParams();
@@ -28,25 +28,27 @@ export async function getCompatibleParts(
         queryParams.append("limit", limit.toString());
 
         const response = await fetch(
-            `${API_URL}/build/manual-build/compatible-parts?${queryParams.toString()}`
+            `${API_URL}/build/manual-build/compatible-parts?${queryParams.toString()}`,
         );
 
         if (!response.ok) {
-            throw new Error(`Error fetching compatible parts: ${response.statusText}`);
+            throw new Error(
+                `Error fetching compatible parts: ${response.statusText}`,
+            );
         }
 
         const data = await response.json();
         return {
             items: data.items || [],
             totalPages: data.totalPages || 1,
-            currentPage: page
+            currentPage: page,
         };
     } catch (error) {
         console.error("Error fetching compatible parts:", error);
         return {
             items: [],
             totalPages: 1,
-            currentPage: page
+            currentPage: page,
         };
     }
 }

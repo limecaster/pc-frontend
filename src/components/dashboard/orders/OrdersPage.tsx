@@ -45,7 +45,9 @@ const OrdersPage: React.FC = () => {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    const [processingOrderId, setProcessingOrderId] = useState<string | null>(null);
+    const [processingOrderId, setProcessingOrderId] = useState<string | null>(
+        null,
+    );
 
     // Fetch order history
     const fetchOrderHistory = async () => {
@@ -67,7 +69,7 @@ const OrdersPage: React.FC = () => {
                         items: order.items.map((item: any) => ({
                             id: item.product.id,
                             name: item.product.name,
-                            price: item.subPrice / item.quantity, 
+                            price: item.subPrice / item.quantity,
                             quantity: item.quantity,
                             image:
                                 item.product.imageUrl ||
@@ -85,9 +87,7 @@ const OrdersPage: React.FC = () => {
             }
         } catch (error) {
             console.error("Error fetching orders:", error);
-            setError(
-                "Failed to load order history. Please try again later.",
-            );
+            setError("Failed to load order history. Please try again later.");
         } finally {
             setLoading(false);
         }
@@ -102,7 +102,7 @@ const OrdersPage: React.FC = () => {
         try {
             setProcessingOrderId(orderId);
             const response = await cancelOrder(orderId);
-            
+
             if (response.success) {
                 toast.success("Đơn hàng đã được hủy thành công");
                 // Refresh order list
@@ -123,12 +123,14 @@ const OrdersPage: React.FC = () => {
         try {
             setProcessingOrderId(orderId);
             const response = await initiateOrderPayment(orderId);
-            
+
             if (response.success && response.redirectUrl) {
                 // Redirect to payment page
                 router.push(response.redirectUrl);
             } else {
-                toast.error(response.message || "Không thể thực hiện thanh toán");
+                toast.error(
+                    response.message || "Không thể thực hiện thanh toán",
+                );
             }
         } catch (error) {
             toast.error("Có lỗi xảy ra khi xử lý thanh toán");
@@ -256,7 +258,11 @@ const OrdersPage: React.FC = () => {
                                         >
                                             {label}
                                         </span>
-                                        {['shipping', 'processing', 'payment_success'].includes(order.status) && (
+                                        {[
+                                            "shipping",
+                                            "processing",
+                                            "payment_success",
+                                        ].includes(order.status) && (
                                             <Link
                                                 href={`/track-order/${order.orderNumber}`}
                                                 className="text-sm font-medium text-primary hover:underline"
@@ -336,12 +342,19 @@ const OrdersPage: React.FC = () => {
 
                                         {/* Payment button - only for approved orders */}
                                         {order.status === "approved" && (
-                                            <button 
-                                                onClick={() => handlePayOrder(order.id)}
-                                                disabled={processingOrderId === order.id}
+                                            <button
+                                                onClick={() =>
+                                                    handlePayOrder(order.id)
+                                                }
+                                                disabled={
+                                                    processingOrderId ===
+                                                    order.id
+                                                }
                                                 className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark disabled:opacity-50"
                                             >
-                                                {processingOrderId === order.id ? "Đang xử lý..." : "Thanh toán"}
+                                                {processingOrderId === order.id
+                                                    ? "Đang xử lý..."
+                                                    : "Thanh toán"}
                                             </button>
                                         )}
 
@@ -354,13 +367,21 @@ const OrdersPage: React.FC = () => {
                                         )}
 
                                         {/* Cancel button - only for pending_approval or approved orders */}
-                                        {(order.status === "pending_approval" || order.status === "approved") && (
-                                            <button 
-                                                onClick={() => handleCancelOrder(order.id)}
-                                                disabled={processingOrderId === order.id}
+                                        {(order.status === "pending_approval" ||
+                                            order.status === "approved") && (
+                                            <button
+                                                onClick={() =>
+                                                    handleCancelOrder(order.id)
+                                                }
+                                                disabled={
+                                                    processingOrderId ===
+                                                    order.id
+                                                }
                                                 className="px-4 py-2 border border-red-300 text-red-600 rounded-md hover:bg-red-50 disabled:opacity-50"
                                             >
-                                                {processingOrderId === order.id ? "Đang xử lý..." : "Hủy đơn hàng"}
+                                                {processingOrderId === order.id
+                                                    ? "Đang xử lý..."
+                                                    : "Hủy đơn hàng"}
                                             </button>
                                         )}
                                     </div>

@@ -5,9 +5,9 @@ type LoadingSpinnerProps = {
     color?: "primary" | "white";
 };
 
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
-    size = "medium", 
-    color = "primary" 
+const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
+    size = "medium",
+    color = "primary",
 }) => {
     // Determine size classes
     const sizeClasses = {
