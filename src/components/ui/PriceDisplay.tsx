@@ -1,9 +1,10 @@
 import * as React from "react";
 
-interface PriceDisplayProps {
-    currentPrice: string;
-    originalPrice: string;
-    discountPercentage: string;
+// Update the PriceDisplay component to accept optional props
+export interface PriceDisplayProps {
+    currentPrice?: string;
+    originalPrice?: string;
+    discountPercentage?: number; // Change to number
 }
 
 export function PriceDisplay({
@@ -11,6 +12,9 @@ export function PriceDisplay({
     originalPrice,
     discountPercentage,
 }: PriceDisplayProps) {
+    // Provide default handling for optional props
+    if (!currentPrice) return null;
+
     const formatPrice = (price: string) => {
         // round to 0 decimal places
         price = parseFloat(price).toFixed(0);
@@ -30,15 +34,15 @@ export function PriceDisplay({
                         {formatPrice(currentPrice) + "đ"}
                     </div>
                 )}
-                {originalPrice !== "0" ? (
+                {originalPrice && originalPrice !== "0" ? (
                     <div className="self-start mt-4 text-xs leading-loose text-slate-500">
                         {formatPrice(originalPrice)}
                     </div>
                 ) : null}
             </div>
-            {discountPercentage === "0" ? (
+            {discountPercentage && discountPercentage > 0 ? (
                 <div className="self-end mt-7 text-xs leading-loose text-cyan-300">
-                    {discountPercentage}
+                    {discountPercentage}%
                 </div>
             ) : null}
         </div>

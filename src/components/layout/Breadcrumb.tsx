@@ -29,6 +29,8 @@ const pathNameMap: { [key: string]: string } = {
     account: "Thông tin tài khoản",
     faq: "Câu hỏi thường gặp",
     search: "Tìm kiếm",
+    "pc-configurations": "Cấu hình PC",
+    reviews: "Đánh giá",
 };
 
 const Breadcrumb: React.FC = () => {

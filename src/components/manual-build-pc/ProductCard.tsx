@@ -16,24 +16,20 @@ export function ProductCard({
     productUrl,
     onButtonClick,
     onRemoveClick,
-}: ProductCardProps & {
-    buttonLabel?: string;
-    onButtonClick?: () => void;
-    onRemoveClick?: () => void;
-}) {
+}: ProductCardProps) {
     return (
         <div className="flex flex-col md:flex-row items-center justify-between p-4 bg-white rounded-md w-full max-w-full">
             <ProductInfo
                 category={category}
                 imageUrl={imageUrl || "/images/image-placeholder.webp"}
                 productName={productName}
-                productUrl={productUrl}
+                productUrl={productUrl} // Now optional in ProductInfo
             />
             <div className="flex items-center gap-4 mt-4 md:mt-0 ml-auto">
                 <PriceDisplay
-                    currentPrice={currentPrice}
-                    originalPrice={originalPrice}
-                    discountPercentage={discountPercentage}
+                    currentPrice={currentPrice} // Now optional in PriceDisplay
+                    originalPrice={originalPrice} // Now optional in PriceDisplay
+                    discountPercentage={discountPercentage} // Now optional in PriceDisplay and properly typed as number
                 />
                 <button
                     onClick={onButtonClick}

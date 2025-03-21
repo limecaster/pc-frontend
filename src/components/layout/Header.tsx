@@ -75,6 +75,7 @@ const Header = () => {
                         alt="B Store Logo"
                         width={40}
                         height={40}
+                        style={{ height: "auto" }}
                     />
                     <span className="text-xl font-bold text-white">
                         B Store
@@ -117,7 +118,7 @@ const Header = () => {
                                 {isAuthenticated ? (
                                     <>
                                         <Link
-                                            href="/dashboard/account"
+                                            href="/dashboard"
                                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                                             onClick={() =>
                                                 setShowUserMenu(false)

@@ -35,6 +35,11 @@ const ProductsContent: React.FC = () => {
         : undefined;
     const initialCategory = searchParams.get("category") || null;
 
+    // Parse subcategory filters from URL
+    const initialSubcategoryFilters = searchParams.get("subcategories")
+        ? JSON.parse(decodeURIComponent(searchParams.get("subcategories")!))
+        : undefined;
+
     // State
     const [currentPage, setCurrentPage] = useState<number>(initialPage);
     const [totalPages, setTotalPages] = useState<number>(1);
@@ -55,6 +60,9 @@ const ProductsContent: React.FC = () => {
     const [selectedRating, setSelectedRating] = useState<number | undefined>(
         initialRating,
     );
+    const [subcategoryFilters, setSubcategoryFilters] = useState<
+        Record<string, string[]> | undefined
+    >(initialSubcategoryFilters);
     const [activeFilters, setActiveFilters] = useState<
         Array<{ id: string; text: string }>
     >([]);
@@ -106,6 +114,18 @@ const ProductsContent: React.FC = () => {
             });
         });
 
+        // Add subcategory filters
+        if (subcategoryFilters) {
+            Object.entries(subcategoryFilters).forEach(([key, values]) => {
+                values.forEach((value) => {
+                    filters.push({
+                        id: `subcategory-${key}-${value}`,
+                        text: `${key}: ${value}`,
+                    });
+                });
+            });
+        }
+
         // Add price filter
         if (priceRange[0] > 0 || priceRange[1] < 100_000_000) {
             const formatter = new Intl.NumberFormat("vi-VN", {
@@ -127,7 +147,13 @@ const ProductsContent: React.FC = () => {
         }
 
         setActiveFilters(filters);
-    }, [selectedCategory, selectedBrands, priceRange, selectedRating]);
+    }, [
+        selectedCategory,
+        selectedBrands,
+        priceRange,
+        selectedRating,
+        subcategoryFilters,
+    ]);
 
     // Update URL parameters - only called when shouldUpdateUrl is true
     useEffect(() => {
@@ -146,6 +172,14 @@ const ProductsContent: React.FC = () => {
             params.set("minRating", selectedRating.toString());
         if (selectedCategory) params.set("category", selectedCategory);
 
+        // Add subcategory filters to URL if they exist
+        if (subcategoryFilters && Object.keys(subcategoryFilters).length > 0) {
+            params.set(
+                "subcategories",
+                encodeURIComponent(JSON.stringify(subcategoryFilters)),
+            );
+        }
+
         const query = params.toString();
         router.push(`/products${query ? `?${query}` : ""}`);
 
@@ -160,6 +194,7 @@ const ProductsContent: React.FC = () => {
         selectedBrands,
         selectedRating,
         selectedCategory,
+        subcategoryFilters,
     ]);
 
     useEffect(() => {
@@ -172,6 +207,7 @@ const ProductsContent: React.FC = () => {
         priceRange,
         selectedRating,
         sortBy,
+        subcategoryFilters, // Add subcategoryFilters as dependency
     ]);
 
     // Update active filters when relevant state changes
@@ -195,6 +231,7 @@ const ProductsContent: React.FC = () => {
                     priceRange[0] > 0 ? priceRange[0] : undefined,
                     priceRange[1] < 100_000_000 ? priceRange[1] : undefined,
                     selectedRating,
+                    subcategoryFilters, // Pass subcategory filters to API
                 );
             } else {
                 // If no category, fetch all products
@@ -254,6 +291,7 @@ const ProductsContent: React.FC = () => {
             setSelectedCategory(category);
         }
         setCurrentPage(1); // Reset to first page
+        setSubcategoryFilters(undefined); // Clear subcategory filters when changing category
         setShouldUpdateUrl(true); // Set flag to update URL
     };
 
@@ -300,6 +338,32 @@ const ProductsContent: React.FC = () => {
                 prev.filter((brand) => brand !== brandName),
             );
             setShouldUpdateUrl(true);
+        } else if (id.startsWith("subcategory-")) {
+            // Handle removing subcategory filters
+            const parts = id.split("-");
+            if (parts.length >= 3) {
+                const key = parts[1];
+                const value = parts.slice(2).join("-"); // Handle values that might contain hyphens
+
+                setSubcategoryFilters((prev) => {
+                    if (!prev || !prev[key]) return prev;
+
+                    const newValues = prev[key].filter((v) => v !== value);
+                    const newFilters = { ...prev };
+
+                    if (newValues.length === 0) {
+                        delete newFilters[key];
+                    } else {
+                        newFilters[key] = newValues;
+                    }
+
+                    return Object.keys(newFilters).length === 0
+                        ? undefined
+                        : newFilters;
+                });
+
+                setShouldUpdateUrl(true);
+            }
         } else if (id === "price-range") {
             setPriceRange([0, 100_000_000]);
             setShouldUpdateUrl(true);
@@ -314,6 +378,7 @@ const ProductsContent: React.FC = () => {
         setSelectedBrands([]);
         setPriceRange([0, 100_000_000]);
         setSelectedRating(undefined);
+        setSubcategoryFilters(undefined); // Clear subcategory filters too
         setSortBy("featured");
         setCurrentPage(1);
         setShouldUpdateUrl(true);

@@ -1,0 +1,60 @@
+/**
+ * Product detail response DTO
+ */
+export interface ProductDetailsDto {
+    id: string;
+    name: string;
+    price: number;
+    originalPrice?: number;
+    discount?: number;
+    rating: number;
+    reviewCount: number;
+    description?: string;
+    additionalInfo?: string;
+    imageUrl: string;
+    additionalImages?: string[];
+    specifications?: Record<string, any>;
+    reviews?: ProductReviewDto[];
+    sku: string;
+    stock: string;
+    brand: string;
+    category: string;
+    color?: string;
+    size?: string;
+}
+
+/**
+ * Product review DTO
+ */
+export interface ProductReviewDto {
+    id: string;
+    userId: string;
+    username: string;
+    rating: number;
+    comment: string;
+    createdAt: string;
+    updatedAt?: string;
+}
+
+/**
+ * Subcategory filter structure
+ */
+export interface SubcategoryFilter {
+    key: string;
+    title: string;
+    values: string[];
+}
+
+/**
+ * Product search query parameters
+ */
+export interface ProductSearchParams {
+    category?: string;
+    page?: number;
+    limit?: number;
+    brands?: string[];
+    minPrice?: number;
+    maxPrice?: number;
+    minRating?: number;
+    subcategories?: Record<string, string[]>;
+}

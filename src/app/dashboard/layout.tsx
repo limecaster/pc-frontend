@@ -3,6 +3,7 @@
 import React, { ReactNode, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import {
     PersonIcon,
     ClockIcon,
@@ -11,6 +12,7 @@ import {
     ExitIcon,
     HamburgerMenuIcon,
     Cross2Icon,
+    DesktopIcon, // Added icon for PC configurations
 } from "@radix-ui/react-icons";
 
 interface DashboardLayoutProps {
@@ -20,6 +22,7 @@ interface DashboardLayoutProps {
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     const pathname = usePathname();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const { isAuthenticated, isLoading, logout } = useAuth();
 
     const navigationItems = [
         {
@@ -38,6 +41,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             icon: <ClockIcon className="w-4 h-4" />,
         },
         {
+            name: "Cấu hình PC của tôi", // Added PC configurations item
+            href: "/dashboard/pc-configurations",
+            icon: <DesktopIcon className="w-4 h-4" />,
+        },
+        {
             name: "Sản phẩm đã xem",
             href: "/dashboard/viewed-products",
             icon: <CubeIcon className="w-4 h-4" />,
@@ -52,6 +60,22 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     const toggleMobileMenu = () => {
         setMobileMenuOpen(!mobileMenuOpen);
     };
+
+    // Handle loading and auth states
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                <p className="ml-2">Đang tải...</p>
+            </div>
+        );
+    }
+
+    if (!isAuthenticated) {
+        // This will be handled by the page components
+        // that redirect to login if not authenticated
+        return null;
+    }
 
     return (
         <div className="bg-gray-100 min-h-screen py-8 text-gray-800">
@@ -104,7 +128,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
                                 <hr className="my-4 border-gray-200" />
 
-                                <button className="w-full flex items-center px-4 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-50">
+                                <button
+                                    onClick={() => logout()}
+                                    className="w-full flex items-center px-4 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-50"
+                                >
                                     <ExitIcon className="w-4 h-4 mr-3" />
                                     Đăng xuất
                                 </button>

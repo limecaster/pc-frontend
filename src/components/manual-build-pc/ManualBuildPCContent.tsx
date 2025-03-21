@@ -1,66 +1,38 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import "flowbite";
-import Image from "next/image";
-import { ManualBuildPCItemCard } from "@/components/manual-build-pc/ManualBuildPCItemCard";
-import { ProductCard } from "@/components/manual-build-pc/ProductCard";
-import { getCompatibleParts } from "@/api/manual-build-pc";
-
-import cpuIcon from "@/assets/icon/pc-parts/cpu.svg";
-import motherboardIcon from "@/assets/icon/pc-parts/motherboard.svg";
-import ramIcon from "@/assets/icon/pc-parts/ram.svg";
-import hddIcon from "@/assets/icon/pc-parts/hdd.svg";
-import ssdIcon from "@/assets/icon/pc-parts/ssd.svg";
-import gpuIcon from "@/assets/icon/pc-parts/gpu.svg";
-import psuIcon from "@/assets/icon/pc-parts/psu.svg";
-import caseIcon from "@/assets/icon/pc-parts/case.svg";
-import cpucoolerIcon from "@/assets/icon/pc-parts/cpucooler.svg";
-import monitorIcon from "@/assets/icon/pc-parts/monitor.svg";
-import peripheralIcon from "@/assets/icon/pc-parts/peripheral.svg";
-import extensibleCardIcon from "@/assets/icon/pc-parts/extensible-card.svg";
-import accessoriesIcon from "@/assets/icon/pc-parts/other.svg";
-
+import { getAllCompatibleParts } from "@/api/manual-build-pc";
+import { saveConfiguration, getConfiguration } from "@/api/pc-configuration";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "react-hot-toast";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
 
-const formatPrice = (price: string) => {
-    price = parseFloat(price).toFixed(0);
-    price = price.toString();
-    return price.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-};
-
-const itemData = [
-    { label: "CPU", imageSrc: cpuIcon },
-    { label: "Bo mạch chủ", imageSrc: motherboardIcon },
-    { label: "RAM", imageSrc: ramIcon },
-    { label: "HDD", imageSrc: hddIcon },
-    { label: "SSD", imageSrc: ssdIcon },
-    { label: "Card đồ họa", imageSrc: gpuIcon },
-    { label: "Nguồn", imageSrc: psuIcon },
-    { label: "Vỏ case", imageSrc: caseIcon },
-    { label: "Quạt tản nhiệt", imageSrc: cpucoolerIcon },
-    { label: "Màn hình", imageSrc: monitorIcon },
-    { label: "Thiết bị ngoại vi", imageSrc: peripheralIcon },
-    { label: "Card mở rộng", imageSrc: extensibleCardIcon },
-    { label: "Phụ kiện khác", imageSrc: accessoriesIcon },
-];
+// Import custom components
+import PartsSelectionGrid from "./PartsSelectionGrid";
+import PartSelectionModal from "./PartSelectionModal";
+import ConfigurationSummary from "./ConfigurationSummary";
+import SaveConfigurationModal from "./SaveConfigurationModal";
 
 const ManualBuildPCContent = () => {
+    const router = useRouter();
+    const { isAuthenticated } = useAuth();
     const searchParams = useSearchParams() as any;
+    const configId = searchParams?.get("configId");
     const selectedProductsQuery = searchParams?.get("selectedProducts") || "{}";
     const initialSelectedProducts = selectedProductsQuery
         ? JSON.parse(selectedProductsQuery as string)
         : {};
 
+    // State management
     const [selectedProducts, setSelectedProducts] = useState<{
         [key: string]: any;
     }>(initialSelectedProducts);
     const [showPopup, setShowPopup] = useState(false);
-    const [popupItems, setPopupItems] = useState<any[]>(() => []);
+    const [popupItems, setPopupItems] = useState<any[]>([]);
     const [currentCategory, setCurrentCategory] = useState("");
-    const [loading, setLoading] = useState(false); // Add loading state
+    const [loading, setLoading] = useState(false);
 
-    // Add state for search and sort
     const [searchTerm, setSearchTerm] = useState("");
     const [sortOption, setSortOption] = useState<
         "name" | "price-asc" | "price-desc"
@@ -72,9 +44,56 @@ const ManualBuildPCContent = () => {
 
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const itemsPerPage = 10; // Number of items per page
+    const itemsPerPage = 10;
 
-    const handleSelectClick = async (category: string, page: number = 1) => {
+    const [showSaveModal, setShowSaveModal] = useState(false);
+    const [configName, setConfigName] = useState("");
+    const [configPurpose, setConfigPurpose] = useState("");
+    const [isLoadingConfig, setIsLoadingConfig] = useState(false);
+
+    // New state variables for client-side pagination
+    const [allCompatibleParts, setAllCompatibleParts] = useState<any[]>([]);
+    const [filteredParts, setFilteredParts] = useState<any[]>([]);
+
+    // Add state to track if we're editing an existing configuration
+    const isEditMode = Boolean(configId);
+
+    // Load configuration if configId is provided
+    useEffect(() => {
+        if (configId) {
+            setIsLoadingConfig(true);
+            getConfiguration(configId)
+                .then((config) => {
+                    if (config && config.products) {
+                        setSelectedProducts(config.products);
+                        setConfigName(config.name || "");
+                        setConfigPurpose(config.purpose || "");
+                    }
+                })
+                .catch((err) => {
+                    console.error("Error loading configuration:", err);
+                    toast.error("Không thể tải cấu hình. Vui lòng thử lại!");
+                })
+                .finally(() => {
+                    setIsLoadingConfig(false);
+                });
+        }
+    }, [configId]);
+
+    // Calculate totals when selected products change
+    useEffect(() => {
+        calculateTotalPrice();
+        calculateTotalWattage();
+        setIsCompatible(true);
+    }, [selectedProducts]);
+
+    // Part selection handlers
+    const handleSelectClick = async (
+        category: string,
+        page: number = 1,
+        newSearchTerm?: string,
+        newSortOption?: "name" | "price-asc" | "price-desc",
+    ) => {
         setCurrentCategory(category);
         const selectedParts = Object.entries(selectedProducts).map(
             ([cat, product]) => ({
@@ -82,30 +101,115 @@ const ManualBuildPCContent = () => {
                 label: cat,
             }),
         );
-        setLoading(true); // Set loading to true
-        setShowPopup(true); // Show popup immediately with loading state
+        setLoading(true);
+        setShowPopup(true);
+
+        // Update state with any new values passed
+        if (newSearchTerm !== undefined) setSearchTerm(newSearchTerm);
+        if (newSortOption !== undefined) setSortOption(newSortOption);
 
         try {
-            const response = await getCompatibleParts(
+            // Fetch ALL compatible parts in one request
+            const response = await getAllCompatibleParts(
                 category,
                 selectedParts,
-                page,
-                itemsPerPage,
+                newSearchTerm !== undefined ? newSearchTerm : searchTerm,
+                newSortOption !== undefined ? newSortOption : sortOption,
             );
 
-            setPopupItems(response.items);
-            setTotalPages(response.totalPages);
-            setCurrentPage(page);
+            // Store all parts for client-side pagination
+            setAllCompatibleParts(response.items);
+
+            // Apply pagination, sorting, and filtering client-side
+            applyPaginationAndFilters(
+                response.items,
+                page,
+                newSearchTerm !== undefined ? newSearchTerm : searchTerm,
+                newSortOption !== undefined ? newSortOption : sortOption,
+            );
+
+            // Set this to false as we'll handle pagination on the client side
+            setLoading(false);
         } catch (error) {
             console.error("Error fetching compatible parts:", error);
+            setAllCompatibleParts([]);
+            setFilteredParts([]);
             setPopupItems([]);
-        } finally {
-            setLoading(false); // Set loading to false when done
+            setTotalPages(1);
+            setLoading(false);
         }
     };
 
+    // Function to apply pagination, search, and sort filters
+    const applyPaginationAndFilters = (
+        items: any[] = allCompatibleParts,
+        page: number = currentPage,
+        searchFilter: string = searchTerm,
+        sort: "name" | "price-asc" | "price-desc" = sortOption,
+    ) => {
+        // Apply search filter if needed
+        let filtered = items;
+        if (searchFilter) {
+            filtered = items.filter((item) =>
+                item.name.toLowerCase().includes(searchFilter.toLowerCase()),
+            );
+        }
+
+        // Apply sorting
+        if (sort) {
+            filtered = [...filtered].sort((a, b) => {
+                if (sort === "name") {
+                    return a.name.localeCompare(b.name);
+                } else if (sort === "price-asc") {
+                    return (
+                        parseFloat(a.price || "0") - parseFloat(b.price || "0")
+                    );
+                } else {
+                    // price-desc
+                    return (
+                        parseFloat(b.price || "0") - parseFloat(a.price || "0")
+                    );
+                }
+            });
+        }
+
+        // Store filtered results for pagination
+        setFilteredParts(filtered);
+
+        // Calculate pagination
+        const totalFilteredItems = filtered.length;
+        const totalPageCount = Math.max(
+            1,
+            Math.ceil(totalFilteredItems / itemsPerPage),
+        );
+        setTotalPages(totalPageCount);
+
+        // Ensure page is within bounds
+        const safePage = Math.min(Math.max(1, page), totalPageCount);
+
+        // Always update the current page state
+        setCurrentPage(safePage);
+
+        // Get items for current page
+        const startIndex = (safePage - 1) * itemsPerPage;
+        const endIndex = Math.min(
+            startIndex + itemsPerPage,
+            totalFilteredItems,
+        );
+        setPopupItems(filtered.slice(startIndex, endIndex));
+    };
+
+    // Modified page change handler for client-side pagination
     const handlePageChange = (page: number) => {
-        handleSelectClick(currentCategory, page);
+        // Immediately update current page for UI responsiveness
+        setCurrentPage(page);
+        // Then apply pagination
+        applyPaginationAndFilters(
+            allCompatibleParts,
+            page,
+            searchTerm,
+            sortOption,
+        );
     };
 
     const handleItemSelect = (product: any) => {
@@ -124,6 +228,7 @@ const ManualBuildPCContent = () => {
         });
     };
 
+    // Calculation methods
     const calculateTotalPrice = () => {
         const price = Object.values(selectedProducts).reduce((sum, product) => {
             return sum + (parseFloat(product.price) || 0);
@@ -161,22 +266,7 @@ const ManualBuildPCContent = () => {
         setTotalWattage(totalWattage);
     };
 
-    useEffect(() => {
-        calculateTotalPrice();
-        calculateTotalWattage();
-        setIsCompatible(true);
-    }, [selectedProducts]);
-
-    const handleBuyNow = () => {
-        // TODO: Implement buy now functionality
-        console.log("Mua ngay clicked");
-    };
-
-    const handleAddToCart = () => {
-        // TODO: Implement add to cart functionality
-        console.log("Thêm vào giỏ hàng clicked");
-    };
-
+    // Action handlers
     const handleSaveToExcel = async () => {
         const data = Object.values(selectedProducts).map((product) => ({
             name: product.name,
@@ -201,451 +291,161 @@ const ManualBuildPCContent = () => {
         saveAs(blob, "danh_sach_san_pham.xlsx");
     };
 
+    const handleSaveConfiguration = async () => {
+        if (!isAuthenticated) {
+            toast.error("Vui lòng đăng nhập để lưu cấu hình!");
+            router.push(
+                `/login?redirect=${encodeURIComponent(window.location.pathname)}`,
+            );
+            return;
+        }
+
+        if (Object.keys(selectedProducts).length === 0) {
+            toast.error("Vui lòng chọn ít nhất một linh kiện để lưu cấu hình!");
+            return;
+        }
+
+        // Pre-populate the config name if in edit mode
+        if (isEditMode && configName && !showSaveModal) {
+            handleSaveConfigurationConfirm();
+            return;
+        }
+
+        setShowSaveModal(true);
+    };
+
+    const handleSaveConfigurationConfirm = async () => {
+        if (!configName.trim() && !isEditMode) {
+            toast.error("Vui lòng nhập tên cho cấu hình!");
+            return;
+        }
+
+        try {
+            // Create config data object without id initially
+            const configData: any = {
+                name: configName,
+                purpose: configPurpose,
+                products: selectedProducts,
+                totalPrice: totalPrice,
+                wattage: totalWattage,
+            };
+
+            // Only add id for updates with valid configId
+            if (configId && configId.trim() !== "") {
+                // Make sure configId is a string
+                configData.id = configId;
+            }
+
+            console.log("Operation type:", configId ? "UPDATE" : "CREATE");
+            console.log("Config ID value:", configId || "null/undefined");
+            console.log("Sending configuration data:", configData);
+
+            const saved = await saveConfiguration(configData);
+
+            setShowSaveModal(false);
+            toast.success(
+                isEditMode
+                    ? "Cấu hình đã được cập nhật thành công!"
+                    : "Cấu hình đã được lưu thành công!",
+            );
+
+            if (!configId) {
+                // If this is a new config, redirect to the config with ID
+                router.push(`/manual-build-pc?configId=${saved.id}`);
+            }
+        } catch (error) {
+            console.error("Error saving configuration:", error);
+            const errorMessage =
+                error instanceof Error ? error.message : "Unknown error";
+            toast.error(`Không thể lưu cấu hình: ${errorMessage}`);
+        }
+    };
+
+    // Update these handlers to pass the new values directly to handleSelectClick
+    const handleSearchChange = (term: string) => {
+        // Update state and re-apply filters
+        setSearchTerm(term);
+        applyPaginationAndFilters(allCompatibleParts, 1, term, sortOption);
+    };
+
+    const handleSortChange = (option: "name" | "price-asc" | "price-desc") => {
+        // Update state and re-apply filters
+        setSortOption(option);
+        applyPaginationAndFilters(
+            allCompatibleParts,
+            currentPage,
+            searchTerm,
+            option,
+        );
+    };
+
+    if (isLoadingConfig) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                <p className="ml-2">Đang tải cấu hình...</p>
+            </div>
+        );
+    }
+
     return (
-        <div className="manual-build-pc-container grid grid-cols-8 gap-4 justify-center py-4 w-full bg-bgSecondary">
-            <div className="p-4 bg-bgSecondary shadow-md border-t-2 border-slate-200 dark:bg-white dark:border-zinc-100 col-span-6">
+        <div className="manual-build-pc-container grid grid-cols-8 gap-4 justify-center py-4 w-full bg-white">
+            <div className="p-4 ml-5 bg-gray-50 shadow-md border-t-1 border-slate-200 dark:bg-white dark:border-zinc-100 col-span-6">
                 <h1 className="text-4xl text-zinc-900 font-bold mb-4 text-center dark:text-zinc-100">
                     XÂY DỰNG CẤU HÌNH PC THỦ CÔNG
                 </h1>
                 <p className="text-lg text-zinc-500 font-medium mb-4 text-center dark:text-zinc-100">
                     Hãy chọn các linh kiện để xây dựng cấu hình PC của bạn
                 </p>
-                <div className="grid grid-col-1 gap-4 justify-center py-4 w-full bg-bgSecondary">
-                    {itemData.map(({ label, imageSrc }) => {
-                        const selectedItem = selectedProducts[label];
-                        return !selectedItem ? (
-                            <ManualBuildPCItemCard
-                                key={label}
-                                label={label}
-                                imageSrc={imageSrc}
-                                description="Vui lòng chọn linh kiện"
-                                buttonLabel="Chọn"
-                                onButtonClick={() => handleSelectClick(label)}
-                            />
-                        ) : (
-                            <ProductCard
-                                key={label}
-                                imageUrl={
-                                    selectedItem?.imageUrl ||
-                                    "/images/image-placeholder.webp"
-                                }
-                                productName={selectedItem?.name || label}
-                                currentPrice={
-                                    selectedItem?.price?.toString() || "0"
-                                }
-                                originalPrice="0"
-                                discountPercentage="0%"
-                                logoUrl=""
-                                category={label}
-                                productUrl={selectedItem?.id || "#"}
-                                buttonLabel="Sửa"
-                                onButtonClick={() => handleSelectClick(label)}
-                                onRemoveClick={() => handleRemovePart(label)}
-                            />
-                        );
-                    })}
-                </div>
 
-                {/* Flowbite Modal */}
-
-                <div
-                    id="default-modal"
-                    tabIndex={-1}
-                    inert={!showPopup ? true : undefined}
-                    className={`${
-                        showPopup ? "flex" : "hidden"
-                    } overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-full`}
-                >
-                    <div className="relative p-4 w-full max-w-2xl max-h-full">
-                        {/* Modal content */}
-                        <div className="relative bg-white rounded-lg shadow dark:bg-gray-700 mx-auto my-8 max-w-2xl w-full">
-                            {/* Modal header */}
-                            <div className="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
-                                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                    Chọn linh kiện cho {currentCategory}
-                                </h3>
-                                <button
-                                    type="button"
-                                    className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
-                                    onClick={() => setShowPopup(false)}
-                                >
-                                    <svg
-                                        className="w-3 h-3"
-                                        aria-hidden="true"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 14 14"
-                                    >
-                                        <path
-                                            stroke="currentColor"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth="2"
-                                            d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
-                                        />
-                                    </svg>
-                                    <span className="sr-only">Close modal</span>
-                                </button>
-                            </div>
-                            {/* Modal body */}
-                            <div className="p-4 space-y-4">
-                                {/* Search and Sort Controls */}
-                                <form className="grid grid-cols-3 gap-4 mb-4">
-                                    <label
-                                        htmlFor="simple-search"
-                                        className="sr-only"
-                                    >
-                                        Search
-                                    </label>
-                                    <div className="relative col-span-2">
-                                        <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                                            <svg
-                                                className="w-4 h-4 text-gray-500 dark:text-gray-400"
-                                                aria-hidden="true"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                fill="none"
-                                                viewBox="0 0 18 20"
-                                            >
-                                                <path
-                                                    stroke="currentColor"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth="2"
-                                                    d="M3 5v10M3 5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm12 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm0 0V6a3 3 0 0 0-3-3H9m1.5-2-2 2 2 2"
-                                                />
-                                            </svg>
-                                        </div>
-                                        <input
-                                            type="text"
-                                            id="simple-search"
-                                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                                            placeholder="Tìm kiếm theo tên sản phẩm..."
-                                            value={searchTerm}
-                                            onChange={(e) =>
-                                                setSearchTerm(e.target.value)
-                                            }
-                                            required
-                                        />
-                                    </div>
-                                    {/* <label htmlFor="sort-options" className="col-span-0"></label> */}
-                                    <select
-                                        id="sort-options"
-                                        value={sortOption}
-                                        onChange={(e) =>
-                                            setSortOption(
-                                                e.target.value as
-                                                    | "name"
-                                                    | "price-asc"
-                                                    | "price-desc",
-                                            )
-                                        }
-                                        className="col-span-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                                    >
-                                        <option value="name">
-                                            Sắp xếp theo tên
-                                        </option>
-                                        <option value="price-asc">
-                                            Theo giá tăng dần
-                                        </option>
-                                        <option value="price-desc">
-                                            Theo giá giảm dần
-                                        </option>
-                                    </select>
-                                </form>
-
-                                {/* Items List with Loading State */}
-                                {loading ? (
-                                    <div className="flex flex-col items-center justify-center py-10">
-                                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-                                        <p className="mt-3 text-gray-600">
-                                            Đang tìm kiếm linh kiện tương
-                                            thích...
-                                        </p>
-                                    </div>
-                                ) : popupItems.length === 0 ? (
-                                    <p className="text-gray-600">
-                                        Không có linh kiện tương thích.
-                                    </p>
-                                ) : (
-                                    Array.isArray(popupItems) && (
-                                        <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-                                            {popupItems
-                                                .filter((item) =>
-                                                    item.name
-                                                        .toLowerCase()
-                                                        .includes(
-                                                            searchTerm.toLowerCase(),
-                                                        ),
-                                                )
-                                                .sort((a, b) => {
-                                                    if (sortOption === "name") {
-                                                        return a.name.localeCompare(
-                                                            b.name,
-                                                        );
-                                                    }
-                                                    if (
-                                                        sortOption ===
-                                                        "price-asc"
-                                                    ) {
-                                                        const priceA =
-                                                            parseFloat(
-                                                                a.price,
-                                                            ) || Infinity;
-                                                        const priceB =
-                                                            parseFloat(
-                                                                b.price,
-                                                            ) || Infinity;
-                                                        if (priceA === 0)
-                                                            return 1;
-                                                        if (priceB === 0)
-                                                            return -1;
-                                                        return priceA - priceB;
-                                                    }
-                                                    if (
-                                                        sortOption ===
-                                                        "price-desc"
-                                                    ) {
-                                                        const priceA =
-                                                            parseFloat(a.price);
-                                                        const priceB =
-                                                            parseFloat(b.price);
-                                                        if (
-                                                            priceA === 0 &&
-                                                            priceB === 0
-                                                        )
-                                                            return 0;
-                                                        return priceB - priceA;
-                                                    }
-                                                    return 0;
-                                                })
-                                                .map((item, idx) => (
-                                                    <div
-                                                        key={idx}
-                                                        className="flex items-center p-2 border-b hover:bg-gray-100 cursor-pointer"
-                                                        onClick={() =>
-                                                            handleItemSelect(
-                                                                item,
-                                                            )
-                                                        }
-                                                    >
-                                                        <Image
-                                                            src={
-                                                                "/images/image-placeholder.webp"
-                                                            }
-                                                            alt={item.name}
-                                                            width={50}
-                                                            height={50}
-                                                            className="w-12 h-12 object-cover mr-4 rounded"
-                                                            loading="lazy"
-                                                        />
-                                                        <div className="flex-1">
-                                                            <p className="text-gray-800 font-medium">
-                                                                {item.name}
-                                                            </p>
-                                                            <div className="text-gray-600">
-                                                                {item.price ? (
-                                                                    <div className="text-base font-semibold leading-none text-primary">
-                                                                        {formatPrice(
-                                                                            item.price,
-                                                                        ) +
-                                                                            " đ"}
-                                                                    </div>
-                                                                ) : (
-                                                                    <div className="text-base font-semibold leading-none text-red-500">
-                                                                        Liên hệ
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                        </div>
-                                    )
-                                )}
-                                {/* Pagination Controls */}
-                                <nav
-                                    aria-label="Page navigation example"
-                                    className="flex justify-center mt-4"
-                                >
-                                    <ul className="inline-flex items-center -space-x-px h-8 text-sm">
-                                        <li>
-                                            <button
-                                                onClick={() =>
-                                                    handlePageChange(
-                                                        currentPage - 1,
-                                                    )
-                                                }
-                                                disabled={currentPage === 1}
-                                                className="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-                                            >
-                                                <span className="sr-only">
-                                                    Previous
-                                                </span>
-                                                <svg
-                                                    className="w-2.5 h-2.5 rtl:rotate-180"
-                                                    aria-hidden="true"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    fill="none"
-                                                    viewBox="0 0 6 10"
-                                                >
-                                                    <path
-                                                        stroke="currentColor"
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth="2"
-                                                        d="M5 1 1 5l4 4"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        </li>
-                                        {Array.from(
-                                            { length: totalPages },
-                                            (_, index) => {
-                                                const pageNumber = index + 1;
-                                                const isCurrentPage =
-                                                    currentPage === pageNumber;
-                                                const isNearCurrentPage =
-                                                    Math.abs(
-                                                        currentPage -
-                                                            pageNumber,
-                                                    ) <= 2;
-                                                const isFirstPage =
-                                                    pageNumber === 1;
-                                                const isLastPage =
-                                                    pageNumber === totalPages;
-
-                                                if (
-                                                    isCurrentPage ||
-                                                    isNearCurrentPage ||
-                                                    isFirstPage ||
-                                                    isLastPage
-                                                ) {
-                                                    return (
-                                                        <li key={index}>
-                                                            <button
-                                                                onClick={() =>
-                                                                    handlePageChange(
-                                                                        pageNumber,
-                                                                    )
-                                                                }
-                                                                className={`flex items-center justify-center px-3 h-8 leading-tight ${
-                                                                    isCurrentPage
-                                                                        ? "text-blue-600 border border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white"
-                                                                        : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-                                                                }`}
-                                                            >
-                                                                {pageNumber}
-                                                            </button>
-                                                        </li>
-                                                    );
-                                                } else if (
-                                                    pageNumber ===
-                                                        currentPage - 3 ||
-                                                    pageNumber ===
-                                                        currentPage + 3
-                                                ) {
-                                                    return (
-                                                        <li key={index}>
-                                                            <span className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">
-                                                                ...
-                                                            </span>
-                                                        </li>
-                                                    );
-                                                }
-                                                return null;
-                                            },
-                                        )}
-                                        <li>
-                                            <button
-                                                onClick={() =>
-                                                    handlePageChange(
-                                                        currentPage + 1,
-                                                    )
-                                                }
-                                                disabled={
-                                                    currentPage === totalPages
-                                                }
-                                                className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-                                            >
-                                                <span className="sr-only">
-                                                    Next
-                                                </span>
-                                                <svg
-                                                    className="w-2.5 h-2.5 rtl:rotate-180"
-                                                    aria-hidden="true"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    fill="none"
-                                                    viewBox="0 0 6 10"
-                                                >
-                                                    <path
-                                                        stroke="currentColor"
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth="2"
-                                                        d="m1 9 4-4-4-4"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        </li>
-                                    </ul>
-                                </nav>
-                            </div>
-                            {/* Modal footer */}
-                            <div className="flex items-center justify-end p-4 border-t rounded-b dark:border-gray-600">
-                                <button
-                                    type="button"
-                                    className=" text-white bg-primary hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-                                    onClick={() => setShowPopup(false)}
-                                >
-                                    Đóng
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {/* End of Flowbite Modal */}
+                {/* Parts selection grid */}
+                <PartsSelectionGrid
+                    selectedProducts={selectedProducts}
+                    onSelectClick={handleSelectClick}
+                    onRemovePart={handleRemovePart}
+                />
             </div>
 
-            {/* Summary Div */}
-            <div className="summary flex flex-col space-y-4 p-4 bg-white rounded shadow col-span-2 font-bold">
-                <div className="total-price">
-                    <p className="text-lg font-bold text-primary">
-                        Chi phí dự tính: {formatPrice(totalPrice.toString())} đ
-                    </p>
-                </div>
-                <button
-                    onClick={handleBuyNow}
-                    className="bg-primary text-white text-center py-2 px-4 rounded"
-                    type="button"
-                >
-                    Mua ngay
-                </button>
-                <button
-                    onClick={handleAddToCart}
-                    className="bg-blue-100 text-zinc-800 text-center py-2 px-4 rounded"
-                    type="button"
-                >
-                    Thêm vào giỏ hàng
-                </button>
-                <div className="compatibility-state text-center py-2 px-4 bg-blue-100 rounded">
-                    <p className="text-zinc-800 font-bold">
-                        Trạng thái tương thích:{" "}
-                        {isCompatible ? "Bình thường" : "Lỗi tương thích"}
-                    </p>
-                </div>
-                <div className="total-wattage text-center py-2 px-4 bg-blue-100 rounded">
-                    <p className="text-zinc-800 font-bold">
-                        Công suất ước tính: {totalWattage} W
-                    </p>
-                </div>
-                <button
-                    onClick={handleSaveToExcel}
-                    className="bg-primary text-white py-2 px-4 rounded flex justify-center items-center space-x-2"
-                    type="button"
-                >
-                    <span className="text-center">Lưu dưới dạng Excel</span>
-                </button>
-            </div>
+            {/* Part selection modal */}
+            <PartSelectionModal
+                showPopup={showPopup}
+                setShowPopup={setShowPopup}
+                currentCategory={currentCategory}
+                popupItems={popupItems}
+                loading={loading}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                sortOption={sortOption}
+                setSortOption={setSortOption}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                handleItemSelect={handleItemSelect}
+                handlePageChange={handlePageChange}
+                onSearchChange={handleSearchChange} // Add this line to connect the search handler
+                onSortChange={handleSortChange} // Add this line to connect the sort handler
+            />
+
+            {/* Save configuration modal */}
+            <SaveConfigurationModal
+                showModal={showSaveModal}
+                configName={configName}
+                configPurpose={configPurpose}
+                onNameChange={setConfigName}
+                onPurposeChange={setConfigPurpose}
+                onSave={handleSaveConfigurationConfirm}
+                onClose={() => setShowSaveModal(false)}
+            />
+
+            {/* Configuration summary */}
+            <ConfigurationSummary
+                selectedProducts={selectedProducts}
+                totalPrice={totalPrice}
+                totalWattage={totalWattage}
+                isCompatible={isCompatible}
+                onSaveConfiguration={handleSaveConfiguration}
+                onExportExcel={handleSaveToExcel}
+                isEditMode={isEditMode} // Pass the edit mode flag
+            />
         </div>
     );
 };

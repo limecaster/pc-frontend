@@ -158,7 +158,13 @@ export async function fetchProductsByCategory(
 
         // Add subcategory filters if provided
         if (subcategoryFilters && Object.keys(subcategoryFilters).length > 0) {
-            url += `&subcategories=${encodeURIComponent(JSON.stringify(subcategoryFilters))}`;
+            // Make sure subcategoryFilters is properly structured before encoding
+            console.log("Applying subcategory filters:", subcategoryFilters);
+            const subcategoriesParam = encodeURIComponent(
+                JSON.stringify(subcategoryFilters),
+            );
+            url += `&subcategories=${subcategoriesParam}`;
+            console.log("API URL with subcategory filters:", url);
         }
 
         const response = await fetch(url, {
@@ -318,4 +324,47 @@ export async function getSearchSuggestions(query: string): Promise<string[]> {
         console.error("Error fetching search suggestions:", error);
         return [];
     }
+}
+
+/**
+ * Generate a URL for a category page with optional subcategory filters
+ * @param category The product category (e.g., CPU, GraphicsCard)
+ * @param subcategoryFilters Optional subcategory filters (e.g., {manufacturer: ['AMD']})
+ * @param brands Optional array of brand names to filter by
+ * @param minPrice Optional minimum price filter
+ * @param maxPrice Optional maximum price filter
+ * @param minRating Optional minimum rating filter (1-5)
+ * @returns A properly formatted URL string
+ */
+export function generateCategoryUrl(
+    category: string,
+    subcategoryFilters?: Record<string, string[]>,
+    brands?: string[],
+    minPrice?: number,
+    maxPrice?: number,
+    minRating?: number,
+): string {
+    let url = `/products?category=${encodeURIComponent(category)}`;
+
+    if (subcategoryFilters && Object.keys(subcategoryFilters).length > 0) {
+        url += `&subcategories=${encodeURIComponent(JSON.stringify(subcategoryFilters))}`;
+    }
+
+    if (brands && brands.length > 0) {
+        url += `&brands=${brands.join(",")}`;
+    }
+
+    if (minPrice !== undefined) {
+        url += `&minPrice=${minPrice}`;
+    }
+
+    if (maxPrice !== undefined) {
+        url += `&maxPrice=${maxPrice}`;
+    }
+
+    if (minRating !== undefined) {
+        url += `&minRating=${minRating}`;
+    }
+
+    return url;
 }

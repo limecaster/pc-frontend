@@ -204,3 +204,28 @@ export async function unifiedLogin(credentials: {
         throw error;
     }
 }
+
+/**
+ * Get authentication headers for authenticated API requests
+ * @returns Headers object with Authorization token
+ */
+export async function getAuthHeaders(): Promise<HeadersInit> {
+    // First check if token needs refreshing
+    await refreshTokenIfNeeded();
+
+    // Get the current token
+    const token = localStorage.getItem("token");
+
+    // Return headers object with Authorization if token exists
+    if (token) {
+        return {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+        };
+    }
+
+    // Return default headers if no token
+    return {
+        "Content-Type": "application/json",
+    };
+}

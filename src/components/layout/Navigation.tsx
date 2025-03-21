@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { fetchSubcategoryValues } from "@/api/product";
+import { fetchSubcategoryValues, generateCategoryUrl } from "@/api/product";
 
 // Import assets
 import frame from "@/assets/icon/others/Frame.svg";
@@ -96,6 +96,11 @@ const Navigation: React.FC = () => {
     >({});
     const [loadingSubcategories, setLoadingSubcategories] = useState<
         Record<string, Record<string, boolean>>
+    >({});
+
+    // Add state for subcategory search
+    const [subcategorySearchQueries, setSubcategorySearchQueries] = useState<
+        Record<string, Record<string, string>>
     >({});
 
     // Close dropdown when clicking outside
@@ -226,6 +231,40 @@ const Navigation: React.FC = () => {
         window.location.href = href;
     };
 
+    const handleSubcategorySearch = (
+        itemHref: string,
+        subcategoryKey: string,
+        query: string,
+    ) => {
+        setSubcategorySearchQueries((prev) => ({
+            ...prev,
+            [itemHref]: {
+                ...(prev[itemHref] || {}),
+                [subcategoryKey]: query,
+            },
+        }));
+    };
+
+    // Filter subcategory values based on search query
+    const getFilteredSubcategoryValues = (
+        itemHref: string,
+        subcategoryKey: string,
+    ) => {
+        const values = subcategoryValues[itemHref]?.[subcategoryKey] || [];
+        const query =
+            subcategorySearchQueries[itemHref]?.[subcategoryKey]?.toLowerCase();
+
+        if (!query) return values;
+
+        return values.filter((value) => value.toLowerCase().includes(query));
+    };
+
+    // Extract category from href
+    const getCategoryFromHref = (href: string): string => {
+        const params = new URLSearchParams(href.split("?")[1]);
+        return params.get("category") || "";
+    };
+
     return (
         <nav className="flex flex-wrap gap-10 justify-between items-center px-20 py-4 w-full bg-white shadow-sm max-md:px-5 max-md:max-w-full max-md:flex-col">
             <div className="flex flex-wrap gap-6 justify-center items-center self-stretch my-auto text-sm leading-none text-gray-500 min-w-[240px] max-md:max-w-full">
@@ -317,70 +356,156 @@ const Navigation: React.FC = () => {
                                                                                             subcat.title
                                                                                         }
                                                                                     </h4>
-                                                                                    <ul className="space-y-1">
-                                                                                        {loadingSubcategories[
-                                                                                            item
-                                                                                                .href
-                                                                                        ]?.[
-                                                                                            subcat
-                                                                                                .key
-                                                                                        ] ? (
-                                                                                            <li className="text-gray-400 text-xs py-0.5">
-                                                                                                Đang
-                                                                                                tải...
-                                                                                            </li>
-                                                                                        ) : (
-                                                                                            subcategoryValues[
+
+                                                                                    {/* Search input for subcategory values */}
+                                                                                    <input
+                                                                                        type="text"
+                                                                                        placeholder="Tìm kiếm..."
+                                                                                        className="px-2 py-1 text-xs border rounded mb-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                                                        value={
+                                                                                            subcategorySearchQueries[
                                                                                                 item
                                                                                                     .href
                                                                                             ]?.[
                                                                                                 subcat
                                                                                                     .key
-                                                                                            ]?.map(
-                                                                                                (
-                                                                                                    value,
-                                                                                                    valueIdx,
-                                                                                                ) => (
-                                                                                                    <li
-                                                                                                        key={
-                                                                                                            valueIdx
-                                                                                                        }
-                                                                                                    >
-                                                                                                        <a
-                                                                                                            href={`${item.href}&${subcat.key}=${encodeURIComponent(value)}`}
-                                                                                                            className="text-gray-600 hover:text-blue-600 hover:underline text-xs block py-0.5"
-                                                                                                            onClick={(
-                                                                                                                e,
-                                                                                                            ) => {
-                                                                                                                e.preventDefault();
-                                                                                                                const subcategoryFilters =
-                                                                                                                    {
-                                                                                                                        [subcat.key]:
-                                                                                                                            [
-                                                                                                                                value,
-                                                                                                                            ],
-                                                                                                                    };
-                                                                                                                const filterParam =
-                                                                                                                    encodeURIComponent(
-                                                                                                                        JSON.stringify(
-                                                                                                                            subcategoryFilters,
-                                                                                                                        ),
-                                                                                                                    );
-                                                                                                                const filterUrl = `${item.href}&subcategories=${filterParam}`;
-                                                                                                                handleLinkClick(
-                                                                                                                    filterUrl,
-                                                                                                                );
-                                                                                                            }}
-                                                                                                        >
-                                                                                                            {
-                                                                                                                value
-                                                                                                            }
-                                                                                                        </a>
-                                                                                                    </li>
-                                                                                                ),
+                                                                                            ] ||
+                                                                                            ""
+                                                                                        }
+                                                                                        onChange={(
+                                                                                            e,
+                                                                                        ) =>
+                                                                                            handleSubcategorySearch(
+                                                                                                item.href,
+                                                                                                subcat.key,
+                                                                                                e
+                                                                                                    .target
+                                                                                                    .value,
                                                                                             )
-                                                                                        )}
-                                                                                    </ul>
+                                                                                        }
+                                                                                        // Prevent mousedown from closing the dropdown
+                                                                                        onMouseDown={(
+                                                                                            e,
+                                                                                        ) =>
+                                                                                            e.stopPropagation()
+                                                                                        }
+                                                                                    />
+
+                                                                                    <div className="max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-1">
+                                                                                        <ul className="space-y-1">
+                                                                                            {loadingSubcategories[
+                                                                                                item
+                                                                                                    .href
+                                                                                            ]?.[
+                                                                                                subcat
+                                                                                                    .key
+                                                                                            ] ? (
+                                                                                                <li className="text-gray-400 text-xs py-0.5">
+                                                                                                    Đang
+                                                                                                    tải...
+                                                                                                </li>
+                                                                                            ) : (
+                                                                                                getFilteredSubcategoryValues(
+                                                                                                    item.href,
+                                                                                                    subcat.key,
+                                                                                                ).map(
+                                                                                                    (
+                                                                                                        value,
+                                                                                                        valueIdx,
+                                                                                                    ) => (
+                                                                                                        <li
+                                                                                                            key={
+                                                                                                                valueIdx
+                                                                                                            }
+                                                                                                        >
+                                                                                                            <a
+                                                                                                                href="#"
+                                                                                                                className="text-gray-600 hover:text-blue-600 hover:underline text-xs block py-0.5"
+                                                                                                                onClick={(
+                                                                                                                    e,
+                                                                                                                ) => {
+                                                                                                                    e.preventDefault();
+                                                                                                                    const category =
+                                                                                                                        getCategoryFromHref(
+                                                                                                                            item.href,
+                                                                                                                        );
+                                                                                                                    const subcategoryFilters =
+                                                                                                                        {
+                                                                                                                            [subcat.key]:
+                                                                                                                                [
+                                                                                                                                    value,
+                                                                                                                                ],
+                                                                                                                        };
+                                                                                                                    const filterUrl =
+                                                                                                                        generateCategoryUrl(
+                                                                                                                            category,
+                                                                                                                            subcategoryFilters,
+                                                                                                                        );
+                                                                                                                    handleLinkClick(
+                                                                                                                        filterUrl,
+                                                                                                                    );
+                                                                                                                }}
+                                                                                                            >
+                                                                                                                {
+                                                                                                                    value
+                                                                                                                }
+                                                                                                            </a>
+                                                                                                        </li>
+                                                                                                    ),
+                                                                                                )
+                                                                                            )}
+
+                                                                                            {/* Show count when filtered */}
+                                                                                            {subcategorySearchQueries[
+                                                                                                item
+                                                                                                    .href
+                                                                                            ]?.[
+                                                                                                subcat
+                                                                                                    .key
+                                                                                            ] &&
+                                                                                                getFilteredSubcategoryValues(
+                                                                                                    item.href,
+                                                                                                    subcat.key,
+                                                                                                )
+                                                                                                    .length >
+                                                                                                    0 && (
+                                                                                                    <li className="text-xs text-gray-400 pt-1">
+                                                                                                        {
+                                                                                                            getFilteredSubcategoryValues(
+                                                                                                                item.href,
+                                                                                                                subcat.key,
+                                                                                                            )
+                                                                                                                .length
+                                                                                                        }{" "}
+                                                                                                        kết
+                                                                                                        quả
+                                                                                                    </li>
+                                                                                                )}
+
+                                                                                            {/* No results message */}
+                                                                                            {subcategorySearchQueries[
+                                                                                                item
+                                                                                                    .href
+                                                                                            ]?.[
+                                                                                                subcat
+                                                                                                    .key
+                                                                                            ] &&
+                                                                                                getFilteredSubcategoryValues(
+                                                                                                    item.href,
+                                                                                                    subcat.key,
+                                                                                                )
+                                                                                                    .length ===
+                                                                                                    0 && (
+                                                                                                    <li className="text-xs text-gray-400 pt-1">
+                                                                                                        Không
+                                                                                                        tìm
+                                                                                                        thấy
+                                                                                                        kết
+                                                                                                        quả
+                                                                                                    </li>
+                                                                                                )}
+                                                                                        </ul>
+                                                                                    </div>
                                                                                 </div>
                                                                             ),
                                                                         )}

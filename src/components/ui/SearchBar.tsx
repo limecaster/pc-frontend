@@ -135,7 +135,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 </div>
                 <button
                     type="submit"
-                    className="absolute right-0 top-0 bottom-0 px-4 bg-primary text-white font-medium rounded-r-md hover:bg-primary-dark transition-colors"
+                    className="absolute right-0 top-0 bottom-0 px-4 bg-secondary text-white font-medium rounded-r-md hover:bg-primary-dark transition-colors"
                 >
                     Tìm
                 </button>

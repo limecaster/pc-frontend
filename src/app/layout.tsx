@@ -30,8 +30,8 @@ export default function RootLayout({
     const isAdminPage = pathname?.startsWith("/admin");
 
     return (
-        <html lang="en">
-            <body className={`${roboto.className} antialiased`}>
+        <html lang="vi">
+            <body className={`${roboto.className} antialiased bg-gray-50`}>
                 <Providers>
                     <WishlistProvider>
                         <CheckoutProvider>

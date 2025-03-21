@@ -178,6 +178,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     src={imageUrl}
                     alt={name}
                     fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     loading="lazy"
                     className="object-cover object-center transition-transform duration-300 hover:scale-105"
                 />

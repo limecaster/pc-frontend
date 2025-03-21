@@ -449,7 +449,7 @@ const AddressManager: React.FC = () => {
                                 {/* Street */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Địa chỉ cụ thể
+                                        Tên đường, số nhà
                                     </label>
                                     <input
                                         type="text"

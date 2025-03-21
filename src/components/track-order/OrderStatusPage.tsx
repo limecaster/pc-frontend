@@ -4,6 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { formatCurrency } from "@/utils/format";
+import OrderStatusBadge from "@/components/orders/OrderStatusBadge";
 
 interface OrderActivity {
     id: string;
@@ -57,65 +58,6 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
     shippingFee,
     total,
 }) => {
-    // Map the order status to human-readable Vietnamese
-    const getStatusText = (statusCode: string) => {
-        const statusMap: Record<
-            string,
-            { text: string; color: string; bgColor: string }
-        > = {
-            pending_approval: {
-                text: "Chờ xác nhận",
-                color: "text-yellow-800",
-                bgColor: "bg-yellow-100",
-            },
-            approved: {
-                text: "Đã xác nhận",
-                color: "text-blue-800",
-                bgColor: "bg-blue-100",
-            },
-            processing: {
-                text: "Đang xử lý",
-                color: "text-blue-800",
-                bgColor: "bg-blue-100",
-            },
-            shipped: {
-                text: "Đang giao hàng",
-                color: "text-purple-800",
-                bgColor: "bg-purple-100",
-            },
-            delivered: {
-                text: "Đã giao hàng",
-                color: "text-green-800",
-                bgColor: "bg-green-100",
-            },
-            completed: {
-                text: "Hoàn thành",
-                color: "text-green-800",
-                bgColor: "bg-green-100",
-            },
-            cancelled: {
-                text: "Đã hủy",
-                color: "text-red-800",
-                bgColor: "bg-red-100",
-            },
-            refunded: {
-                text: "Đã hoàn tiền",
-                color: "text-orange-800",
-                bgColor: "bg-orange-100",
-            },
-        };
-
-        return (
-            statusMap[statusCode] || {
-                text: "Không xác định",
-                color: "text-gray-800",
-                bgColor: "bg-gray-100",
-            }
-        );
-    };
-
-    const statusInfo = getStatusText(status);
-
     function formatOrderDate(orderDate: string): React.ReactNode {
         const date = new Date(orderDate);
         const formattedDate = `${date.toLocaleTimeString()} ${date.toLocaleDateString("vi-VN")}`;
@@ -156,11 +98,7 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
                         <p className="text-gray-600 mr-4">
                             Đặt ngày: {formatOrderDate(orderDate)}
                         </p>
-                        <span
-                            className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusInfo.bgColor} ${statusInfo.color}`}
-                        >
-                            {statusInfo.text}
-                        </span>
+                        <OrderStatusBadge status={status} />
                     </div>
                 </div>
 
