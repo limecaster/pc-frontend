@@ -1,92 +1,64 @@
 "use client";
 
+import React, { useEffect, useState, ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 
 interface RouteGuardProps {
-    children: React.ReactNode;
-    allowedRoles?: string[];
+    children: ReactNode;
+    allowedRoles: string[];
 }
 
-const RouteGuard: React.FC<RouteGuardProps> = ({
-    children,
-    allowedRoles = [],
-}) => {
-    const { isAuthenticated, isLoading, checkUserRole } = useAuth();
+const RouteGuard: React.FC<RouteGuardProps> = ({ children, allowedRoles }) => {
+    const { user, isLoading } = useAuth();
     const router = useRouter();
-    const pathname = usePathname();
-    const [authorized, setAuthorized] = useState<boolean>(false);
+    const [authorized, setAuthorized] = useState(false);
 
     useEffect(() => {
-        // Check authorization
-        const checkAuth = () => {
-            // If not authenticated and not on login page, redirect to login
-            if (!isLoading) {
-                if (!isAuthenticated && pathname !== "/authenticate") {
-                    setAuthorized(false);
-                    router.push("/authenticate");
-                    return;
-                }
+        if (isLoading) return;
 
-                // If authenticated but trying to access login page, redirect based on role
-                if (isAuthenticated && pathname === "/authenticate") {
-                    const userRole = checkUserRole();
+        if (!user) {
+            // User is not logged in, redirect to login
+            toast.error("Vui lòng đăng nhập để tiếp tục");
+            router.push("/authenticate");
+            return;
+        }
 
-                    if (userRole === "admin") {
-                        router.push("/admin/dashboard");
-                    } else if (userRole === "staff") {
-                        router.push("/staff/dashboard");
-                    } else {
-                        router.push("/profile"); // Default redirect for customers
-                    }
-                    return;
-                }
+        // Check if user role is in allowed roles
+        const userRole = user.role.toLowerCase();
+        const hasPermission = allowedRoles.some(
+            (role) => role.toLowerCase() === userRole,
+        );
 
-                // If authenticated and specific roles are required, check role
-                if (isAuthenticated && allowedRoles.length > 0) {
-                    const userRole = checkUserRole();
+        if (!hasPermission) {
+            // User doesn't have the required role
+            toast.error("Bạn không có quyền truy cập vào trang này");
 
-                    if (!userRole || !allowedRoles.includes(userRole)) {
-                        setAuthorized(false);
-
-                        // Redirect based on role
-                        if (userRole === "admin") {
-                            router.push("/admin/dashboard");
-                        } else if (userRole === "staff") {
-                            router.push("/staff/dashboard");
-                        } else {
-                            router.push("/"); // Redirect to home for customers
-                        }
-                        return;
-                    }
-                }
-
-                // If all checks pass, authorize access
-                setAuthorized(true);
+            // Redirect to appropriate page based on user's role
+            if (userRole === "admin") {
+                router.push("/admin");
+            } else if (userRole === "staff") {
+                router.push("/staff");
+            } else {
+                router.push("/");
             }
-        };
+            return;
+        }
 
-        checkAuth();
-    }, [
-        isLoading,
-        isAuthenticated,
-        pathname,
-        router,
-        checkUserRole,
-        allowedRoles,
-    ]);
+        setAuthorized(true);
+    }, [user, isLoading, router, allowedRoles]);
 
-    // Show loading while checking authentication
     if (isLoading) {
+        // Show loading state while checking authorization
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <p>Loading...</p>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                <p className="ml-3">Đang kiểm tra quyền truy cập...</p>
             </div>
         );
     }
 
-    // Render children only if authorized
     return authorized ? <>{children}</> : null;
 };
 

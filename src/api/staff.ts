@@ -143,3 +143,179 @@ export async function getStaffProfile() {
         throw error;
     }
 }
+
+/**
+ * Get orders pending approval
+ */
+export async function getPendingOrders() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        throw new Error("Authentication required");
+    }
+
+    try {
+        const response = await fetch(
+            `${API_URL}/orders/admin/pending-approval`,
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            },
+        );
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(
+                error.message || `HTTP error! status: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching pending orders:", error);
+        throw error;
+    }
+}
+
+/**
+ * Update order status
+ */
+export async function updateOrderStatus(orderId: number, status: string) {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        throw new Error("Authentication required");
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ status }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(
+                error.message || `HTTP error! status: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error updating order status:", error);
+        throw error;
+    }
+}
+
+/**
+ * Get all orders with optional filtering
+ */
+export async function getAllOrders(filters = {}) {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        throw new Error("Authentication required");
+    }
+
+    const queryParams = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+        if (value) queryParams.append(key, value.toString());
+    });
+
+    try {
+        const response = await fetch(
+            `${API_URL}/orders/admin/all?${queryParams.toString()}`,
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            },
+        );
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(
+                error.message || `HTTP error! status: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching all orders:", error);
+        throw error;
+    }
+}
+
+/**
+ * Get order details by ID (admin/staff version with full details)
+ */
+export async function getOrderDetails(orderId: number) {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        throw new Error("Authentication required");
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/orders/${orderId}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(
+                error.message || `HTTP error! status: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching order details:", error);
+        throw error;
+    }
+}
+
+/**
+ * Get order details by ID for staff management
+ */
+export async function getStaffOrderDetails(orderId: string | number) {
+    try {
+        // Ensure we have authentication
+        const token = localStorage.getItem("token");
+        if (!token) {
+            throw new Error("Authentication required");
+        }
+
+        // Use the staff-specific endpoint
+        const response = await fetch(`${API_URL}/orders/staff/${orderId}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(
+                error.message || `HTTP error! status: ${response.status}`,
+            );
+        }
+
+        const data = await response.json();
+
+        return data;
+    } catch (error) {
+        console.error(`Error fetching order #${orderId} details:`, error);
+        throw error;
+    }
+}

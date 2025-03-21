@@ -10,7 +10,8 @@ import PayOSPayment from "./PayOSPayment";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { getCart } from "@/api/cart";
-import { useCheckout } from "@/contexts/CheckoutContext"; // Add this import
+import { useCheckout } from "@/contexts/CheckoutContext";
+import { initiateOrderPayment } from "@/api/order"; // Add this import
 import VietnamAddressSelect from "@/components/common/VietnamAddressSelect"; // Import the component
 
 const Alert = dynamic(
@@ -65,7 +66,15 @@ interface CheckoutFormData {
     notes: string;
 }
 
-const CheckoutPage: React.FC = () => {
+interface CheckoutPageProps {
+    paymentOnly?: boolean; // Add this prop
+    existingOrderId?: string; // Add this prop
+}
+
+const CheckoutPage: React.FC<CheckoutPageProps> = ({
+    paymentOnly = false,
+    existingOrderId = "",
+}) => {
     const router = useRouter();
     const { createCheckoutOrder } = useCheckout(); // Extract the function from context
 
@@ -273,9 +282,54 @@ const CheckoutPage: React.FC = () => {
         setDisplayOrderId(`ORDER-${Date.now()}`);
     }, []);
 
+    // Add logic to handle existing order payment
+    useEffect(() => {
+        if (paymentOnly && existingOrderId) {
+            const initiateExistingOrderPayment = async () => {
+                try {
+                    setIsProcessingPayment(true);
+                    const result = await initiateOrderPayment(existingOrderId);
+
+                    if (result.success && result.data?.checkoutUrl) {
+                        window.location.href = result.data.checkoutUrl;
+                    } else {
+                        setErrorMessage("Không thể tạo liên kết thanh toán");
+                    }
+                } catch (error) {
+                    console.error("Error initiating payment:", error);
+                    setErrorMessage("Không thể khởi tạo thanh toán");
+                } finally {
+                    setIsProcessingPayment(false);
+                }
+            };
+
+            initiateExistingOrderPayment();
+        }
+    }, [paymentOnly, existingOrderId]);
+
     // Handle form submission
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (paymentOnly) {
+            // If we're in payment-only mode, just initiate payment
+            try {
+                setIsProcessingPayment(true);
+                const result = await initiateOrderPayment(existingOrderId);
+
+                if (result.success && result.data?.checkoutUrl) {
+                    window.location.href = result.data.checkoutUrl;
+                } else {
+                    setErrorMessage("Không thể tạo liên kết thanh toán");
+                }
+            } catch (error) {
+                console.error("Error initiating payment:", error);
+                setErrorMessage("Không thể khởi tạo thanh toán");
+            } finally {
+                setIsProcessingPayment(false);
+            }
+            return;
+        }
 
         // Validate form
         if (

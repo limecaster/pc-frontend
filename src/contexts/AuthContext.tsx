@@ -73,7 +73,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                     // Load user data from localStorage
                     const storedUser = localStorage.getItem("user");
                     if (storedUser) {
-                        setUser(JSON.parse(storedUser));
+                        const userData = JSON.parse(storedUser);
+                        setUser(userData);
                     }
                 }
             } catch (error) {
@@ -127,7 +128,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         try {
             const userData = JSON.parse(storedUser);
-            return userData.role || null;
+            const role = userData.role || null;
+            return role;
         } catch (e) {
             console.error("Error parsing user data:", e);
             return null;

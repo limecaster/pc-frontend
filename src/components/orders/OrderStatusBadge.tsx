@@ -23,6 +23,11 @@ export const OrderStatusBadge: React.FC<OrderStatusBadgeProps> = ({
                 color: "text-blue-800",
                 bgColor: "bg-blue-100",
             },
+            payment_success: {
+                text: "Đã thanh toán",
+                color: "text-green-800",
+                bgColor: "bg-green-100",
+            },
             processing: {
                 text: "Đang xử lý",
                 color: "text-blue-800",
@@ -52,6 +57,11 @@ export const OrderStatusBadge: React.FC<OrderStatusBadgeProps> = ({
                 text: "Đã hoàn tiền",
                 color: "text-orange-800",
                 bgColor: "bg-orange-100",
+            },
+            return_requested: {
+                text: "Yêu cầu trả hàng",
+                color: "text-gray-800",
+                bgColor: "bg-gray-200",
             },
         };
 

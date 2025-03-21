@@ -150,6 +150,15 @@ export async function customerLogin(credentials: {
 }
 
 /**
+ * Check if a user has staff privileges (either STAFF or ADMIN role)
+ * @param role The user's role
+ * @returns Boolean indicating if user has staff access
+ */
+export function hasStaffAccess(role: string): boolean {
+    return role === "staff";
+}
+
+/**
  * Unified login function that works for all user types
  * @returns Promise with login response including user role
  */
@@ -158,8 +167,6 @@ export async function unifiedLogin(credentials: {
     password: string;
 }) {
     try {
-        console.log(`Attempting unified login for: ${credentials.username}`);
-
         const response = await fetch(`${API_URL}/auth/unified-login`, {
             method: "POST",
             headers: {
@@ -181,7 +188,6 @@ export async function unifiedLogin(credentials: {
         }
 
         const data = await response.json();
-        console.log("Login successful, received token and user data");
 
         // Store token and user data in localStorage if successful
         if (data.access_token && data.user) {
@@ -191,7 +197,6 @@ export async function unifiedLogin(credentials: {
                 localStorage.setItem("refreshToken", data.refresh_token);
             }
 
-            console.log("Storing user data with role:", data.user.role);
             localStorage.setItem("user", JSON.stringify(data.user));
         } else {
             console.error("Login response missing token or user data");

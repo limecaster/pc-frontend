@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode } from "react";
 import { createOrder, createGuestOrder } from "@/api/checkout";
+import { getOrderDetails } from "@/api/checkout"; // Add this import
 import { toast } from "react-hot-toast";
 import { validateTokenFormat } from "@/api/auth";
 
@@ -27,6 +28,7 @@ interface CheckoutContextType {
         shipping: ShippingInfo,
         notes?: string,
     ) => Promise<any>;
+    payExistingOrder: (orderId: string | number) => Promise<any>; // Add this new method
     clearCheckout: () => void;
     setOrderItems: (items: OrderItem[]) => void;
 }
@@ -168,6 +170,93 @@ export function CheckoutProvider({ children }: CheckoutProviderProps) {
         }
     };
 
+    // Add a new method to handle payment for existing orders
+    const payExistingOrder = async (orderId: string | number) => {
+        setPaymentLoading(true);
+        try {
+            // Fetch the order details first
+            const response = await getOrderDetails(orderId);
+
+            if (!response.success || !response.order) {
+                throw new Error(response.message || "Order not found");
+            }
+
+            const order = response.order;
+
+            // Validate the order status
+            if (order.status !== "approved") {
+                throw new Error(
+                    `Cannot pay for order in ${order.status} status`,
+                );
+            }
+
+            // Convert order items to format needed for checkout
+            const items =
+                order.items?.map((item: any) => ({
+                    productId: item.product.id,
+                    name: item.product.name,
+                    price: parseFloat(item.product.price),
+                    quantity: item.quantity,
+                    imageUrl:
+                        item.product.imageUrl || "/images/placeholder.png",
+                })) || [];
+
+            // Extract shipping info from the order
+            const shipping = {
+                fullName:
+                    order.customer?.firstname +
+                        " " +
+                        order.customer?.lastname || "Guest",
+                address: order.deliveryAddress,
+                email: order.customer?.email || order.guestEmail || "",
+                phone: order.customer?.phoneNumber || "",
+            };
+
+            // Store data for use in the success page
+            setOrderItems(items);
+            setShippingInfo(shipping);
+
+            // Store order data for success page
+            localStorage.setItem(
+                "latestOrder",
+                JSON.stringify({
+                    orderId: order.id,
+                    orderNumber: order.orderNumber,
+                    orderDate: order.orderDate,
+                    orderItems: items,
+                    shippingAddress: {
+                        fullName: shipping.fullName,
+                        address: shipping.address,
+                        city: "",
+                        phone: shipping.phone,
+                    },
+                    paymentMethod: order.paymentMethod,
+                    subtotal: order.total,
+                    shippingFee: 0,
+                    discount: 0,
+                    total: order.total,
+                    status: order.status,
+                }),
+            );
+
+            // Return the order info needed for payment
+            return {
+                success: true,
+                order: order,
+            };
+        } catch (error) {
+            console.error("Error loading order for payment:", error);
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : "Không thể tải thông tin đơn hàng",
+            );
+            throw error;
+        } finally {
+            setPaymentLoading(false);
+        }
+    };
+
     return (
         <CheckoutContext.Provider
             value={{
@@ -175,6 +264,7 @@ export function CheckoutProvider({ children }: CheckoutProviderProps) {
                 shippingInfo,
                 paymentLoading,
                 createCheckoutOrder,
+                payExistingOrder, // Add the new method
                 clearCheckout,
                 setOrderItems,
             }}

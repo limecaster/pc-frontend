@@ -42,37 +42,85 @@ export async function cancelOrder(orderId: string) {
 }
 
 /**
- * Initiate payment for an approved order
- * @param orderId ID of the order to pay for
- * @returns Promise with payment initiation response
+ * Initiate payment for an existing order
+ * @param orderId The ID of the order to pay for
+ * @returns Promise with payment info including checkout URL
  */
-export async function initiateOrderPayment(orderId: string) {
+export async function initiateOrderPayment(
+    orderId: string | number,
+): Promise<any> {
     try {
         const token = localStorage.getItem("token");
-        if (!token) {
-            throw new Error("Authentication required");
+        const headers: HeadersInit = {
+            "Content-Type": "application/json",
+        };
+
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
         }
 
-        const response = await fetch(`${API_URL}/orders/${orderId}/pay`, {
+        // Create payment link for the order using payment controller
+        // Make sure we're calling the correct endpoint
+        // This should hit PaymentController.createPayment, not CheckoutController.createPayment
+        const response = await fetch(`${API_URL}/payment/create`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
+            headers: headers,
+            body: JSON.stringify({
+                orderId: orderId,
+                // No need to include other details as they'll be fetched from the order on the backend
+            }),
         });
 
+        const data = await response.json();
+        console.log("Payment initiation response:", data);
+
         if (!response.ok) {
-            const data = await response.json();
             throw new Error(
-                data.message ||
-                    `Failed to initiate payment: ${response.status}`,
+                data.message || `Payment initiation failed: ${response.status}`,
             );
         }
 
-        return await response.json();
+        // Return the data with success status preserved
+        return data;
     } catch (error) {
         console.error("Error initiating payment:", error);
         throw error;
+    }
+}
+
+/**
+ * Update order payment status after successful payment
+ * @param orderId The order ID
+ * @param paymentStatus Status from payment provider
+ * @param paymentCode Code from payment provider
+ * @returns Promise with the update result
+ */
+export async function updateOrderPaymentStatus(
+    orderId: string | number,
+    paymentStatus: string | null,
+    paymentCode: string | null,
+): Promise<any> {
+    try {
+        if (!orderId) return null;
+
+        console.log("Updating order payment status");
+
+        // Construct URL with query parameters
+        const url = new URL(`${API_URL}/payment/success`);
+        if (orderId) url.searchParams.append("orderId", orderId.toString());
+        if (paymentStatus) url.searchParams.append("status", paymentStatus);
+        if (paymentCode) url.searchParams.append("code", paymentCode);
+
+        // Call the payment success endpoint directly to ensure DB update
+        const response = await fetch(url.toString(), { method: "GET" });
+
+        const result = await response.json();
+        console.log("Payment status update result:", result);
+
+        return result;
+    } catch (error) {
+        console.error("Error updating payment status:", error);
+        return { success: false, message: "Failed to update payment status" };
     }
 }
 

@@ -28,6 +28,8 @@ export default function RootLayout({
     // Check if the current path is in the admin section
     const pathname = usePathname();
     const isAdminPage = pathname?.startsWith("/admin");
+    const isStaffPage = pathname?.startsWith("/staff");
+    const isNotCustomerPage = isAdminPage || isStaffPage;
 
     return (
         <html lang="vi">
@@ -37,7 +39,7 @@ export default function RootLayout({
                         <CheckoutProvider>
                             <AuthProvider>
                                 <FooterProvider>
-                                    {!isAdminPage && (
+                                    {!isNotCustomerPage && (
                                         <>
                                             <Header />
                                             <Navigation />
@@ -45,9 +47,9 @@ export default function RootLayout({
                                         </>
                                     )}
                                     {children}
-                                    {!isAdminPage && <Footer />}
-                                    {!isAdminPage && <Chatbot />}
-                                    {!isAdminPage && (
+                                    {!isNotCustomerPage && <Footer />}
+                                    {!isNotCustomerPage && <Chatbot />}
+                                    {!isNotCustomerPage && (
                                         <Toaster position="top-center" />
                                     )}
                                 </FooterProvider>
