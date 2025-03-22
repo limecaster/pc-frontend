@@ -368,3 +368,48 @@ export function generateCategoryUrl(
 
     return url;
 }
+
+/**
+ * Get stock quantities for multiple products
+ * @param productIds Array of product IDs to get stock quantities for
+ * @returns Promise with product stock quantities { id: stock_quantity }
+ */
+export async function getProductsStockQuantities(
+    productIds: string[],
+): Promise<Record<string, number>> {
+    try {
+        if (!productIds || productIds.length === 0) {
+            return {};
+        }
+
+        // Remove duplicates
+        const uniqueIds = [...new Set(productIds)];
+
+        // Use comma-separated format which is less likely to cause issues
+        const idsParam = uniqueIds.join(",");
+
+        // Log the request for debugging
+        console.log(`Fetching stock quantities for products: ${idsParam}`);
+
+        const response = await fetch(
+            `${API_URL}/products/stock?ids=${encodeURIComponent(idsParam)}`,
+        );
+
+        if (!response.ok) {
+            // Get response text for better error diagnosis
+            const responseText = await response.text();
+            console.error(
+                `Stock API returned ${response.status}: ${responseText}`,
+            );
+            throw new Error(
+                `Failed to get stock quantities: ${response.status}`,
+            );
+        }
+
+        const data = await response.json();
+        return data.stocks || {};
+    } catch (error) {
+        console.error("Error fetching stock quantities:", error);
+        return {}; // Return empty object rather than failing completely
+    }
+}

@@ -10,7 +10,9 @@ import {
     updateCartItemQuantity,
     removeCartItem,
 } from "@/api/cart";
+import { getProductsStockQuantities } from "@/api/product"; // Add this import
 import VietQRLogo from "@/assets/VietQRLogo.png";
+import { toast } from "react-hot-toast"; // Make sure you have this package installed
 
 export interface CartItem {
     id: string;
@@ -19,6 +21,7 @@ export interface CartItem {
     quantity: number;
     imageUrl: string;
     slug: string;
+    stock_quantity?: number; // Add stock quantity to the interface
 }
 
 const CartPage: React.FC = () => {
@@ -63,6 +66,11 @@ const CartPage: React.FC = () => {
                         await syncLocalCartToServer(localCart);
                     }
                 }
+
+                // Fetch latest stock quantities regardless of authentication
+                if (localCart.length > 0) {
+                    await updateCartItemsStockQuantities(localCart);
+                }
             } catch (err) {
                 console.error("Error loading cart:", err);
                 setError("Failed to load your cart. Please try again later.");
@@ -95,6 +103,7 @@ const CartPage: React.FC = () => {
                     quantity: item.quantity,
                     imageUrl: item.imageUrl, // Assuming this pattern for images
                     slug: item.productId,
+                    stock_quantity: item.stock_quantity, // Make sure to include stock quantity
                 }));
             }
             return [];
@@ -158,6 +167,61 @@ const CartPage: React.FC = () => {
         }
     };
 
+    // Add this new function to update stock quantities
+    const updateCartItemsStockQuantities = async (cartItems: CartItem[]) => {
+        try {
+            if (!cartItems || cartItems.length === 0) {
+                return;
+            }
+
+            // Extract product IDs from cart
+            const productIds = cartItems.map((item) => item.id);
+
+            // Get latest stock quantities from backend
+            const stockQuantities =
+                await getProductsStockQuantities(productIds);
+
+            // Only update if we got real data (avoid empty objects)
+            if (Object.keys(stockQuantities).length === 0) {
+                console.log(
+                    "No stock quantity data received, skipping cart update",
+                );
+                return;
+            }
+
+            // Update cart items with latest stock quantities
+            const updatedCart = cartItems.map((item) => {
+                const latestStock = stockQuantities[item.id];
+
+                // If we have stock info and current quantity exceeds stock
+                if (latestStock !== undefined) {
+                    const updatedItem = {
+                        ...item,
+                        stock_quantity: latestStock,
+                    };
+
+                    // If current quantity exceeds available stock, adjust it
+                    if (item.quantity > latestStock) {
+                        updatedItem.quantity = Math.max(1, latestStock);
+                        toast.error(
+                            `Số lượng sản phẩm "${item.name}" đã được điều chỉnh do hàng tồn kho không đủ.`,
+                        );
+                    }
+
+                    return updatedItem;
+                }
+
+                return item;
+            });
+
+            setCartItems(updatedCart);
+            localStorage.setItem("cart", JSON.stringify(updatedCart));
+        } catch (error) {
+            console.error("Error updating stock quantities:", error);
+            // Don't show error to user, the cart will still work with potentially outdated stock info
+        }
+    };
+
     // Save cart to localStorage whenever it changes
     useEffect(() => {
         localStorage.setItem("cart", JSON.stringify(cartItems));
@@ -166,6 +230,24 @@ const CartPage: React.FC = () => {
     // Handle quantity change
     const updateQuantity = async (id: string, newQuantity: number) => {
         if (newQuantity < 1) return;
+
+        // Find the item to get its stock quantity
+        const item = cartItems.find((item) => item.id === id);
+        if (!item) return;
+
+        // Check against stock quantity if available
+        if (item.stock_quantity !== undefined) {
+            // If quantity exceeds stock, set it to either stock_quantity or 1
+            if (newQuantity > item.stock_quantity) {
+                newQuantity = Math.max(
+                    1,
+                    Math.min(newQuantity, item.stock_quantity),
+                );
+                toast.error(
+                    `Số lượng tối đa có thể mua là ${item.stock_quantity}`,
+                );
+            }
+        }
 
         // Update local state
         setCartItems((prevItems) =>
@@ -181,6 +263,9 @@ const CartPage: React.FC = () => {
             } catch (error) {
                 console.error("Failed to update quantity on server:", error);
                 // Optionally show error to user
+                toast.error(
+                    "Không thể cập nhật số lượng sản phẩm. Vui lòng thử lại sau.",
+                );
             }
         }
     };

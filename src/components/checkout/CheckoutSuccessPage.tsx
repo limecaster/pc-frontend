@@ -379,7 +379,6 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = ({
                                         <div className="w-16 h-16 border border-gray-200 rounded overflow-hidden flex-shrink-0">
                                             <Image
                                                 src={
-                                                    item.image ||
                                                     item.imageUrl ||
                                                     "/images/image-placeholder.png"
                                                 }

@@ -3,15 +3,16 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { TrashIcon, MinusIcon, PlusIcon } from "@radix-ui/react-icons";
+import { TrashIcon } from "@heroicons/react/24/outline";
 
-export interface CartItemProps {
+interface CartItemProps {
     id: string;
     name: string;
     price: number;
     quantity: number;
     image: string;
     slug: string;
+    stock_quantity?: number; // Add stock quantity
     onUpdateQuantity: (id: string, quantity: number) => void;
     onRemove: (id: string) => void;
     formatCurrency: (amount: number) => string;
@@ -24,23 +25,35 @@ const CartItem: React.FC<CartItemProps> = ({
     quantity,
     image,
     slug,
+    stock_quantity,
     onUpdateQuantity,
     onRemove,
     formatCurrency,
 }) => {
+    // Determine if we should disable the increase button
+    const isIncreaseDisabled =
+        stock_quantity !== undefined && quantity >= stock_quantity;
+
+    // Check if stock warning needs to be shown
+    const showStockWarning =
+        stock_quantity !== undefined &&
+        stock_quantity < 5 &&
+        quantity <= stock_quantity;
+
     return (
-        <tr>
-            {/* Product */}
+        <tr className="border-b border-gray-200">
             <td className="px-6 py-4">
                 <div className="flex items-center">
-                    <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
-                        <Image
-                            src={image}
-                            alt={name}
-                            className="h-full w-full object-contain object-center"
-                            width={80}
-                            height={80}
-                        />
+                    <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
+                        <Link href={`/product/${slug}`}>
+                            <Image
+                                src={image || "/images/product-placeholder.jpg"}
+                                alt={name}
+                                width={64}
+                                height={64}
+                                className="h-full w-full object-contain object-center"
+                            />
+                        </Link>
                     </div>
                     <div className="ml-4">
                         <Link
@@ -49,54 +62,63 @@ const CartItem: React.FC<CartItemProps> = ({
                         >
                             {name}
                         </Link>
+                        {showStockWarning && (
+                            <p className="mt-1 text-xs text-orange-500">
+                                Chỉ còn {stock_quantity} sản phẩm
+                            </p>
+                        )}
                     </div>
                 </div>
             </td>
-
-            {/* Quantity */}
             <td className="px-6 py-4">
-                <div className="flex items-center justify-center text-gray-900">
+                <div className="flex items-center justify-center">
                     <button
                         onClick={() => onUpdateQuantity(id, quantity - 1)}
+                        className="h-8 w-8 rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-100 flex items-center justify-center"
                         disabled={quantity <= 1}
-                        className={`p-1 rounded-md ${quantity <= 1 ? "text-gray-300" : "hover:bg-gray-100"}`}
                     >
-                        <MinusIcon className="h-4 w-4" />
+                        <span className="text-lg font-medium">-</span>
                     </button>
                     <input
                         type="number"
                         min="1"
+                        max={stock_quantity}
                         value={quantity}
-                        onChange={(e) =>
-                            onUpdateQuantity(id, parseInt(e.target.value) || 1)
-                        }
-                        className="mx-2 w-12 text-center border border-gray-300 rounded-md p-1"
+                        onChange={(e) => {
+                            const newValue = parseInt(e.target.value);
+                            if (!isNaN(newValue) && newValue >= 1) {
+                                onUpdateQuantity(id, newValue);
+                            }
+                        }}
+                        className="mx-2 w-12 rounded-md border border-gray-300 p-1 text-center text-sm text-gray-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <button
                         onClick={() => onUpdateQuantity(id, quantity + 1)}
-                        className="p-1 rounded-md hover:bg-gray-100"
+                        className={`h-8 w-8 rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-100 flex items-center justify-center ${
+                            isIncreaseDisabled
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
+                        }`}
+                        disabled={isIncreaseDisabled}
                     >
-                        <PlusIcon className="h-4 w-4" />
+                        <span className="text-lg font-medium">+</span>
                     </button>
                 </div>
             </td>
-
-            {/* Price */}
-            <td className="px-6 py-4 text-right text-sm font-medium text-primary">
-                {formatCurrency(price)}
+            <td className="px-6 py-4 text-right">
+                <div className="text-sm font-medium text-gray-900">
+                    {formatCurrency(price)}
+                </div>
             </td>
-
-            {/* Subtotal */}
-            <td className="px-6 py-4 text-right text-sm font-semibold text-primary">
-                {formatCurrency(price * quantity)}
+            <td className="px-6 py-4 text-right">
+                <div className="text-sm font-medium text-primary">
+                    {formatCurrency(price * quantity)}
+                </div>
             </td>
-
-            {/* Remove button */}
             <td className="px-6 py-4 text-right">
                 <button
                     onClick={() => onRemove(id)}
-                    className="text-red-500 hover:text-red-700"
-                    aria-label="Remove item"
+                    className="text-red-600 hover:text-red-800"
                 >
                     <TrashIcon className="h-5 w-5" />
                 </button>

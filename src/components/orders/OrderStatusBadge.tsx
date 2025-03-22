@@ -33,7 +33,7 @@ export const OrderStatusBadge: React.FC<OrderStatusBadgeProps> = ({
                 color: "text-blue-800",
                 bgColor: "bg-blue-100",
             },
-            shipped: {
+            shipping: {
                 text: "Đang giao hàng",
                 color: "text-purple-800",
                 bgColor: "bg-purple-100",

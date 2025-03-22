@@ -47,6 +47,20 @@ export async function addToCartAndSync(
     quantity: number = 1,
 ) {
     try {
+        // First fetch the product to check stock
+        const productResponse = await fetch(`${API_URL}/products/${productId}`);
+        if (!productResponse.ok) {
+            throw new Error("Failed to fetch product details");
+        }
+
+        const product = await productResponse.json();
+
+        // Check if we have enough stock
+        if (product.stock_quantity < quantity) {
+            // Adjust quantity to available stock
+            quantity = Math.max(1, product.stock_quantity);
+        }
+
         // First update local storage cart
         const localCart = JSON.parse(localStorage.getItem("cart") || "[]");
 
@@ -56,26 +70,24 @@ export async function addToCartAndSync(
         );
 
         if (existingItemIndex >= 0) {
-            // Update quantity if product already exists
-            localCart[existingItemIndex].quantity += quantity;
-        } else {
-            // We need to get product details to add to cart
-            const productResponse = await fetch(
-                `${API_URL}/products/${productId}`,
+            // Calculate new quantity but respect stock limits
+            const newQuantity =
+                localCart[existingItemIndex].quantity + quantity;
+            localCart[existingItemIndex].quantity = Math.min(
+                newQuantity,
+                product.stock_quantity || Number.MAX_SAFE_INTEGER,
             );
-            if (!productResponse.ok) {
-                throw new Error("Failed to fetch product details");
-            }
-
-            const product = await productResponse.json();
-
-            // Add new product to cart
+            localCart[existingItemIndex].stock_quantity =
+                product.stock_quantity; // Update stock info
+        } else {
+            // Add new product to cart with stock info
             localCart.push({
                 id: product.id,
                 name: product.name,
                 price: product.price,
                 imageUrl: product.imageUrl,
                 quantity: quantity,
+                stock_quantity: product.stock_quantity,
             });
         }
 

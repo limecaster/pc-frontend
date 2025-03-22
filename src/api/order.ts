@@ -431,13 +431,7 @@ export async function verifyOrderTrackingOTP(
     otp: string,
 ) {
     try {
-        console.log(`Verifying OTP for order ${orderId}`);
-
-        // No need to parse as number anymore
-        // const orderIdNum = Number(orderId);
-        // if (isNaN(orderIdNum)) {
-        //     throw new Error("Invalid order ID: must be a number");
-        // }
+        console.log(`Verifying OTP for order ${orderId} with code ${otp}`);
 
         const response = await fetch(`${API_URL}/orders/track/verify-otp`, {
             method: "POST",
@@ -445,14 +439,15 @@ export async function verifyOrderTrackingOTP(
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                orderId: orderId, // Send as is, no conversion needed
-                email: email,
-                otp: otp,
+                orderId: orderId,
+                email: email.trim().toLowerCase(), // Normalize email
+                otp: otp.trim(), // Remove any accidental whitespace
             }),
         });
 
         if (!response.ok) {
             const errorData = await response.json();
+            console.error("Error verifying OTP:", errorData);
             throw new Error(
                 errorData.message || `Failed to verify OTP: ${response.status}`,
             );

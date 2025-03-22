@@ -33,7 +33,9 @@ export default function RootLayout({
 
     return (
         <html lang="vi">
-            <body className={`${roboto.className} antialiased bg-gray-50`}>
+            <body
+                className={`${roboto.className} antialiased bg-gray-50 text-gray-800`}
+            >
                 <Providers>
                     <WishlistProvider>
                         <CheckoutProvider>

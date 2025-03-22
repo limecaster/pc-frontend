@@ -22,6 +22,7 @@ export default function OrderTrackingDetailPage() {
     // Verification states - simplified to just OTP
     const [verificationNeeded, setVerificationNeeded] = useState(false);
     const [email, setEmail] = useState("");
+    const [emailSubmitted, setEmailSubmitted] = useState(false); // Add this new state
     const [otp, setOtp] = useState("");
     const [otpError, setOtpError] = useState("");
 
@@ -61,7 +62,7 @@ export default function OrderTrackingDetailPage() {
 
             if (response.success) {
                 setOrderData(response.order);
-
+                console.log("Order data fetched:", response.order);
                 // Check if verification is needed and hasn't been done before
                 if (response.requiresVerification && !skipVerification) {
                     setVerificationNeeded(true);
@@ -72,15 +73,14 @@ export default function OrderTrackingDetailPage() {
                 setError(response.message || "Không tìm thấy đơn hàng");
             }
         } catch (error) {
-            console.error("Error fetching order data:", error);
             setError("Có lỗi xảy ra khi tìm thông tin đơn hàng");
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Handle email submission and OTP request
-    const handleEmailSubmit = async (e: React.FormEvent) => {
+    // Handle email submission and OTP request - modified to use button click instead of form submit
+    const handleEmailSubmit = async (e: React.MouseEvent) => {
         e.preventDefault();
 
         if (!email) {
@@ -100,6 +100,7 @@ export default function OrderTrackingDetailPage() {
             const response = await requestOrderTrackingOTP(orderId, email);
 
             if (response.success) {
+                setEmailSubmitted(true); // Set this flag instead of relying on email state alone
                 toast.success("Mã xác thực đã được gửi đến email của bạn");
             } else {
                 toast.error(
@@ -107,7 +108,6 @@ export default function OrderTrackingDetailPage() {
                 );
             }
         } catch (error) {
-            console.error("Error requesting OTP:", error);
             toast.error("Email không khớp với đơn hàng này");
         } finally {
             setIsLoading(false);
@@ -127,7 +127,17 @@ export default function OrderTrackingDetailPage() {
         setIsLoading(true);
 
         try {
-            const response = await verifyOrderTrackingOTP(orderId, email, otp);
+            // Trim any whitespace from the OTP
+            const trimmedOtp = otp.trim();
+            console.log(
+                `Submitting OTP: ${trimmedOtp} for order ${orderId} email ${email}`,
+            );
+
+            const response = await verifyOrderTrackingOTP(
+                orderId,
+                email,
+                trimmedOtp,
+            );
 
             if (response.success) {
                 // Save verification state to session storage
@@ -141,11 +151,19 @@ export default function OrderTrackingDetailPage() {
                 setVerificationNeeded(false);
                 toast.success("Xác thực thành công");
             } else {
-                setOtpError(response.message || "Mã xác thực không hợp lệ");
+                setOtpError(
+                    response.message ||
+                        "Mã xác thực không hợp lệ hoặc đã hết hạn",
+                );
+                toast.error(
+                    response.message ||
+                        "Mã xác thực không hợp lệ hoặc đã hết hạn",
+                );
             }
         } catch (error) {
             console.error("Error verifying OTP:", error);
-            setOtpError("Có lỗi khi xác thực mã OTP");
+            setOtpError("Mã xác thực không hợp lệ hoặc đã hết hạn");
+            toast.error("Mã xác thực không hợp lệ hoặc đã hết hạn");
         } finally {
             setIsLoading(false);
         }
@@ -163,7 +181,7 @@ export default function OrderTrackingDetailPage() {
     // Error state
     if (error || !orderData) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-white">
+            <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-white text-gray-800">
                 <h1 className="text-2xl font-bold text-red-600 mb-4">
                     Không tìm thấy đơn hàng
                 </h1>
@@ -183,20 +201,22 @@ export default function OrderTrackingDetailPage() {
     // Verification needed - show a simplified form focusing only on email + OTP
     if (verificationNeeded) {
         return (
-            <div className="bg-gray-50 min-h-screen py-12">
+            <div className="bg-gray-50 min-h-screen py-12 text-gray-800">
                 <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-lg border border-gray-200">
                     <h1 className="text-2xl font-bold mb-4 text-center">
                         Xác thực đơn hàng #{orderData.orderNumber}
                     </h1>
 
-                    {!email ? (
-                        // Step 1: Email input
+                    {!emailSubmitted ? (
+                        // Step 1: Email input - completely revised to avoid form submission
                         <>
                             <p className="mb-4 text-gray-600">
                                 Để xem chi tiết đơn hàng, vui lòng nhập email đã
                                 dùng khi đặt hàng:
                             </p>
-                            <form onSubmit={handleEmailSubmit}>
+                            <div>
+                                {" "}
+                                {/* Changed from form to div to prevent HTML form behavior */}
                                 <div className="mb-4">
                                     <input
                                         type="email"
@@ -206,19 +226,24 @@ export default function OrderTrackingDetailPage() {
                                         }
                                         className="w-full px-4 py-2 border rounded-md focus:ring-primary focus:border-primary border-gray-300"
                                         placeholder="Nhập email của bạn"
-                                        required
                                     />
                                 </div>
                                 <button
-                                    type="submit"
-                                    disabled={isLoading}
+                                    onClick={handleEmailSubmit}
+                                    disabled={
+                                        isLoading ||
+                                        !email ||
+                                        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+                                            email,
+                                        )
+                                    }
                                     className="w-full bg-primary text-white py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400"
                                 >
                                     {isLoading
                                         ? "Đang xử lý..."
                                         : "Gửi mã xác thực"}
                                 </button>
-                            </form>
+                            </div>
                         </>
                     ) : (
                         // Step 2: OTP input
@@ -261,7 +286,11 @@ export default function OrderTrackingDetailPage() {
                                     <div className="flex justify-between text-sm">
                                         <button
                                             type="button"
-                                            onClick={() => setEmail("")}
+                                            onClick={() => {
+                                                setEmailSubmitted(false); // Reset to email step
+                                                setOtp(""); // Clear any entered OTP
+                                                setOtpError(""); // Clear any errors
+                                            }}
                                             className="text-gray-600 hover:text-gray-800"
                                         >
                                             Thay đổi email
