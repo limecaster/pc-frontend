@@ -413,3 +413,14 @@ export async function getProductsStockQuantities(
         return {}; // Return empty object rather than failing completely
     }
 }
+
+export interface Product {
+    id: string;
+    name: string;
+    price: number;
+    originalPrice?: number; // Add original price field
+    discountPercentage?: number; // Add discount percentage field
+    isDiscounted?: boolean; // Flag for whether product is discounted
+    discountSource?: "automatic" | "manual"; // Source of the discount
+    // ...existing fields...
+}

@@ -1,50 +1,68 @@
-import * as React from "react";
+import React from "react";
 
-// Update the PriceDisplay component to accept optional props
-export interface PriceDisplayProps {
-    currentPrice?: string;
-    originalPrice?: string;
-    discountPercentage?: number; // Change to number
+interface PriceDisplayProps {
+    currentPrice: number;
+    originalPrice?: number;
+    discountPercentage?: number;
+    discountSource?: "automatic" | "manual";
 }
 
-export function PriceDisplay({
+export const PriceDisplay: React.FC<PriceDisplayProps> = ({
     currentPrice,
     originalPrice,
     discountPercentage,
-}: PriceDisplayProps) {
-    // Provide default handling for optional props
-    if (!currentPrice) return null;
-
-    const formatPrice = (price: string) => {
-        // round to 0 decimal places
-        price = parseFloat(price).toFixed(0);
-        price = price.toString();
-        return price.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    discountSource,
+}) => {
+    // Format price with Vietnamese locale
+    const formatPrice = (price?: number) => {
+        if (price === undefined || price === 0) return "0đ";
+        return new Intl.NumberFormat("vi-VN").format(price) + "đ";
     };
 
+    const formattedCurrentPrice = formatPrice(currentPrice);
+    const formattedOriginalPrice = formatPrice(originalPrice);
+
+    // Determine if we should show discount
+    const hasDiscount = originalPrice && originalPrice > currentPrice;
+
+    // Calculate discount percentage if not provided
+    const displayDiscount =
+        discountPercentage ||
+        (hasDiscount
+            ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
+            : 0);
+
+    // If price is 0, show as unavailable
+    if (currentPrice === 0) {
+        return (
+            <div className="text-rose-500 font-medium">Không kinh doanh</div>
+        );
+    }
+
     return (
-        <div className="flex gap-px self-stretch my-auto text-center whitespace-nowrap">
-            <div className="flex flex-col">
-                {currentPrice === "0" ? (
-                    <div className="text-base font-semibold leading-none text-primary">
-                        Liên hệ
-                    </div>
-                ) : (
-                    <div className="text-base font-semibold leading-none text-primary">
-                        {formatPrice(currentPrice) + "đ"}
-                    </div>
+        <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+                <span className="text-primary font-medium">
+                    {formattedCurrentPrice}
+                </span>
+                {hasDiscount && (
+                    <span className="text-sm text-gray-400 line-through">
+                        {formattedOriginalPrice}
+                    </span>
                 )}
-                {originalPrice && originalPrice !== "0" ? (
-                    <div className="self-start mt-4 text-xs leading-loose text-slate-500">
-                        {formatPrice(originalPrice)}
-                    </div>
-                ) : null}
+
+                {/* Show badge for automatic discounts */}
+                {discountSource === "automatic" && (
+                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded">
+                        Tự động
+                    </span>
+                )}
             </div>
-            {discountPercentage && discountPercentage > 0 ? (
-                <div className="self-end mt-7 text-xs leading-loose text-cyan-300">
-                    {discountPercentage}%
-                </div>
-            ) : null}
+            {hasDiscount && displayDiscount > 0 && (
+                <span className="text-xs text-rose-500 font-medium">
+                    Tiết kiệm {displayDiscount}%
+                </span>
+            )}
         </div>
     );
-}
+};

@@ -29,26 +29,52 @@ const PayOSPayment: React.FC<PayOSPaymentProps> = ({
         if (isPayOSLoaded && paymentData && !paymentInitialized) {
             try {
                 console.log("Initializing PayOS with data:", paymentData);
-                // @ts-expect-error - PayOS is loaded from external script
-                const payOS = new window.PayOS();
-                payOS.init({
-                    paymentLinkId: paymentData.paymentLinkId,
-                    containerID: "payos-checkout",
-                    onSuccess: function (data: any) {
-                        console.log("Payment success:", data);
-                        onSuccess();
-                    },
-                    onError: function (error: any) {
-                        console.error("Payment error:", error);
-                        onError("Thanh toán thất bại. Vui lòng thử lại sau.");
-                    },
-                    onClose: function () {
-                        console.log("Payment closed");
-                    },
-                });
-                setPaymentInitialized(true);
+
+                // Make sure we have the required fields
+                if (!paymentData.paymentLinkId) {
+                    console.error(
+                        "Missing paymentLinkId in paymentData:",
+                        paymentData,
+                    );
+                    onError("Thiếu thông tin thanh toán");
+                    return;
+                }
+
+                try {
+                    // @ts-expect-error - PayOS is loaded from external script
+                    const payOS = new window.PayOS();
+
+                    // Try initializing with minimal configuration if some fields are missing
+                    const payOSConfig = {
+                        paymentLinkId: paymentData.paymentLinkId,
+                        containerID: "payos-checkout",
+                        onSuccess: function (data: any) {
+                            console.log("Payment success:", data);
+                            onSuccess();
+                        },
+                        onError: function (error: any) {
+                            console.error("PayOS initialization error:", error);
+                            onError(
+                                "Thanh toán thất bại. Vui lòng thử lại sau.",
+                            );
+                        },
+                        onClose: function () {
+                            console.log("Payment closed");
+                        },
+                    };
+
+                    // Log the config we're using
+                    console.log("PayOS init config:", payOSConfig);
+
+                    // Initialize PayOS
+                    payOS.init(payOSConfig);
+                    setPaymentInitialized(true);
+                } catch (error) {
+                    console.error("Error creating PayOS instance:", error);
+                    throw new Error("Failed to initialize payment form");
+                }
             } catch (error) {
-                console.error("Error initializing PayOS:", error);
+                console.error("Error in PayOS initialization:", error);
                 onError("Không thể khởi tạo thanh toán. Vui lòng thử lại sau.");
             }
         }
@@ -137,10 +163,12 @@ const PayOSPayment: React.FC<PayOSPaymentProps> = ({
         return () => clearInterval(interval);
     }, [paymentData, onSuccess]);
 
-    // Open in new window
+    // Open in new window - modify this function to create a fallback URL if needed
     const openPaymentWindow = () => {
         if (paymentData?.checkoutUrl) {
             window.open(paymentData.checkoutUrl, "_blank");
+        } else {
+            onError("Không tìm thấy thông tin thanh toán");
         }
     };
 

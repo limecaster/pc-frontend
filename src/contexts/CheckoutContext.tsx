@@ -1,275 +1,214 @@
-import React, { createContext, useState, useContext, ReactNode } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { createOrder, createGuestOrder } from "@/api/checkout";
-import { getOrderDetails } from "@/api/checkout"; // Add this import
 import { toast } from "react-hot-toast";
-import { validateTokenFormat } from "@/api/auth";
+import { processPayment, checkPaymentStatus } from "@/api/checkout";
 
-interface OrderItem {
+interface CartItem {
+    id: string;
     productId: string;
     name: string;
     price: number;
     quantity: number;
-    imageUrl?: string;
 }
 
 interface ShippingInfo {
     fullName: string;
-    address: string;
-    phone: string;
     email: string;
+    phone: string;
+    address: string;
 }
 
-interface CheckoutContextType {
-    orderItems: OrderItem[];
-    shippingInfo: ShippingInfo | null;
-    paymentLoading: boolean;
+interface DiscountInfo {
+    discountId?: number;
+    discountCode?: string;
+    discountAmount: number;
+    isManual: boolean;
+    automaticDiscountIds?: number[];
+}
+
+interface CheckoutContextProps {
+    loading: boolean;
+    error: string | null;
+    orderData: any;
     createCheckoutOrder: (
-        items: OrderItem[],
-        shipping: ShippingInfo,
+        items: CartItem[],
+        shippingInfo: ShippingInfo,
         notes?: string,
+        discountInfo?: DiscountInfo, // Add discountInfo parameter
     ) => Promise<any>;
-    payExistingOrder: (orderId: string | number) => Promise<any>; // Add this new method
-    clearCheckout: () => void;
-    setOrderItems: (items: OrderItem[]) => void;
+    checkOrderPaymentStatus: (orderId: string) => Promise<any>;
+    initiateOrderPayment: (orderId: string) => Promise<any>;
+    clearOrder: () => void;
+    setError: (error: string | null) => void;
 }
 
-const CheckoutContext = createContext<CheckoutContextType | undefined>(
+const CheckoutContext = createContext<CheckoutContextProps | undefined>(
     undefined,
 );
 
-export function useCheckout() {
-    const context = useContext(CheckoutContext);
-    if (context === undefined) {
-        throw new Error("useCheckout must be used within a CheckoutProvider");
-    }
-    return context;
-}
+export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({
+    children,
+}) => {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [orderData, setOrderData] = useState<any>(null);
 
-interface CheckoutProviderProps {
-    children: ReactNode;
-}
-
-export function CheckoutProvider({ children }: CheckoutProviderProps) {
-    const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-    const [shippingInfo, setShippingInfo] = useState<ShippingInfo | null>(null);
-    const [paymentLoading, setPaymentLoading] = useState(false);
-
-    // Clear checkout data
-    const clearCheckout = () => {
-        setOrderItems([]);
-        setShippingInfo(null);
-    };
-
-    // Create an order without immediate payment
     const createCheckoutOrder = async (
-        items: OrderItem[],
-        shipping: ShippingInfo,
+        items: CartItem[],
+        shippingInfo: ShippingInfo,
         notes?: string,
+        discountInfo?: DiscountInfo, // Add discountInfo parameter
     ) => {
-        setPaymentLoading(true);
+        setLoading(true);
+        setError(null);
         try {
-            setOrderItems(items);
-            setShippingInfo(shipping);
+            const isAuthenticated = !!localStorage.getItem("token");
+            const orderItems = items.map((item) => ({
+                productId: item.productId || item.id,
+                quantity: item.quantity,
+                price: item.price,
+            }));
 
-            // Calculate order total
             const total = items.reduce(
                 (sum, item) => sum + item.price * item.quantity,
                 0,
             );
 
-            // Format full address
-            const fullAddress = shipping.address;
-
-            // Create order in database
-            let orderResponse;
-
-            if (localStorage.getItem("token") && validateTokenFormat()) {
-                // Logged-in user checkout
-                const orderCreateData = {
-                    total,
-                    paymentMethod: "PayOS",
-                    deliveryAddress: fullAddress,
-                    items: items.map((item) => ({
-                        productId: item.productId,
-                        quantity: item.quantity,
-                        price: item.price,
-                    })),
-                    notes,
-                };
-
-                orderResponse = await createOrder(orderCreateData);
-            } else {
-                // Guest checkout
-                const guestOrderData = {
-                    total,
-                    paymentMethod: "PayOS",
-                    deliveryAddress: fullAddress,
-                    customerInfo: {
-                        fullName: shipping.fullName,
-                        email: shipping.email,
-                        phone: shipping.phone,
-                    },
-                    items: items.map((item) => ({
-                        productId: item.productId,
-                        quantity: item.quantity,
-                        price: item.price,
-                    })),
-                    notes,
-                };
-
-                orderResponse = await createGuestOrder(guestOrderData);
+            // Calculate total with discount applied
+            const subtotal = total;
+            let finalTotal = total;
+            if (discountInfo?.discountAmount) {
+                finalTotal = Math.max(0, total - discountInfo.discountAmount);
             }
 
-            // If order created successfully, store order data and return
-            if (orderResponse && orderResponse.success) {
-                const orderId = orderResponse.order.id;
-                const orderNumber =
-                    orderResponse.order.orderNumber || `ORDER-${orderId}`;
+            const orderData = {
+                total: finalTotal,
+                subtotal: subtotal, // Add subtotal field
+                paymentMethod: "PAYOS", // Default payment method
+                deliveryAddress: shippingInfo.address,
+                items: orderItems,
+                notes: notes || "",
+                // Add discount information
+                discountAmount: discountInfo?.discountAmount || 0,
+                manualDiscountId: discountInfo?.isManual
+                    ? discountInfo.discountId
+                    : undefined,
+                appliedDiscountIds: !discountInfo?.isManual
+                    ? discountInfo?.automaticDiscountIds
+                    : undefined,
+            };
 
-                // Store order data for success page
-                localStorage.setItem(
-                    "latestOrder",
-                    JSON.stringify({
-                        orderId: orderId,
-                        orderNumber: orderNumber,
-                        orderDate: new Date().toISOString(),
-                        orderItems: items,
-                        shippingAddress: {
-                            fullName: shipping.fullName,
-                            address: fullAddress,
-                            city: "",
-                            phone: shipping.phone,
-                        },
-                        paymentMethod: "PayOS",
-                        subtotal: total,
-                        shippingFee: 0,
-                        discount: 0,
-                        total,
-                        status: "pending_approval",
-                    }),
-                );
+            let result;
 
-                // Clear cart after successful order creation
+            if (isAuthenticated) {
+                // Authenticated user checkout
+                result = await createOrder(orderData);
+            } else {
+                // Guest checkout with additional shipping info
+                result = await createGuestOrder({
+                    ...orderData,
+                    customerName: shippingInfo.fullName,
+                    email: shippingInfo.email,
+                    phone: shippingInfo.phone,
+                });
+            }
+
+            if (result.success) {
+                setOrderData(result.order);
+                toast.success("Đơn hàng đã được tạo thành công!");
+
+                // Clear cart from localStorage after successful order
                 localStorage.removeItem("cart");
+                // Also clear applied discounts
+                localStorage.removeItem("appliedDiscounts");
 
-                return {
-                    success: true,
-                    order: orderResponse.order,
-                };
+                return result;
             } else {
-                throw new Error("Order creation failed");
+                throw new Error(
+                    result.message ||
+                        "Không thể tạo đơn hàng. Vui lòng thử lại.",
+                );
             }
-        } catch (error) {
-            console.error("Error in checkout process:", error);
-            toast.error(
-                "Có lỗi xảy ra trong quá trình đặt hàng. Vui lòng thử lại.",
-            );
-            throw error;
+        } catch (err) {
+            console.error("Error creating order:", err);
+            const errorMessage =
+                (err as Error).message || "Không thể tạo đơn hàng.";
+            setError(errorMessage);
+            toast.error(errorMessage);
+            return { success: false, message: errorMessage };
         } finally {
-            setPaymentLoading(false);
+            setLoading(false);
         }
     };
 
-    // Add a new method to handle payment for existing orders
-    const payExistingOrder = async (orderId: string | number) => {
-        setPaymentLoading(true);
+    // Add missing function for checking order payment status
+    const checkOrderPaymentStatus = async (orderId: string) => {
+        setLoading(true);
+        setError(null);
         try {
-            // Fetch the order details first
-            const response = await getOrderDetails(orderId);
+            const result = await checkPaymentStatus(orderId);
+            return result;
+        } catch (err) {
+            console.error("Error checking payment status:", err);
+            const errorMessage =
+                (err as Error).message ||
+                "Không thể kiểm tra trạng thái thanh toán.";
+            setError(errorMessage);
+            return { success: false, message: errorMessage };
+        } finally {
+            setLoading(false);
+        }
+    };
 
-            if (!response.success || !response.order) {
-                throw new Error(response.message || "Order not found");
-            }
-
-            const order = response.order;
-
-            // Validate the order status
-            if (order.status !== "approved") {
+    // Add missing function for initiating order payment
+    const initiateOrderPayment = async (orderId: string) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const result = await processPayment({ orderId });
+            if (!result.success) {
                 throw new Error(
-                    `Cannot pay for order in ${order.status} status`,
+                    result.message || "Không thể khởi tạo thanh toán",
                 );
             }
-
-            // Convert order items to format needed for checkout
-            const items =
-                order.items?.map((item: any) => ({
-                    productId: item.product.id,
-                    name: item.product.name,
-                    price: parseFloat(item.product.price),
-                    quantity: item.quantity,
-                    imageUrl:
-                        item.product.imageUrl || "/images/placeholder.png",
-                })) || [];
-
-            // Extract shipping info from the order
-            const shipping = {
-                fullName:
-                    order.customer?.firstname +
-                        " " +
-                        order.customer?.lastname || "Guest",
-                address: order.deliveryAddress,
-                email: order.customer?.email || order.guestEmail || "",
-                phone: order.customer?.phoneNumber || "",
-            };
-
-            // Store data for use in the success page
-            setOrderItems(items);
-            setShippingInfo(shipping);
-
-            // Store order data for success page
-            localStorage.setItem(
-                "latestOrder",
-                JSON.stringify({
-                    orderId: order.id,
-                    orderNumber: order.orderNumber,
-                    orderDate: order.orderDate,
-                    orderItems: items,
-                    shippingAddress: {
-                        fullName: shipping.fullName,
-                        address: shipping.address,
-                        city: "",
-                        phone: shipping.phone,
-                    },
-                    paymentMethod: order.paymentMethod,
-                    subtotal: order.total,
-                    shippingFee: 0,
-                    discount: 0,
-                    total: order.total,
-                    status: order.status,
-                }),
-            );
-
-            // Return the order info needed for payment
-            return {
-                success: true,
-                order: order,
-            };
-        } catch (error) {
-            console.error("Error loading order for payment:", error);
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : "Không thể tải thông tin đơn hàng",
-            );
-            throw error;
+            return result;
+        } catch (err) {
+            console.error("Error initiating payment:", err);
+            const errorMessage =
+                (err as Error).message || "Không thể khởi tạo thanh toán.";
+            setError(errorMessage);
+            return { success: false, message: errorMessage };
         } finally {
-            setPaymentLoading(false);
+            setLoading(false);
         }
+    };
+
+    const clearOrder = () => {
+        setOrderData(null);
     };
 
     return (
         <CheckoutContext.Provider
             value={{
-                orderItems,
-                shippingInfo,
-                paymentLoading,
+                loading,
+                error,
+                orderData,
                 createCheckoutOrder,
-                payExistingOrder, // Add the new method
-                clearCheckout,
-                setOrderItems,
+                checkOrderPaymentStatus,
+                initiateOrderPayment,
+                clearOrder,
+                setError,
             }}
         >
             {children}
         </CheckoutContext.Provider>
     );
-}
+};
+
+export const useCheckout = (): CheckoutContextProps => {
+    const context = useContext(CheckoutContext);
+    if (context === undefined) {
+        throw new Error("useCheckout must be used within a CheckoutProvider");
+    }
+    return context;
+};

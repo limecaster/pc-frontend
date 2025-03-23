@@ -58,7 +58,9 @@ export async function addToWishlist(productId: string) {
 
         const data = await response.json();
 
+        // Log the full error response for debugging
         if (!response.ok) {
+            console.error("Failed to add to wishlist. Full error:", data);
             throw new Error(
                 data.message || "Failed to add product to wishlist",
             );

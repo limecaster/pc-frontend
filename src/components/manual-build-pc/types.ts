@@ -1,15 +1,21 @@
 export interface ProductCardProps {
     imageUrl?: string;
     productName: string;
-    currentPrice?: string;
-    originalPrice?: string;
+    currentPrice: number;
+    originalPrice?: number;
     discountPercentage?: number;
-    logoUrl?: string;
-    category: string;
-    productUrl?: string;
+    category?: string;
     buttonLabel?: string;
-    onButtonClick?: () => void;
+    productUrl?: string;
+    onButtonClick: () => void;
     onRemoveClick?: () => void;
+}
+
+export interface ProductInfoProps {
+    category?: string;
+    imageUrl: string;
+    productName: string;
+    productUrl?: string;
 }
 
 export interface ManualBuildPCItemCardProps {

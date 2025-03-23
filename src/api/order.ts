@@ -59,15 +59,15 @@ export async function initiateOrderPayment(
             headers["Authorization"] = `Bearer ${token}`;
         }
 
-        // Create payment link for the order using payment controller
-        // Make sure we're calling the correct endpoint
-        // This should hit PaymentController.createPayment, not CheckoutController.createPayment
-        const response = await fetch(`${API_URL}/payment/create`, {
+        // Use the order-specific payment endpoint which returns the complete payment data
+        // This endpoint is implemented in OrderController.initiatePayment
+        const response = await fetch(`${API_URL}/orders/${orderId}/pay`, {
             method: "POST",
             headers: headers,
             body: JSON.stringify({
-                orderId: orderId,
-                // No need to include other details as they'll be fetched from the order on the backend
+                // Include frontend URLs with orderId to ensure proper redirection
+                returnUrl: `${window.location.origin}/checkout/success?orderId=${orderId}`,
+                cancelUrl: `${window.location.origin}/checkout/failure?orderId=${orderId}`,
             }),
         });
 
@@ -80,7 +80,6 @@ export async function initiateOrderPayment(
             );
         }
 
-        // Return the data with success status preserved
         return data;
     } catch (error) {
         console.error("Error initiating payment:", error);
@@ -90,26 +89,34 @@ export async function initiateOrderPayment(
 
 /**
  * Update order payment status after successful payment
- * @param orderId The order ID
+ * @param orderId The order ID or PayOS transaction ID for finding the order
  * @param paymentStatus Status from payment provider
  * @param paymentCode Code from payment provider
+ * @param payosId Optional PayOS transaction ID
  * @returns Promise with the update result
  */
 export async function updateOrderPaymentStatus(
     orderId: string | number,
     paymentStatus: string | null,
     paymentCode: string | null,
+    payosId?: string | null,
 ): Promise<any> {
     try {
-        if (!orderId) return null;
-
         console.log("Updating order payment status");
 
         // Construct URL with query parameters
         const url = new URL(`${API_URL}/payment/success`);
-        if (orderId) url.searchParams.append("orderId", orderId.toString());
+
+        // Special handling for "auto" mode - we use the payosId directly
+        if (orderId === "auto" && payosId) {
+            url.searchParams.append("paymentId", payosId);
+        } else if (orderId && orderId !== "auto") {
+            url.searchParams.append("orderId", orderId.toString());
+        }
+
         if (paymentStatus) url.searchParams.append("status", paymentStatus);
         if (paymentCode) url.searchParams.append("code", paymentCode);
+        if (payosId) url.searchParams.append("id", payosId);
 
         // Call the payment success endpoint directly to ensure DB update
         const response = await fetch(url.toString(), { method: "GET" });
@@ -120,7 +127,10 @@ export async function updateOrderPaymentStatus(
         return result;
     } catch (error) {
         console.error("Error updating payment status:", error);
-        return { success: false, message: "Failed to update payment status" };
+        return {
+            success: false,
+            message: "Failed to update payment status",
+        };
     }
 }
 

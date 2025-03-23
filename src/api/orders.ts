@@ -41,13 +41,23 @@ export async function getOrderHistory() {
 /**
  * Get order details by ID
  * @param orderId The ID of the order to fetch
+ * @param isPaymentVerification Set to true to get more details for payment success page
  * @returns Promise with the order details
  */
-export async function getOrderDetails(orderId: string) {
+export async function getOrderDetails(
+    orderId: string,
+    isPaymentVerification = false,
+) {
     try {
         const headers = await getAuthHeaders();
 
-        const response = await fetch(`${API_URL}/orders/${orderId}`, {
+        // Add the payment verification query parameter if needed
+        const url = new URL(`${API_URL}/orders/${orderId}`);
+        if (isPaymentVerification) {
+            url.searchParams.append("paymentVerification", "true");
+        }
+
+        const response = await fetch(url.toString(), {
             headers,
         });
 

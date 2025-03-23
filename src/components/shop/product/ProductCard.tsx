@@ -14,6 +14,10 @@ interface ProductCardProps {
     id: string;
     name: string;
     price: number;
+    originalPrice?: number;
+    discountPercentage?: number;
+    isDiscounted?: boolean;
+    discountSource?: "automatic" | "manual";
     rating: number;
     reviewCount: number;
     imageUrl: string;
@@ -23,6 +27,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
     id,
     name,
     price,
+    originalPrice,
+    discountPercentage,
+    isDiscounted,
+    discountSource,
     rating,
     reviewCount,
     imageUrl,
@@ -35,7 +43,25 @@ const ProductCard: React.FC<ProductCardProps> = ({
     const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
     const inWishlist = isInWishlist(id);
 
+    // Format price function
     const formattedPrice = new Intl.NumberFormat("vi-VN").format(price) + "đ";
+
+    // Format the original price if available
+    const formattedOriginalPrice = originalPrice
+        ? new Intl.NumberFormat("vi-VN").format(originalPrice) + "đ"
+        : null;
+
+    // Determine if we should show discount
+    const hasDiscount =
+        isDiscounted || (originalPrice && originalPrice > price);
+    const showBadge = hasDiscount && (discountPercentage || originalPrice);
+
+    // Calculate discount percentage if not provided but we have original price
+    const displayDiscount =
+        discountPercentage ||
+        (originalPrice && price < originalPrice
+            ? Math.round(((originalPrice - price) / originalPrice) * 100)
+            : 0);
 
     // Handler for wishlist
     const handleWishlistToggle = async (e: React.MouseEvent) => {
@@ -174,6 +200,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
         >
             {/* Image section with hover overlay */}
             <div className="relative aspect-square overflow-hidden">
+                {/* Show discount badge */}
+                {showBadge && (
+                    <div className="absolute top-2 right-2 z-10 bg-rose-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                        -{displayDiscount}%
+                    </div>
+                )}
+
+                {/* Automatic discount badge */}
+                {discountSource === "automatic" && (
+                    <div className="absolute top-2 left-2 z-10 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                        Auto
+                    </div>
+                )}
+
                 <Image
                     src={imageUrl}
                     alt={name}
@@ -293,12 +333,32 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 </Tooltip>
 
                 {/* Price */}
-                <div
-                    className={`font-semibold text-sm ${formattedPrice === "0đ" ? "text-rose-500" : "text-primary"}`}
-                >
-                    {formattedPrice === "0đ"
-                        ? "Không kinh doanh"
-                        : formattedPrice}
+                <div className="flex flex-col">
+                    {price === 0 ? (
+                        <span className="text-rose-500 font-semibold text-sm">
+                            Không kinh doanh
+                        </span>
+                    ) : hasDiscount ? (
+                        <>
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm text-primary">
+                                    {formattedPrice}
+                                </span>
+                                <span className="text-xs text-gray-400 line-through">
+                                    {formattedOriginalPrice}
+                                </span>
+                            </div>
+                            {displayDiscount > 0 && (
+                                <span className="text-xs text-rose-500 font-medium mt-1">
+                                    Tiết kiệm {displayDiscount}%
+                                </span>
+                            )}
+                        </>
+                    ) : (
+                        <span className="font-semibold text-sm text-primary">
+                            {formattedPrice}
+                        </span>
+                    )}
                 </div>
             </div>
         </div>

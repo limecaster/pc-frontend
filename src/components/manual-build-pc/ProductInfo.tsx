@@ -1,13 +1,7 @@
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
-
-export interface ProductInfoProps {
-    category: string;
-    imageUrl: string;
-    productName: string;
-    productUrl?: string; // Make URL optional
-}
+import Image from "next/image";
+import { ProductInfoProps } from "./types";
 
 export function ProductInfo({
     category,
@@ -15,41 +9,33 @@ export function ProductInfo({
     productName,
     productUrl,
 }: ProductInfoProps) {
-    // Create the content that will be displayed
-    const content = (
-        <div className="flex flex-wrap gap-px self-stretch text-sm leading-5 text-black max-md:max-w-full">
-            <div className="flex overflow-hidden flex-auto gap-2.5 justify-center items-center px-1">
-                <div className="self-stretch my-auto w-20 font-medium text-center">
-                    {category}
-                </div>
+    return (
+        <div className="flex items-center gap-4">
+            <div className="relative w-16 h-16 flex-shrink-0">
                 <Image
                     src={imageUrl}
-                    alt={`${productName}`}
-                    width={85}
-                    height={85}
-                    className="object-contain shrink-0 self-stretch my-auto aspect-square w-[85px]"
-                    loading="lazy"
+                    alt={productName}
+                    fill
+                    className="object-cover rounded-md"
+                    sizes="64px"
                 />
-                <div
-                    className="self-stretch my-auto w-full line-clamp-2 overflow-hidden text-ellipsis break-words font-medium hover:text-primary"
-                    style={{
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                    }}
-                >
-                    {productName}
-                </div>
+            </div>
+            <div>
+                {category && (
+                    <p className="text-xs text-gray-500">{category}</p>
+                )}
+                {productUrl ? (
+                    <Link href={productUrl} className="hover:text-primary">
+                        <h3 className="text-sm font-medium text-gray-900 line-clamp-2">
+                            {productName}
+                        </h3>
+                    </Link>
+                ) : (
+                    <h3 className="text-sm font-medium text-gray-900 line-clamp-2">
+                        {productName}
+                    </h3>
+                )}
             </div>
         </div>
-    );
-
-    // If we have a URL, wrap in a Link, otherwise just return the content
-    return productUrl ? (
-        <Link href={productUrl} passHref>
-            <div className="cursor-pointer">{content}</div>
-        </Link>
-    ) : (
-        content
     );
 }

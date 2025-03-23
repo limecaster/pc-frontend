@@ -81,13 +81,45 @@ export default function OrdersPage() {
         setProcessingPayment(orderId.toString());
 
         try {
-            // First attempt - try to initiate payment through API
+            // Get payment data from API
             const result = await initiateOrderPayment(orderId);
+            console.log(
+                "Payment initiation result:",
+                JSON.stringify(result, null, 2),
+            );
 
-            // If successful and we have a checkout URL, redirect directly
-            if (result.success && result.data?.checkoutUrl) {
-                window.location.href = result.data.checkoutUrl;
-                return;
+            // Check if the response is successful
+            if (result && result.success === true) {
+                // Check for various response formats
+
+                // Case 1: Complete format with data.checkoutUrl
+                if (result.data && result.data.checkoutUrl) {
+                    console.log("Payment URL found:", result.data.checkoutUrl);
+                    window.location.href = result.data.checkoutUrl;
+                    return;
+                }
+
+                // Case 2: Direct format where checkoutUrl is at the root level (some APIs return this)
+                else if (result.checkoutUrl) {
+                    console.log(
+                        "Direct payment URL found:",
+                        result.checkoutUrl,
+                    );
+                    window.location.href = result.checkoutUrl;
+                    return;
+                }
+
+                // Case 3: Success but need to call another API to get the URL
+                else {
+                    console.log(
+                        "Payment initiated, redirecting to payment gateway page",
+                    );
+                    router.push(`/checkout/direct-pay?orderId=${orderId}`);
+                    return;
+                }
+            } else {
+                console.error("Invalid payment response:", result);
+                throw new Error("Invalid payment response");
             }
         } catch (err) {
             console.error("Error initiating payment:", err);

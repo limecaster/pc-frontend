@@ -575,6 +575,91 @@ export default function AdminDashboard() {
                     )}
                 </div>
             </div>
+
+            {/* Additional Admin Quick Links */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Quản lý mã giảm giá
+                    </h3>
+                    <p className="text-gray-500 text-sm mb-4">
+                        Tạo, chỉnh sửa và quản lý mã giảm giá cho khách hàng của
+                        bạn.
+                    </p>
+                    <a
+                        href="/admin/discounts"
+                        className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center"
+                    >
+                        Đi đến quản lý mã giảm giá
+                        <svg
+                            className="w-4 h-4 ml-1"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                fillRule="evenodd"
+                                d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
+                                clipRule="evenodd"
+                            ></path>
+                        </svg>
+                    </a>
+                </div>
+                <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Báo cáo bán hàng
+                    </h3>
+                    <p className="text-gray-500 text-sm mb-4">
+                        Xem báo cáo chi tiết về doanh thu, sản phẩm bán chạy và
+                        xu hướng mua sắm.
+                    </p>
+                    <a
+                        href="/admin/reports"
+                        className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center"
+                    >
+                        Xem báo cáo
+                        <svg
+                            className="w-4 h-4 ml-1"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                fillRule="evenodd"
+                                d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
+                                clipRule="evenodd"
+                            ></path>
+                        </svg>
+                    </a>
+                </div>
+                <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Quản lý sản phẩm
+                    </h3>
+                    <p className="text-gray-500 text-sm mb-4">
+                        Thêm, chỉnh sửa và quản lý sản phẩm trong danh mục của
+                        bạn.
+                    </p>
+                    <a
+                        href="/admin/products"
+                        className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center"
+                    >
+                        Quản lý sản phẩm
+                        <svg
+                            className="w-4 h-4 ml-1"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                fillRule="evenodd"
+                                d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
+                                clipRule="evenodd"
+                            ></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
         </div>
     );
 }

@@ -40,7 +40,7 @@ const CheckoutFailurePage: React.FC<CheckoutFailurePageProps> = ({
                         <p className="text-gray-600 mb-6">{error}</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-md">
                             <Link
-                                href="/checkout"
+                                href="/dashboard/orders"
                                 className="bg-primary text-white py-3 px-6 rounded-md font-medium hover:bg-primary-dark transition-colors text-center"
                             >
                                 Thử lại

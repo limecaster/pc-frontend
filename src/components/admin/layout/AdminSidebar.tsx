@@ -17,6 +17,7 @@ import {
     faAngleDown,
     faAngleRight,
     faUserShield,
+    faTag, // Add tag icon for discounts
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminSidebar } from "@/contexts/AdminSidebarContext";
@@ -68,6 +69,12 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
             title: "Đơn hàng",
             path: "/admin/orders",
             icon: faShoppingCart,
+        },
+        // Add discount management item
+        {
+            title: "Mã giảm giá",
+            path: "/admin/discounts",
+            icon: faTag, // Use tag icon for discounts
         },
         {
             title: "Khách hàng",
