@@ -1,4 +1,5 @@
 import { API_URL } from "@/config/constants";
+import { ProductDetailsDto } from "@/types/product"; // Add this import
 
 /**
  * Fetch all available product brands
@@ -21,6 +22,107 @@ export async function fetchAllBrands() {
         console.error("Error fetching brands:", error);
         throw error;
     }
+}
+
+/**
+ * Post-process product data to normalize discount information
+ * @param product The product data from API
+ * @returns Product with normalized discount fields
+ */
+export function normalizeProductDiscount(product: any) {
+    // Make a copy to avoid mutating the original
+    const normalizedProduct = { ...product };
+
+    // Define meaningful discount thresholds
+    const MIN_DISCOUNT_PERCENT = 1.0; // Minimum 1% discount to be considered meaningful
+    const MIN_DISCOUNT_AMOUNT = 50000; // Minimum 50,000 VND discount to be considered meaningful
+
+    // Handle discount information consistently - apply only if difference is meaningful
+    if (
+        normalizedProduct.originalPrice &&
+        normalizedProduct.originalPrice > normalizedProduct.price
+    ) {
+        const priceDifference =
+            normalizedProduct.originalPrice - normalizedProduct.price;
+        const percentDifference =
+            (priceDifference / normalizedProduct.originalPrice) * 100;
+
+        // Check if the discount meets our meaningful threshold
+        const isSignificantPercent = percentDifference >= MIN_DISCOUNT_PERCENT;
+        const isSignificantAmount = priceDifference >= MIN_DISCOUNT_AMOUNT;
+
+        // Only apply discount if it meets at least one threshold criterion
+        if (isSignificantPercent || isSignificantAmount) {
+            normalizedProduct.isDiscounted = true;
+
+            // Calculate discount percentage
+            if (!normalizedProduct.discountPercentage) {
+                normalizedProduct.discountPercentage = Math.max(
+                    1,
+                    Math.round(percentDifference),
+                );
+            }
+
+            // Default to 'manual' discount source if not specified
+            if (!normalizedProduct.discountSource) {
+                normalizedProduct.discountSource = "manual";
+            }
+        } else {
+            // Keep the original price but don't mark as discounted
+            normalizedProduct.isDiscounted = false;
+            normalizedProduct.discountPercentage = undefined;
+        }
+    }
+
+    // Enhanced logic for handling categories and discount sources
+    if (product.categories && !Array.isArray(product.categories)) {
+        product.categories = product.category ? [product.category] : [];
+    }
+
+    // Ensure appropriate discountType based on info we have
+    if (
+        product.isDiscounted &&
+        product.originalPrice &&
+        product.originalPrice > product.price
+    ) {
+        if (!product.discountType) {
+            // If we have a discountPercentage, it's likely a percentage discount
+            if (product.discountPercentage) {
+                product.discountType = "percentage";
+            } else {
+                // Otherwise calculate if it's closer to a common percentage or just a fixed amount
+                const percentOff =
+                    ((product.originalPrice - product.price) /
+                        product.originalPrice) *
+                    100;
+                const roundedPercent = Math.round(percentOff);
+
+                // If it's close to common discount percentages (5%, 10%, 15%, etc) then it's likely percentage
+                if (
+                    Math.abs(percentOff - roundedPercent) < 0.1 &&
+                    roundedPercent % 5 === 0
+                ) {
+                    product.discountType = "percentage";
+                    if (!product.discountPercentage) {
+                        product.discountPercentage = roundedPercent;
+                    }
+                } else {
+                    product.discountType = "fixed";
+                }
+            }
+        }
+    }
+
+    return normalizedProduct;
+}
+
+/**
+ * Process array of products to normalize discount information
+ * @param products Array of products from API
+ * @returns Products with normalized discount fields
+ */
+export function normalizeProductsDiscounts(products: any[]) {
+    return products.map((product) => normalizeProductDiscount(product));
 }
 
 /**
@@ -70,7 +172,14 @@ export async function fetchAllProducts(
             throw new Error(`Failed to fetch products: ${response.status}`);
         }
 
-        return await response.json();
+        const data = await response.json();
+
+        // Normalize discount information in products
+        if (data.products && Array.isArray(data.products)) {
+            data.products = normalizeProductsDiscounts(data.products);
+        }
+
+        return data;
     } catch (error) {
         console.error("Error fetching all products:", error);
         throw error;
@@ -89,7 +198,9 @@ export async function fetchSubcategoryValues(
 ) {
     try {
         const response = await fetch(
-            `${API_URL}/products/subcategory-values/${encodeURIComponent(category)}/${encodeURIComponent(subcategory)}`,
+            `${API_URL}/products/subcategory-values/${encodeURIComponent(
+                category,
+            )}/${encodeURIComponent(subcategory)}`,
             {
                 headers: {
                     "Content-Type": "application/json",
@@ -159,12 +270,11 @@ export async function fetchProductsByCategory(
         // Add subcategory filters if provided
         if (subcategoryFilters && Object.keys(subcategoryFilters).length > 0) {
             // Make sure subcategoryFilters is properly structured before encoding
-            console.log("Applying subcategory filters:", subcategoryFilters);
+
             const subcategoriesParam = encodeURIComponent(
                 JSON.stringify(subcategoryFilters),
             );
             url += `&subcategories=${subcategoriesParam}`;
-            console.log("API URL with subcategory filters:", url);
         }
 
         const response = await fetch(url, {
@@ -177,7 +287,14 @@ export async function fetchProductsByCategory(
             throw new Error(`Failed to fetch products: ${response.status}`);
         }
 
-        return await response.json();
+        const data = await response.json();
+
+        // Normalize discount information in products
+        if (data.products && Array.isArray(data.products)) {
+            data.products = normalizeProductsDiscounts(data.products);
+        }
+
+        return data;
     } catch (error) {
         console.error(
             `Error fetching products for category ${category}:`,
@@ -265,6 +382,12 @@ export async function searchProducts(
         }
 
         const data = await response.json();
+
+        // Normalize discount information in products
+        if (data.products && Array.isArray(data.products)) {
+            data.products = normalizeProductsDiscounts(data.products);
+        }
+
         return data;
     } catch (error) {
         console.error("Error searching products:", error);
@@ -288,7 +411,10 @@ export async function getProductById(id: string) {
             throw new Error(`Failed to fetch product: ${response.status}`);
         }
 
-        return await response.json();
+        const data = await response.json();
+
+        // Normalize discount information for product
+        return normalizeProductDiscount(data);
     } catch (error) {
         console.error(`Error fetching product with ID ${id}:`, error);
         return null;
@@ -305,7 +431,9 @@ export async function getSearchSuggestions(query: string): Promise<string[]> {
 
     try {
         const response = await fetch(
-            `${API_URL}/products/search-suggestions?query=${encodeURIComponent(query)}`,
+            `${API_URL}/products/search-suggestions?query=${encodeURIComponent(
+                query,
+            )}`,
             {
                 headers: {
                     "Content-Type": "application/json",
@@ -347,7 +475,9 @@ export function generateCategoryUrl(
     let url = `/products?category=${encodeURIComponent(category)}`;
 
     if (subcategoryFilters && Object.keys(subcategoryFilters).length > 0) {
-        url += `&subcategories=${encodeURIComponent(JSON.stringify(subcategoryFilters))}`;
+        url += `&subcategories=${encodeURIComponent(
+            JSON.stringify(subcategoryFilters),
+        )}`;
     }
 
     if (brands && brands.length > 0) {
@@ -388,9 +518,6 @@ export async function getProductsStockQuantities(
         // Use comma-separated format which is less likely to cause issues
         const idsParam = uniqueIds.join(",");
 
-        // Log the request for debugging
-        console.log(`Fetching stock quantities for products: ${idsParam}`);
-
         const response = await fetch(
             `${API_URL}/products/stock?ids=${encodeURIComponent(idsParam)}`,
         );
@@ -414,13 +541,92 @@ export async function getProductsStockQuantities(
     }
 }
 
-export interface Product {
-    id: string;
-    name: string;
-    price: number;
-    originalPrice?: number; // Add original price field
-    discountPercentage?: number; // Add discount percentage field
-    isDiscounted?: boolean; // Flag for whether product is discounted
-    discountSource?: "automatic" | "manual"; // Source of the discount
-    // ...existing fields...
+/**
+ * Get multiple products by IDs with discount information pre-calculated
+ * This replaces the need to extract categories from product names on frontend
+ * @param productIds Array of product IDs to retrieve
+ * @returns Promise with array of products with discount info
+ */
+export async function getProductsWithDiscounts(
+    productIds: string[],
+): Promise<any[]> {
+    try {
+        if (!productIds || productIds.length === 0) {
+            return [];
+        }
+
+        // Use the new batch endpoint
+        const response = await fetch(
+            `${API_URL}/products/batch-with-discounts`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ productIds }),
+            },
+        );
+
+        if (!response.ok) {
+            console.error(`Failed to fetch products batch: ${response.status}`);
+            return [];
+        }
+
+        const data = await response.json();
+        return data.products || [];
+    } catch (error) {
+        console.error("Error fetching products with discounts:", error);
+        return [];
+    }
+}
+
+/**
+ * Batch load products with their discounts pre-calculated
+ * More efficient than making individual requests
+ * @param ids Array of product IDs to fetch
+ * @returns Promise with enriched product data
+ */
+export async function batchLoadProductsWithDiscounts(
+    ids: string[],
+): Promise<ProductDetailsDto[]> {
+    try {
+        if (!ids || ids.length === 0) {
+            return [];
+        }
+
+        // Deduplicate IDs just to be safe
+        const uniqueIds = [...new Set(ids)];
+        const response = await fetch(
+            `${API_URL}/products/batch-with-discounts`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    productIds: uniqueIds,
+                }),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to batch load products: ${response.status}`,
+            );
+        }
+
+        const result = await response.json();
+
+        if (!result.success || !result.products) {
+            console.warn(
+                "Batch product request succeeded but had invalid format",
+            );
+            return [];
+        }
+        // Process returned products to normalize discount data
+        return normalizeProductsDiscounts(result.products);
+    } catch (error) {
+        console.error("Error batch loading products:", error);
+        return [];
+    }
 }

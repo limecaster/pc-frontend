@@ -7,7 +7,7 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { CustomArrowProps } from "react-slick";
-import ProductGrid from "@/components/shop/product/ProductGrid";
+import ProductGrid from "@/components/products/product/ProductGrid";
 import HeroSection from "@/components/home/HeroSection";
 import PromotionSection from "@/components/home/PromotionSection";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";

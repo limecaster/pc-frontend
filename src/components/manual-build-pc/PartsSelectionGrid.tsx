@@ -27,12 +27,6 @@ interface PartsSelectionGridProps {
     onRemovePart: (category: string) => void;
 }
 
-// Define formatPrice function locally
-const formatPrice = (price: string | number) => {
-    const numPrice = typeof price === "string" ? parseFloat(price) : price;
-    return numPrice.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-};
-
 // Updated component categories with available Heroicons
 export const itemData = [
     {
@@ -133,7 +127,7 @@ const PartsSelectionGrid: React.FC<PartsSelectionGridProps> = ({
                                 ? Number(selectedItem.discountPercentage)
                                 : undefined
                         }
-                        logoUrl={selectedItem?.logoUrl || ""}
+                        // logoUrl={selectedItem?.logoUrl || ""}
                         category={label}
                         productUrl={
                             selectedItem?.id

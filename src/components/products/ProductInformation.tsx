@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from "@headlessui/react";
 import { getProductRatings, RatingComment } from "@/api/rating";
-import RatingForm from "./RatingForm";
+import RatingForm from "../products/RatingForm";
 import StarRating from "./StarRating";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";

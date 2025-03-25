@@ -2,18 +2,19 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import CategoryFilter from "@/components/shop/filters/CategoryFilter";
-import PriceFilter from "@/components/shop/filters/PriceFilter";
-import BrandFilter from "@/components/shop/filters/BrandFilter";
-import ProductGrid from "@/components/shop/product/ProductGrid";
-import FilterBar from "@/components/shop/FilterBar";
-import SearchSort from "@/components/shop/SearchSort";
-import Pagination from "@/components/shop/Pagination";
+import CategoryFilter from "@/components/products/filters/CategoryFilter";
+import PriceFilter from "@/components/products/filters/PriceFilter";
+import BrandFilter from "@/components/products/filters/BrandFilter";
+import ProductGrid from "@/components/products/product/ProductGrid";
+import FilterBar from "@/components/products/FilterBar";
+import SearchSort from "@/components/products/SearchSort";
+import Pagination from "@/components/products/Pagination";
 
 // Define product type
 interface Product {
     id: string;
     name: string;
+    sku: string;
     category: string;
     price: number;
     originalPrice?: number;

@@ -72,7 +72,6 @@ export async function initiateOrderPayment(
         });
 
         const data = await response.json();
-        console.log("Payment initiation response:", data);
 
         if (!response.ok) {
             throw new Error(
@@ -102,8 +101,6 @@ export async function updateOrderPaymentStatus(
     payosId?: string | null,
 ): Promise<any> {
     try {
-        console.log("Updating order payment status");
-
         // Construct URL with query parameters
         const url = new URL(`${API_URL}/payment/success`);
 
@@ -122,7 +119,6 @@ export async function updateOrderPaymentStatus(
         const response = await fetch(url.toString(), { method: "GET" });
 
         const result = await response.json();
-        console.log("Payment status update result:", result);
 
         return result;
     } catch (error) {
@@ -148,15 +144,12 @@ export async function trackOrder(orderIdentifier: string | number) {
         requestCache[cacheKey] &&
         now - requestCache[cacheKey].timestamp < CACHE_TIME
     ) {
-        console.log(`Using cached request for order ${orderIdentifier}`);
         return requestCache[cacheKey].promise;
     }
 
     try {
         // Create the request
         const requestPromise = (async () => {
-            console.log(`Making fresh API call for order ${orderIdentifier}`);
-
             // Add token to headers if available
             const token = localStorage.getItem("token");
             const headers: Record<string, string> = {
@@ -217,7 +210,6 @@ export async function verifyOrderEmail(
     email: string,
 ) {
     try {
-        console.log(`Verifying email for order ${orderId}`);
         const response = await fetch(
             `${API_URL}/orders/track/${orderId}/verify-email`,
             {
@@ -257,7 +249,6 @@ export async function verifyOrderOTP(
     otp: string,
 ) {
     try {
-        console.log(`Verifying OTP for order ${orderId}`);
         const response = await fetch(
             `${API_URL}/orders/track/${orderId}/verify-otp`,
             {
@@ -301,14 +292,12 @@ export async function verifyAndTrackOrder(
         requestCache[cacheKey] &&
         now - requestCache[cacheKey].timestamp < CACHE_TIME
     ) {
-        console.log(`Using cached verification request for order ${orderId}`);
         return requestCache[cacheKey].promise;
     }
 
     try {
         // Create the request
         const requestPromise = (async () => {
-            console.log(`Making verified API call for order ${orderId}`);
             const response = await fetch(`${API_URL}/orders/track`, {
                 method: "POST",
                 headers: {
@@ -369,17 +358,12 @@ export async function requestOrderTrackingOTP(
         requestCache[cacheKey] &&
         now - requestCache[cacheKey].timestamp < CACHE_TIME
     ) {
-        console.log(`Using cached OTP request for order ${orderId}`);
         return requestCache[cacheKey].promise;
     }
 
     try {
         // Create the request
         const requestPromise = (async () => {
-            console.log(
-                `Requesting OTP for order ${orderId} with email ${email}`,
-            );
-
             // No need to parse as number anymore
             // const orderIdNum = Number(orderId);
             // if (isNaN(orderIdNum)) {
@@ -441,8 +425,6 @@ export async function verifyOrderTrackingOTP(
     otp: string,
 ) {
     try {
-        console.log(`Verifying OTP for order ${orderId} with code ${otp}`);
-
         const response = await fetch(`${API_URL}/orders/track/verify-otp`, {
             method: "POST",
             headers: {

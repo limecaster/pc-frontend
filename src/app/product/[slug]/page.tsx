@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { HeartIcon, HeartFilledIcon } from "@radix-ui/react-icons";
 import Cart from "@/assets/icon/shop/Cart.svg";
-import ProductInformation from "@/components/product/ProductInformation";
+import ProductInformation from "@/components/products/ProductInformation";
 import { toast } from "react-hot-toast";
 import { ProductDetails } from "@/types/ProductDetails";
 import { useWishlist } from "@/contexts/WishlistContext";

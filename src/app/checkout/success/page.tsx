@@ -1,6 +1,7 @@
 "use client";
 import React, { Suspense } from "react";
 import CheckoutSuccessContent from "./CheckoutSuccessContent";
+import ProtectedRoute from "@/components/common/ProtectedRoute";
 
 const CheckoutSuccessPage: React.FC = () => {
     return (
@@ -11,7 +12,9 @@ const CheckoutSuccessPage: React.FC = () => {
                 </div>
             }
         >
-            <CheckoutSuccessContent />
+            <ProtectedRoute>
+                <CheckoutSuccessContent />
+            </ProtectedRoute>
         </Suspense>
     );
 };

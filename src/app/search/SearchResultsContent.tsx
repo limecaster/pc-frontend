@@ -2,14 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import SearchSort from "@/components/shop/SearchSort";
-import FilterBar from "@/components/shop/FilterBar";
-import ProductGrid from "@/components/shop/product/ProductGrid";
-import Pagination from "@/components/shop/Pagination";
-import CategoryFilter from "@/components/shop/filters/CategoryFilter";
-import PriceFilter from "@/components/shop/filters/PriceFilter";
-import BrandFilter from "@/components/shop/filters/BrandFilter";
-import RatingFilter from "@/components/shop/filters/RatingFilter";
+import SearchSort from "@/components/products/SearchSort";
+import FilterBar from "@/components/products/FilterBar";
+import ProductGrid from "@/components/products/product/ProductGrid";
+import Pagination from "@/components/products/Pagination";
+import CategoryFilter from "@/components/products/filters/CategoryFilter";
+import PriceFilter from "@/components/products/filters/PriceFilter";
+import BrandFilter from "@/components/products/filters/BrandFilter";
+import RatingFilter from "@/components/products/filters/RatingFilter";
 import { searchProducts } from "@/api/product";
 
 const SearchResultsContent: React.FC = () => {

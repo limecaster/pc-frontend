@@ -104,10 +104,6 @@ export async function getAllCompatibleParts(
         }
 
         const data = await response.json();
-
-        // Log for debugging
-        console.log(`Received ${data.items?.length || 0} items from server`);
-
         return {
             items: data.items || [],
             totalItems: data.totalItems || data.items?.length || 0,

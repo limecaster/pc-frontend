@@ -22,6 +22,13 @@ export interface Discount {
     updatedAt?: string;
     // New property to store names of targeted products for display
     targetedProducts?: string[];
+    description: string;
+    maxDiscountAmount?: number;
+    isActive: boolean;
+    usageLimit?: number;
+    usageCount: number;
+    customerId?: string;
+    priority?: number;
 }
 
 // Update interface for creating/updating discount
@@ -58,8 +65,6 @@ export async function fetchProductsForSelector(
         if (!token) {
             throw new Error("Authentication required");
         }
-
-        console.log("Fetching products with search:", search, "page:", page);
 
         // Build query string
         const queryParams = new URLSearchParams();
@@ -107,7 +112,6 @@ export async function fetchProductsForSelector(
 
 // Helper function to get fallback product data
 function getFallbackProducts(): { id: string; name: string }[] {
-    console.log("Returning fallback product data");
     return [
         { id: "1", name: "AMD Ryzen 7 5800X" },
         { id: "2", name: "NVIDIA GeForce RTX 3080" },
@@ -185,8 +189,6 @@ export async function fetchCustomersForSelector(
         if (!token) {
             throw new Error("Authentication required");
         }
-
-        console.log("Fetching customers with search:", search, "page:", page);
 
         // Build query string
         const queryParams = new URLSearchParams();
@@ -446,40 +448,64 @@ export async function fetchDiscountStatistics(): Promise<{
     }
 }
 
-// Update fetchAutomaticDiscounts to accept product prices
-export async function fetchAutomaticDiscounts(options: {
-    productIds?: string[];
+/**
+ * Fetch automatic discounts that should be applied based on cart contents
+ * @param data Cart data needed for discount calculation
+ * @returns Promise with applicable discount data
+ */
+export async function fetchAutomaticDiscounts(data: {
+    productIds: string[];
     categoryNames?: string[];
     customerId?: string;
     isFirstPurchase?: boolean;
     orderAmount: number;
-    productPrices?: Record<string, number>; // Add product prices
-}): Promise<Discount[]> {
+    productPrices?: Record<string, number>;
+    timestamp?: number; // Added for cache busting
+}): Promise<{ success: boolean; discounts: Discount[] }> {
     try {
+        // Add timestamp to the data object instead of using Cache-Control header
+        const requestData = {
+            ...data,
+            timestamp: new Date().getTime(), // Add timestamp to prevent caching
+        };
+
         const response = await fetch(`${API_URL}/discounts/automatic`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify(options),
+            body: JSON.stringify(requestData),
         });
 
         if (!response.ok) {
-            console.warn(
-                `API error: Failed to fetch automatic discounts: ${response.status}`,
-            );
-            return [];
+            const errorData = await response.json();
+            console.error("Error fetching automatic discounts:", errorData);
+            return {
+                success: false,
+                discounts: [],
+            };
         }
 
-        const data = await response.json();
-        return data.discounts || [];
+        const result = await response.json();
+
+        return result;
     } catch (error) {
         console.error("Error fetching automatic discounts:", error);
-        return [];
+        return {
+            success: false,
+            discounts: [],
+        };
     }
 }
 
-// Update validateDiscount to accept productPrices for better targeting
+/**
+ * Validates a discount code
+ * @param code The discount code to validate
+ * @param orderAmount The order amount
+ * @param productIds Product IDs in the order
+ * @param productPrices Product prices in the order
+ * @returns Validation result
+ */
 export async function validateDiscount(
     code: string,
     orderAmount: number,
@@ -487,12 +513,10 @@ export async function validateDiscount(
     productPrices?: Record<string, number>,
 ): Promise<{
     valid: boolean;
+    errorMessage?: string;
     discount?: Discount;
     discountAmount?: number;
-    automaticDiscounts?: Discount[];
     automaticDiscountAmount?: number;
-    totalDiscountAmount?: number;
-    errorMessage?: string;
 }> {
     try {
         const response = await fetch(`${API_URL}/discounts/validate`, {
@@ -504,16 +528,22 @@ export async function validateDiscount(
                 code,
                 orderAmount,
                 productIds,
-                productPrices, // Add this to help with per-product discount calculation
+                productPrices,
             }),
         });
+
         if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.message || "Failed to validate discount");
+            const error = await response.json();
+            throw new Error(error.message || "Failed to validate discount");
         }
+
         return await response.json();
     } catch (error) {
         console.error("Error validating discount:", error);
-        throw error;
+        return {
+            valid: false,
+            errorMessage:
+                error instanceof Error ? error.message : String(error),
+        };
     }
 }

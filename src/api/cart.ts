@@ -13,26 +13,98 @@ export async function addToCart(productId: string, quantity: number = 1) {
             throw new Error("Authentication required");
         }
 
-        const response = await fetch(`${API_URL}/cart/add`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ productId, quantity }),
-            // Don't use credentials: 'include' when sending auth in header
-        });
+        // // Add validation for quantity to prevent overflow issues
+        // if (quantity > 100) {
+        //     quantity = 100; // Hard cap at 100 items
+        //     console.warn("Quantity limited to 100 units per product");
+        // }
 
-        const data = await response.json();
+        // // Get product price to check for potential overflow
+        // try {
+        //     const productInfo = await getProductPrice(productId);
+        //     if (productInfo && productInfo.price) {
+        //         // Check if price * quantity would exceed database limits (99,999,999.99)
+        //         const totalPrice = productInfo.price * quantity;
+        //         if (totalPrice > 99999999) {
+        //             // Find the maximum quantity that would be safe
+        //             const safeQuantity = Math.floor(
+        //                 99999999 / productInfo.price,
+        //             );
+        //             quantity = Math.min(quantity, Math.max(1, safeQuantity));
+        //             console.warn(
+        //                 `Quantity adjusted to ${quantity} to prevent numeric overflow`,
+        //             );
+        //         }
+        //     }
+        // } catch (priceError) {
+        //     console.warn("Could not verify price safety limits:", priceError);
+        // }
 
-        if (!response.ok) {
-            throw new Error(data.message || "Failed to add product to cart");
+        // Add a retry mechanism for intermittent failures
+        let attempts = 0;
+        const maxAttempts = 3;
+
+        while (attempts < maxAttempts) {
+            try {
+                const response = await fetch(`${API_URL}/cart/add`, {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        productId,
+                        quantity,
+                    }),
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error("Authentication failed");
+                    }
+                    if (response.status === 400) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || "Invalid request");
+                    }
+                    if (response.status === 500) {
+                        throw new Error(
+                            "Server error - possible numeric overflow. Try reducing quantity.",
+                        );
+                    }
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                return await response.json();
+            } catch (err) {
+                attempts++;
+                if (attempts === maxAttempts) throw err;
+                // Wait before retrying (exponential backoff)
+                await new Promise((r) => setTimeout(r, 500 * attempts));
+            }
         }
-
-        return data;
     } catch (error) {
         console.error("Error adding to cart:", error);
         throw error;
+    }
+}
+
+/**
+ * Helper function to get product price for validation
+ * @param productId The product ID to check
+ * @returns Promise with the product price
+ */
+async function getProductPrice(
+    productId: string,
+): Promise<{ price: number } | null> {
+    try {
+        const response = await fetch(`${API_URL}/products/${productId}`);
+        if (!response.ok) return null;
+
+        const product = await response.json();
+        return { price: product.price };
+    } catch (error) {
+        console.error("Error getting product price:", error);
+        return null;
     }
 }
 
@@ -79,8 +151,19 @@ export async function addToCartAndSync(
             );
             localCart[existingItemIndex].stock_quantity =
                 product.stock_quantity; // Update stock info
+
+            // Include category information when updating existing item
+            if (
+                product.category ||
+                (product.categories && product.categories.length > 0)
+            ) {
+                localCart[existingItemIndex].category = product.category || "";
+                localCart[existingItemIndex].categoryNames =
+                    product.categories ||
+                    (product.category ? [product.category] : []);
+            }
         } else {
-            // Add new product to cart with stock info
+            // Add new product to cart with stock info and category information
             localCart.push({
                 id: product.id,
                 name: product.name,
@@ -88,6 +171,11 @@ export async function addToCartAndSync(
                 imageUrl: product.imageUrl,
                 quantity: quantity,
                 stock_quantity: product.stock_quantity,
+                // NEW: Include category information
+                category: product.category || "",
+                categoryNames:
+                    product.categories ||
+                    (product.category ? [product.category] : []),
             });
         }
 
@@ -124,62 +212,40 @@ export async function addToCartAndSync(
  */
 export async function addMultipleToCart(productIds: string[]): Promise<any> {
     try {
-        // Get the token exactly as stored
+        if (!productIds.length) return { success: true };
+
         const token = localStorage.getItem("token");
         if (!token) {
             throw new Error("Authentication required");
         }
 
-        console.log(
-            "Token being sent (first few chars):",
-            token.substring(0, 15) + "...",
-        );
+        try {
+            const response = await fetch(`${API_URL}/cart/add-multiple`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    productIds,
+                }),
+            });
 
-        // Send token exactly as stored from the backend
-        const response = await fetch(`${API_URL}/cart/add-multiple`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ productIds }),
-            credentials: "omit",
-        });
-
-        // Handle response
-        if (!response.ok) {
-            // Try to get more error details if available
-            let errorMessage;
-            try {
-                const errorData = await response.json();
-                errorMessage =
-                    errorData.message ||
-                    `Error: ${response.status} ${response.statusText}`;
-                console.error("Error details from server:", errorData);
-
-                // If the user account was deleted or is invalid
-                if (
-                    errorMessage.includes("User not found") ||
-                    errorMessage.includes("account deleted") ||
-                    errorMessage.includes("inactive")
-                ) {
-                    // Force logout on the frontend
-                    localStorage.removeItem("token");
-                    localStorage.removeItem("user");
-                }
-            } catch {
-                errorMessage = `Error: ${response.status} ${response.statusText}`;
+            if (response.ok) {
+                return await response.json();
             }
 
+            // For other errors, throw standard error
             if (response.status === 401) {
-                throw new Error("Authentication failed. Please log in again.");
+                throw new Error("Authentication failed");
             }
-            throw new Error(errorMessage);
+            throw new Error(`Server error: ${response.status}`);
+        } catch (error) {
+            console.error("Error adding multiple items to cart:", error);
+            throw error;
         }
-
-        return await response.json();
     } catch (error) {
-        console.error("Error adding multiple products to cart:", error);
+        console.error("Error adding multiple items to cart:", error);
         throw error;
     }
 }
@@ -193,26 +259,20 @@ export async function getCart() {
         }
 
         const response = await fetch(`${API_URL}/cart`, {
+            method: "GET",
             headers: {
-                "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
             },
+            // Add cache control to prevent stale data
+            cache: "no-store",
         });
 
         if (!response.ok) {
             if (response.status === 401) {
-                throw new Error("Authentication failed. Please log in again.");
+                throw new Error("Authentication failed");
             }
-
-            try {
-                const data = await response.json();
-                throw new Error(
-                    data.message ||
-                        `Failed to retrieve cart: ${response.status}`,
-                );
-            } catch (parseError) {
-                throw new Error(`Failed to retrieve cart: ${response.status}`);
-            }
+            throw new Error(`Server error: ${response.status}`);
         }
 
         const data = await response.json();
@@ -239,23 +299,65 @@ export async function updateCartItemQuantity(
             throw new Error("Authentication required");
         }
 
+        // // Enforce quantity limits
+        // if (quantity > 100) {
+        //     quantity = 100;
+        //     console.warn("Quantity limited to 100 units per product");
+        // }
+
+        // // Check for potential numeric overflow
+        // try {
+        //     const productInfo = await getProductPrice(productId);
+        //     if (productInfo && productInfo.price) {
+        //         // Check if price * quantity would exceed database limits (99,999,999.99)
+        //         const totalPrice = productInfo.price * quantity;
+        //         if (totalPrice > 99999999) {
+        //             // Find the maximum quantity that would be safe
+        //             const safeQuantity = Math.floor(
+        //                 99999999 / productInfo.price,
+        //             );
+        //             quantity = Math.min(quantity, Math.max(1, safeQuantity));
+        //             console.warn(
+        //                 `Quantity adjusted to ${quantity} to prevent numeric overflow`,
+        //             );
+        //         }
+        //     }
+        // } catch (priceError) {
+        //     console.warn("Could not verify price safety limits:", priceError);
+        // }
+
+        // FIXED: Using correct endpoint /cart/update-item instead of /cart/{productId}
         const response = await fetch(`${API_URL}/cart/update-item`, {
             method: "PUT",
             headers: {
-                "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
             },
-            body: JSON.stringify({ productId, quantity }),
+            body: JSON.stringify({
+                productId,
+                quantity,
+            }),
         });
 
         if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.message || "Failed to update cart item");
+            if (response.status === 401) {
+                throw new Error("Authentication failed");
+            }
+
+            // Try to get detailed error message
+            try {
+                const errorData = await response.json();
+                throw new Error(
+                    errorData.message || `Server error: ${response.status}`,
+                );
+            } catch (e) {
+                throw new Error(`Server error: ${response.status}`);
+            }
         }
 
         return await response.json();
     } catch (error) {
-        console.error("Error updating cart item:", error);
+        console.error(`Error updating quantity for item ${productId}:`, error);
         throw error;
     }
 }
@@ -275,20 +377,30 @@ export async function removeCartItem(productId: string) {
         const response = await fetch(`${API_URL}/cart/remove-item`, {
             method: "DELETE",
             headers: {
-                "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
             },
             body: JSON.stringify({ productId }),
         });
 
         if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.message || "Failed to remove cart item");
+            if (response.status === 401) {
+                throw new Error("Authentication failed");
+            }
+
+            if (response.status === 404) {
+                console.warn(
+                    `Item ${productId} not found in server cart, likely already removed`,
+                );
+                return { success: true, message: "Item not in cart" };
+            }
+
+            throw new Error(`Server error: ${response.status}`);
         }
 
         return await response.json();
     } catch (error) {
-        console.error("Error removing cart item:", error);
+        console.error(`Error removing item ${productId} from cart:`, error);
         throw error;
     }
 }
@@ -304,20 +416,34 @@ export async function clearCart() {
             throw new Error("Authentication required");
         }
 
-        const response = await fetch(`${API_URL}/cart/clear`, {
-            method: "DELETE",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-        });
+        try {
+            const cartResponse = await getCart();
+            if (
+                cartResponse.success &&
+                cartResponse.cart &&
+                cartResponse.cart.items
+            ) {
+                for (const item of cartResponse.cart.items) {
+                    try {
+                        await removeCartItem(item.productId);
+                    } catch (removeError) {
+                        // Ignore individual removal errors
+                        console.warn(
+                            `Failed to remove item ${item.productId}:`,
+                            removeError,
+                        );
+                    }
+                }
+            }
 
-        if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.message || "Failed to clear cart");
+            return {
+                success: true,
+                message: "Cart cleared successfully",
+            };
+        } catch (error) {
+            console.error("Error clearing cart:", error);
+            throw error;
         }
-
-        return await response.json();
     } catch (error) {
         console.error("Error clearing cart:", error);
         throw error;

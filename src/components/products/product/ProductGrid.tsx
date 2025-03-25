@@ -1,104 +1,201 @@
-import React from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { formatCurrency } from "@/utils/formatters";
+import React, { useState, useEffect, useRef } from "react";
+import ProductCard from "./ProductCard";
+import {
+    fetchProductsByCategory,
+    fetchNewProducts,
+    batchLoadProductsWithDiscounts,
+} from "@/api/product";
 import { ProductDetailsDto } from "@/types/product";
 
 interface ProductGridProps {
-    products: ProductDetailsDto[];
+    category?: string;
+    products?: ProductDetailsDto[];
+    isLoading?: boolean;
+    page?: number;
+    onPageChange?: (page: number) => void;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
-    if (!products || products.length === 0) {
+const ProductGrid: React.FC<ProductGridProps> = ({
+    category,
+    products: propProducts,
+    isLoading: propIsLoading,
+    page = 1,
+    onPageChange,
+}) => {
+    const [products, setProducts] = useState<ProductDetailsDto[]>([]);
+    const [loading, setLoading] = useState<boolean>(propIsLoading || true);
+    const [error, setError] = useState<string | null>(null);
+    const [isLoadingDiscounts, setIsLoadingDiscounts] = useState(false);
+
+    // Use this ref to track which product IDs we've already requested discounts for
+    // This prevents infinite loops by ensuring we don't request discounts for the same products twice
+    const processedProductIds = useRef<Set<string>>(new Set());
+
+    useEffect(() => {
+        // If loading state is controlled by parent, use that
+        if (propIsLoading !== undefined) {
+            setLoading(propIsLoading);
+        }
+    }, [propIsLoading]);
+
+    useEffect(() => {
+        // Reset the processed products when category or page changes
+        processedProductIds.current = new Set();
+
+        // If products are provided as props, use them
+        if (propProducts) {
+            setProducts(propProducts);
+            if (propIsLoading === undefined) {
+                setLoading(false);
+            }
+            return;
+        }
+
+        // Otherwise load products by category or fetch new products
+        const loadProducts = async () => {
+            if (propIsLoading === undefined) {
+                setLoading(true);
+            }
+
+            try {
+                let fetchedProducts;
+
+                if (category) {
+                    const response = await fetchProductsByCategory(
+                        category,
+                        page,
+                    );
+                    fetchedProducts = response.products || response;
+                } else {
+                    fetchedProducts = await fetchNewProducts();
+                }
+                setProducts(fetchedProducts);
+            } catch (err) {
+                setError("Failed to load products");
+                console.error(err);
+            } finally {
+                if (propIsLoading === undefined) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadProducts();
+    }, [category, propProducts, page, propIsLoading]);
+
+    // Batch load discount information when product list changes
+    useEffect(() => {
+        // Skip if we're already in a loading state or have no products
+        if (
+            loading ||
+            isLoadingDiscounts ||
+            !products ||
+            products.length === 0
+        ) {
+            return;
+        }
+
+        const loadDiscountInfo = async () => {
+            try {
+                // Get product IDs that need discount information
+                const productIdsNeedingDiscounts = products
+                    .filter(
+                        (p) =>
+                            !p.isDiscounted &&
+                            !p.originalPrice &&
+                            !processedProductIds.current.has(p.id),
+                    )
+                    .map((p) => p.id);
+
+                // If no products need discounts, we can skip the request
+                if (productIdsNeedingDiscounts.length === 0) {
+                    return;
+                }
+
+                // Mark these IDs as processed so we don't request them again
+                productIdsNeedingDiscounts.forEach((id) =>
+                    processedProductIds.current.add(id),
+                );
+
+                setIsLoadingDiscounts(true);
+
+                // Batch load products with discount information
+                const productsWithDiscounts =
+                    await batchLoadProductsWithDiscounts(
+                        productIdsNeedingDiscounts,
+                    );
+
+                // Log the received discount information for debugging
+                if (productsWithDiscounts.length > 0) {
+                    const discounted = productsWithDiscounts.filter(
+                        (p) => p.isDiscounted,
+                    );
+                }
+
+                // Create a map for quick lookup
+                const discountProductMap = productsWithDiscounts.reduce(
+                    (map, product) => {
+                        map[product.id] = product;
+                        return map;
+                    },
+                    {} as Record<string, ProductDetailsDto>,
+                );
+
+                // Merge discount info with original product list
+                // We'll use a functional update to ensure we have the latest state
+                setProducts((currentProducts) =>
+                    currentProducts.map((product) => {
+                        if (discountProductMap[product.id]) {
+                            return {
+                                ...product,
+                                ...discountProductMap[product.id],
+                            };
+                        }
+                        return product;
+                    }),
+                );
+            } catch (error) {
+                console.error("Failed to load discount information:", error);
+            } finally {
+                setIsLoadingDiscounts(false);
+            }
+        };
+
+        loadDiscountInfo();
+    }, [products, loading]); // We're keeping these dependencies but added guards inside
+
+    if (loading || isLoadingDiscounts) {
         return (
-            <div className="text-center py-10">
-                <h3 className="text-lg font-medium text-gray-500">
-                    No products found
-                </h3>
-                <p className="text-gray-400 mt-2">
-                    Try adjusting your search or filter criteria
-                </p>
+            <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
             </div>
         );
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {products.map((product) => (
-                <Link
-                    href={`/product/${product.id}`}
-                    key={product.id}
-                    className="group"
-                >
-                    <div className="bg-white rounded-lg shadow-md overflow-hidden transition-all hover:shadow-lg p-4">
-                        <div className="aspect-square relative mb-4 overflow-hidden">
-                            <Image
-                                src={product.imageUrl || "/placeholder.png"}
-                                alt={product.name}
-                                fill
-                                className="object-contain group-hover:scale-105 transition-transform duration-300"
-                            />
-                        </div>
-                        <h3 className="text-sm font-medium text-gray-800 line-clamp-2 mb-2 group-hover:text-primary-600">
-                            {product.name}
-                        </h3>
-
-                        <div className="flex items-center gap-1 mb-2">
-                            {/* Star rating */}
-                            <div className="flex">
-                                {[...Array(5)].map((_, i) => (
-                                    <svg
-                                        key={i}
-                                        className={`w-4 h-4 ${
-                                            i < Math.round(product.rating)
-                                                ? "text-yellow-400"
-                                                : "text-gray-300"
-                                        }`}
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                    >
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                    </svg>
-                                ))}
-                            </div>
-                            <span className="text-xs text-gray-500">
-                                ({product.reviewCount || 0})
-                            </span>
-                        </div>
-
-                        <div className="flex items-baseline mb-1">
-                            <span className="text-lg font-bold text-primary-600">
-                                {formatCurrency(product.price)}
-                            </span>
-
-                            {product.originalPrice &&
-                                product.originalPrice > product.price && (
-                                    <span className="ml-2 text-sm text-gray-500 line-through">
-                                        {formatCurrency(product.originalPrice)}
-                                    </span>
-                                )}
-                        </div>
-
-                        {product.brand && (
-                            <div className="text-xs text-gray-500 mb-2">
-                                Thương hiệu: {product.brand}
-                            </div>
-                        )}
-
-                        <div className="mt-2">
-                            <span
-                                className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
-                                    product.stock === "Còn hàng"
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-red-100 text-red-800"
-                                }`}
-                            >
-                                {product.stock}
-                            </span>
-                        </div>
-                    </div>
-                </Link>
-            ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {products.length > 0 ? (
+                products.map((product) => (
+                    <ProductCard
+                        key={product.id}
+                        id={product.id}
+                        name={product.name}
+                        price={product.price}
+                        originalPrice={product.originalPrice}
+                        discountPercentage={product.discountPercentage}
+                        isDiscounted={product.isDiscounted}
+                        discountSource={product.discountSource}
+                        discountType={product.discountType}
+                        rating={product.rating}
+                        reviewCount={product.reviewCount}
+                        imageUrl={product.imageUrl}
+                    />
+                ))
+            ) : (
+                <div className="col-span-4 text-center py-10">
+                    <p className="text-gray-500">Không tìm thấy sản phẩm nào</p>
+                </div>
+            )}
         </div>
     );
 };

@@ -7,6 +7,10 @@ export interface ProductDetailsDto {
     price: number;
     originalPrice?: number;
     discount?: number;
+    discountPercentage?: number; // Add this for percentage display
+    isDiscounted?: boolean; // Explicitly track if product has a discount
+    discountSource?: "automatic" | "manual"; // Track where discount comes from
+    discountType?: "fixed" | "percentage"; // Add the discount type
     rating: number;
     reviewCount: number;
     description?: string;
@@ -19,8 +23,10 @@ export interface ProductDetailsDto {
     stock: string;
     brand: string;
     category: string;
+    categories?: string[]; // Array of category strings
     color?: string;
     size?: string;
+    stockQuantity?: number;
 }
 
 /**

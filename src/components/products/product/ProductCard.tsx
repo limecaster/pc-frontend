@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Heart from "@/assets/icon/shop/Heart.svg";
@@ -18,6 +18,7 @@ interface ProductCardProps {
     discountPercentage?: number;
     isDiscounted?: boolean;
     discountSource?: "automatic" | "manual";
+    discountType?: "fixed" | "percentage";
     rating: number;
     reviewCount: number;
     imageUrl: string;
@@ -31,6 +32,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     discountPercentage,
     isDiscounted,
     discountSource,
+    discountType,
     rating,
     reviewCount,
     imageUrl,
@@ -39,31 +41,85 @@ const ProductCard: React.FC<ProductCardProps> = ({
     const [isHovered, setIsHovered] = useState(false);
     const [hoveredButton, setHoveredButton] = useState<string | null>(null);
 
-    // Use the wishlist context instead of local state and API calls
+    // Local state for price calculations
+    const [localOriginalPrice, setLocalOriginalPrice] = useState<
+        number | undefined
+    >(originalPrice);
+
+    // Wishlist integration
     const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
     const inWishlist = isInWishlist(id);
+
+    // Extract price from product name if needed (client-side fallback)
+    useEffect(() => {
+        // Don't override if backend already provided an original price
+        if (originalPrice !== undefined) {
+            setLocalOriginalPrice(originalPrice);
+            return;
+        }
+
+        // Special handling for test product names with price in the name
+        if (name && name.includes(" VND")) {
+            try {
+                const priceMatch = name.match(/(\d+)\s+VND/);
+                if (priceMatch && priceMatch[1]) {
+                    const extractedPrice = parseInt(priceMatch[1], 10);
+
+                    // If current price is lower than extracted price, use extracted price as original
+                    if (extractedPrice && price < extractedPrice) {
+                        setLocalOriginalPrice(extractedPrice);
+                    }
+                }
+            } catch (err) {
+                console.error(`Error extracting price from name: ${err}`);
+            }
+        }
+    }, [name, price, originalPrice]);
 
     // Format price function
     const formattedPrice = new Intl.NumberFormat("vi-VN").format(price) + "đ";
 
-    // Format the original price if available
-    const formattedOriginalPrice = originalPrice
-        ? new Intl.NumberFormat("vi-VN").format(originalPrice) + "đ"
+    // Calculate effective original price and discount information
+    const effectiveOriginalPrice = originalPrice || localOriginalPrice;
+    const effectiveDiscountPercentage = discountPercentage;
+    const effectiveDiscountSource = discountSource;
+
+    // Determine if we're using a fixed amount discount
+    const isFixedDiscount = discountType === "fixed";
+
+    const formattedOriginalPrice = effectiveOriginalPrice
+        ? new Intl.NumberFormat("vi-VN").format(effectiveOriginalPrice) + "đ"
         : null;
+
+    // Calculate discount differences
+    const priceDifference =
+        effectiveOriginalPrice && effectiveOriginalPrice > price
+            ? effectiveOriginalPrice - price
+            : 0;
+
+    const percentDifference =
+        effectiveOriginalPrice && effectiveOriginalPrice > price
+            ? (priceDifference / effectiveOriginalPrice) * 100
+            : 0;
 
     // Determine if we should show discount
     const hasDiscount =
-        isDiscounted || (originalPrice && originalPrice > price);
-    const showBadge = hasDiscount && (discountPercentage || originalPrice);
+        isDiscounted ||
+        (effectiveOriginalPrice !== undefined &&
+            effectiveOriginalPrice > price);
 
-    // Calculate discount percentage if not provided but we have original price
+    // Show badge for higher discounts
+    const showBadge =
+        hasDiscount &&
+        ((effectiveDiscountPercentage && effectiveDiscountPercentage > 0) ||
+            percentDifference >= 0.1);
+
+    // Calculate display discount - for percentage discounts show at least 1%
     const displayDiscount =
-        discountPercentage ||
-        (originalPrice && price < originalPrice
-            ? Math.round(((originalPrice - price) / originalPrice) * 100)
-            : 0);
+        effectiveDiscountPercentage ||
+        (priceDifference > 0 ? Math.max(1, Math.round(percentDifference)) : 0);
 
-    // Handler for wishlist
+    // Handler for wishlist toggle
     const handleWishlistToggle = async (e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent card click
 
@@ -74,7 +130,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         }
     };
 
-    // Handler for cart
+    // Handler for adding to cart
     const handleAddToCart = async () => {
         try {
             // Check if we have a valid token before trying API
@@ -191,6 +247,84 @@ const ProductCard: React.FC<ProductCardProps> = ({
         return stars;
     };
 
+    // Refine the price display function for better discount handling
+    const priceDisplay = () => {
+        if (price === 0) {
+            return (
+                <span className="text-rose-500 font-semibold text-sm">
+                    Miễn phí
+                </span>
+            );
+        }
+
+        // Handle discount display with appropriate formatting
+        if (hasDiscount) {
+            // Format the discount badge differently based on discount source
+            const discountBadge = () => {
+                if (effectiveDiscountSource === "automatic") {
+                    return (
+                        <span className="bg-blue-100 text-blue-600 text-xs px-1.5 py-0.5 rounded-sm">
+                            Khuyến mãi
+                        </span>
+                    );
+                } else {
+                    return (
+                        <span className="bg-rose-100 text-rose-600 text-xs px-1.5 py-0.5 rounded-sm">
+                            Giảm giá
+                        </span>
+                    );
+                }
+            };
+
+            return (
+                <>
+                    <div className="flex items-center flex-wrap gap-2">
+                        <span className="font-bold text-base text-primary">
+                            {formattedPrice}
+                        </span>
+                        <span className="text-sm text-gray-500 line-through">
+                            {formattedOriginalPrice}
+                        </span>
+                        {discountBadge()}
+                    </div>
+                    {priceDifference > 0 && (
+                        <span className="text-xs text-rose-500 font-medium mt-1">
+                            {isFixedDiscount ? (
+                                // For fixed amount discounts
+                                <>
+                                    Tiết kiệm{" "}
+                                    {new Intl.NumberFormat("vi-VN").format(
+                                        priceDifference,
+                                    )}
+                                    đ
+                                </>
+                            ) : (
+                                // For percentage discounts
+                                <>
+                                    Tiết kiệm {displayDiscount}%
+                                    <span className="ml-1">
+                                        (
+                                        {new Intl.NumberFormat("vi-VN").format(
+                                            priceDifference,
+                                        )}
+                                        đ)
+                                    </span>
+                                </>
+                            )}
+                        </span>
+                    )}
+                </>
+            );
+        }
+
+        // No discount case
+        return (
+            <span className="font-bold text-base text-primary">
+                {formattedPrice}
+            </span>
+        );
+    };
+
     return (
         <div
             className="relative w-full bg-white rounded-md overflow-hidden border border-solid border-gray-100 transition-all duration-200 hover:border-gray-200 hover:shadow-lg cursor-pointer"
@@ -202,17 +336,21 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <div className="relative aspect-square overflow-hidden">
                 {/* Show discount badge */}
                 {showBadge && (
-                    <div className="absolute top-2 right-2 z-10 bg-rose-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                        -{displayDiscount}%
+                    <div
+                        className={`absolute top-2 right-2 z-10 bg-rose-500 text-white text-xs font-bold px-2 py-1 rounded-full`}
+                    >
+                        {isFixedDiscount || percentDifference < 1
+                            ? `-${new Intl.NumberFormat("vi-VN").format(priceDifference)}đ`
+                            : `-${displayDiscount}%`}
                     </div>
                 )}
 
-                {/* Automatic discount badge */}
-                {discountSource === "automatic" && (
+                {/* Automatic discount badge
+                {effectiveDiscountSource === "automatic" && (
                     <div className="absolute top-2 left-2 z-10 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                         Auto
                     </div>
-                )}
+                )} */}
 
                 <Image
                     src={imageUrl}
@@ -230,7 +368,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     }`}
                 />
 
-                {/* Action buttons - positioned on top of the overlay but only visible when hovered */}
+                {/* Action buttons */}
                 <div
                     className={`absolute inset-0 flex items-center justify-center gap-4 transition-opacity duration-300 ${
                         isHovered
@@ -258,11 +396,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                             alt="Heart"
                             width={20}
                             height={20}
-                            className={`${
-                                hoveredButton === "heart" || inWishlist
-                                    ? "filter brightness-0 invert"
-                                    : ""
-                            }`}
+                            className={`${hoveredButton === "heart" || inWishlist ? "filter brightness-0 invert" : ""}`}
                         />
                     </button>
 
@@ -273,7 +407,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                         onMouseEnter={() => setHoveredButton("cart")}
                         onMouseLeave={() => setHoveredButton(null)}
                         onClick={(e) => {
-                            e.stopPropagation(); // Prevent card click
+                            e.stopPropagation();
                             handleAddToCart();
                         }}
                         aria-label="Add to cart"
@@ -283,11 +417,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                             alt="Cart"
                             width={20}
                             height={20}
-                            className={`${
-                                hoveredButton === "cart"
-                                    ? "filter brightness-0 invert"
-                                    : ""
-                            }`}
+                            className={`${hoveredButton === "cart" ? "filter brightness-0 invert" : ""}`}
                         />
                     </button>
 
@@ -305,11 +435,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                             alt="Eye"
                             width={20}
                             height={20}
-                            className={`${
-                                hoveredButton === "eye"
-                                    ? "filter brightness-0 invert"
-                                    : ""
-                            }`}
+                            className={`${hoveredButton === "eye" ? "filter brightness-0 invert" : ""}`}
                         />
                     </button>
                 </div>
@@ -325,41 +451,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     </span>
                 </div>
 
-                {/* Product name with tooltip for full name on hover */}
+                {/* Product name with tooltip */}
                 <Tooltip content={name}>
                     <h3 className="text-sm font-medium text-gray-900 line-clamp-2 h-10 cursor-default">
                         {name}
                     </h3>
                 </Tooltip>
 
-                {/* Price */}
-                <div className="flex flex-col">
-                    {price === 0 ? (
-                        <span className="text-rose-500 font-semibold text-sm">
-                            Không kinh doanh
-                        </span>
-                    ) : hasDiscount ? (
-                        <>
-                            <div className="flex items-center gap-2">
-                                <span className="font-semibold text-sm text-primary">
-                                    {formattedPrice}
-                                </span>
-                                <span className="text-xs text-gray-400 line-through">
-                                    {formattedOriginalPrice}
-                                </span>
-                            </div>
-                            {displayDiscount > 0 && (
-                                <span className="text-xs text-rose-500 font-medium mt-1">
-                                    Tiết kiệm {displayDiscount}%
-                                </span>
-                            )}
-                        </>
-                    ) : (
-                        <span className="font-semibold text-sm text-primary">
-                            {formattedPrice}
-                        </span>
-                    )}
-                </div>
+                {/* Price display section */}
+                <div className="flex flex-col">{priceDisplay()}</div>
             </div>
         </div>
     );
