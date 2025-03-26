@@ -133,7 +133,7 @@ export async function updateOrderPaymentStatus(
 /**
  * Track an order by ID or order number with JWT authentication if available
  * @param orderIdentifier Order ID or order number to track
- * @returns Order tracking information
+ * @returns Order tracking information with authentication status
  */
 export async function trackOrder(orderIdentifier: string | number) {
     const cacheKey = `track-${orderIdentifier}`;
@@ -150,13 +150,14 @@ export async function trackOrder(orderIdentifier: string | number) {
     try {
         // Create the request
         const requestPromise = (async () => {
-            // Add token to headers if available
+            // Add token to headers if available - make sure it's properly formatted
             const token = localStorage.getItem("token");
             const headers: Record<string, string> = {
                 "Content-Type": "application/json",
             };
 
             if (token) {
+                // Use Bearer authentication scheme
                 headers["Authorization"] = `Bearer ${token}`;
             }
 
@@ -342,15 +343,15 @@ export async function verifyAndTrackOrder(
 
 /**
  * Request an OTP to verify order tracking access
- * @param orderId Order ID or order number to track
+ * @param orderNumber Order ID or order number to track
  * @param email Email associated with the order
  * @returns Promise with the request result
  */
 export async function requestOrderTrackingOTP(
-    orderId: string | number,
+    orderNumber: string | number,
     email: string,
 ) {
-    const cacheKey = `request-otp-${orderId}-${email}`;
+    const cacheKey = `request-otp-${orderNumber}-${email}`;
     const now = Date.now();
 
     // Check if we have a cached recent request
@@ -364,19 +365,13 @@ export async function requestOrderTrackingOTP(
     try {
         // Create the request
         const requestPromise = (async () => {
-            // No need to parse as number anymore
-            // const orderIdNum = Number(orderId);
-            // if (isNaN(orderIdNum)) {
-            //     throw new Error("Invalid order ID: must be a number");
-            // }
-
             const response = await fetch(`${API_URL}/orders/track/send-otp`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    orderId: orderId, // Send as is, no conversion needed
+                    orderNumber: orderNumber,
                     email: email,
                 }),
             });
@@ -414,13 +409,13 @@ export async function requestOrderTrackingOTP(
 
 /**
  * Verify OTP and get full order tracking details
- * @param orderId Order ID or order number to track
+ * @param orderNumber Order ID or order number to track
  * @param email Email associated with the order
  * @param otp OTP code received by email
  * @returns Order tracking information
  */
 export async function verifyOrderTrackingOTP(
-    orderId: string | number,
+    orderNumber: string | number,
     email: string,
     otp: string,
 ) {
@@ -431,7 +426,7 @@ export async function verifyOrderTrackingOTP(
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                orderId: orderId,
+                orderNumber: orderNumber,
                 email: email.trim().toLowerCase(), // Normalize email
                 otp: otp.trim(), // Remove any accidental whitespace
             }),

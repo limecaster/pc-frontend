@@ -19,7 +19,7 @@ interface OrderItem {
     name: string;
     price: number;
     quantity: number;
-    image: string;
+    image: string; // Backend is now sending this property
 }
 
 interface ShippingAddress {
@@ -50,19 +50,77 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
     orderDate,
     status,
     estimatedDeliveryDate,
-    activities,
-    items = [], // Add default empty array
-    shippingAddress,
-    paymentMethod,
-    subtotal,
-    shippingFee,
-    total,
+    activities = [],
+    items = [],
+    shippingAddress = {
+        fullName: "Không có thông tin",
+        address: "Không có thông tin",
+        city: "Không có thông tin",
+        phone: "Không có thông tin",
+    },
+    paymentMethod = "Không có thông tin",
+    subtotal = 0,
+    shippingFee = 0,
+    total = 0,
 }) => {
     function formatOrderDate(orderDate: string): React.ReactNode {
         const date = new Date(orderDate);
         const formattedDate = `${date.toLocaleTimeString()} ${date.toLocaleDateString("vi-VN")}`;
         return formattedDate;
     }
+
+    const itemsToDisplay = items || [];
+    const activitiesToDisplay = activities || [];
+
+    // Define the 5 fixed steps for order tracking
+    const fixedSteps = [
+        {
+            id: "1",
+            title: "Đặt hàng",
+            defaultMessage: "Đơn hàng đã được tạo thành công",
+        },
+        {
+            id: "2",
+            title: "Xác nhận",
+            defaultMessage: "Đơn hàng đang chờ xác nhận",
+        },
+        { id: "3", title: "Thanh toán", defaultMessage: "Đang chờ thanh toán" },
+        {
+            id: "4",
+            title: "Xử lý",
+            defaultMessage: "Đơn hàng sẽ được chuẩn bị sau khi thanh toán",
+        },
+        {
+            id: "5",
+            title: "Vận chuyển",
+            defaultMessage: "Đơn hàng sẽ được giao sau khi xử lý",
+        },
+    ];
+
+    // Map the activities to our fixed steps
+    const mappedActivities = fixedSteps.map((step) => {
+        // Find matching activity in the provided activities array
+        const matchingActivity = activitiesToDisplay.find(
+            (activity) => activity.status === step.title,
+        );
+
+        if (matchingActivity) {
+            // Return the actual activity if found
+            return matchingActivity;
+        } else {
+            // Return a placeholder with default values if no matching activity
+            return {
+                id: step.id,
+                status: step.title,
+                message: step.defaultMessage,
+                timestamp: null,
+                isCompleted: false,
+            };
+        }
+    });
+
+    // Check if order is cancelled to apply a disabled theme
+    const isOrderCancelled = status === "cancelled";
 
     return (
         <div className="bg-gray-50 text-gray-800 min-h-screen">
@@ -103,27 +161,29 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Order Timeline */}
                     <div className="lg:col-span-2">
                         <div className="bg-white p-6 rounded-lg shadow-lg mb-8 border border-gray-300">
-                            <h2 className="text-xl font-bold mb-4 pb-2 border-b border-gray-300">
+                            <h2 className="text-xl font-bold mb-6 pb-2 border-b border-gray-300">
                                 Trạng thái đơn hàng
                             </h2>
-                            <div className="space-y-6">
-                                {activities.map((activity, index) => (
+                            <div className="space-y-8">
+                                {mappedActivities.map((activity, index) => (
                                     <div key={activity.id} className="flex">
                                         <div className="mr-4 relative">
                                             <div
-                                                className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                                                    activity.isCompleted
-                                                        ? "bg-green-500"
-                                                        : "bg-gray-200"
+                                                className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                                                    isOrderCancelled
+                                                        ? "bg-gray-300" // Always gray for cancelled orders
+                                                        : activity.isCompleted
+                                                          ? "bg-green-500"
+                                                          : "bg-gray-200"
                                                 }`}
                                             >
-                                                {activity.isCompleted ? (
+                                                {activity.isCompleted &&
+                                                !isOrderCancelled ? (
                                                     <svg
                                                         xmlns="http://www.w3.org/2000/svg"
-                                                        className="h-5 w-5 text-white"
+                                                        className="h-6 w-6 text-white"
                                                         viewBox="0 0 20 20"
                                                         fill="currentColor"
                                                     >
@@ -134,44 +194,60 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
                                                         />
                                                     </svg>
                                                 ) : (
-                                                    <span className="text-gray-500">
+                                                    <span
+                                                        className={`
+                                                        ${isOrderCancelled ? "text-gray-500" : "text-gray-600"} 
+                                                        font-medium
+                                                    `}
+                                                    >
                                                         {index + 1}
                                                     </span>
                                                 )}
                                             </div>
-                                            {index < activities.length - 1 && (
+                                            {index <
+                                                mappedActivities.length - 1 && (
                                                 <div
-                                                    className={`absolute top-8 left-1/2 transform -translate-x-1/2 w-0.5 h-12 ${
-                                                        activity.isCompleted &&
-                                                        activities[index + 1]
-                                                            .isCompleted
-                                                            ? "bg-green-500"
-                                                            : "bg-gray-200"
+                                                    className={`absolute top-10 left-1/2 transform -translate-x-1/2 w-0.5 h-16 ${
+                                                        isOrderCancelled
+                                                            ? "bg-gray-300" // Always gray for cancelled orders
+                                                            : activity.isCompleted &&
+                                                                mappedActivities[
+                                                                    index + 1
+                                                                ].isCompleted
+                                                              ? "bg-green-500"
+                                                              : "bg-gray-200"
                                                     }`}
                                                 ></div>
                                             )}
                                         </div>
                                         <div className="flex-1">
                                             <h3
-                                                className={`font-medium ${
-                                                    activity.isCompleted
-                                                        ? "text-gray-900"
-                                                        : "text-gray-400"
+                                                className={`text-lg font-medium ${
+                                                    isOrderCancelled
+                                                        ? "text-gray-400" // Always gray for cancelled orders
+                                                        : activity.isCompleted
+                                                          ? "text-gray-900"
+                                                          : "text-gray-500"
                                                 }`}
                                             >
                                                 {activity.status}
                                             </h3>
                                             <p
-                                                className={`text-sm ${
-                                                    activity.isCompleted
-                                                        ? "text-gray-600"
-                                                        : "text-gray-400"
+                                                className={`mt-1 ${
+                                                    isOrderCancelled
+                                                        ? "text-gray-400" // Always gray for cancelled orders
+                                                        : activity.isCompleted
+                                                          ? "text-gray-700"
+                                                          : "text-gray-500"
                                                 }`}
                                             >
-                                                {activity.message}
+                                                {isOrderCancelled &&
+                                                activity.id === "1"
+                                                    ? "Đơn hàng đã bị hủy"
+                                                    : activity.message}
                                             </p>
                                             {activity.timestamp && (
-                                                <p className="text-xs text-gray-500 mt-1">
+                                                <p className="text-sm text-gray-500 mt-1">
                                                     {activity.timestamp}
                                                 </p>
                                             )}
@@ -180,62 +256,96 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
                                 ))}
                             </div>
 
-                            {status === "shipped" && (
-                                <div className="mt-6 pt-4 border-t border-gray-300 bg-blue-50 p-3 rounded">
-                                    <p className="text-gray-700">
-                                        Dự kiến giao hàng:{" "}
-                                        <span className="font-medium text-blue-800">
-                                            {estimatedDeliveryDate}
+                            {isOrderCancelled && (
+                                <div className="mt-8 pt-4 border-t border-gray-300 bg-red-50 p-4 rounded">
+                                    <p className="text-gray-700 flex items-center">
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            className="h-5 w-5 text-red-500 mr-2"
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                        <span className="font-medium text-red-700">
+                                            Đơn hàng này đã bị hủy
                                         </span>
                                     </p>
                                 </div>
                             )}
+
+                            {status === "shipping" &&
+                                estimatedDeliveryDate &&
+                                !isOrderCancelled && (
+                                    <div className="mt-8 pt-4 border-t border-gray-300 bg-blue-50 p-4 rounded">
+                                        <p className="text-gray-700">
+                                            <span className="font-medium">
+                                                Dự kiến giao hàng:
+                                            </span>{" "}
+                                            <span className="text-blue-800 font-medium">
+                                                {estimatedDeliveryDate}
+                                            </span>
+                                        </p>
+                                    </div>
+                                )}
                         </div>
 
-                        {/* Order Items - Only render if items exist and have values */}
-                        {items && items.length > 0 ? (
+                        {itemsToDisplay && itemsToDisplay.length > 0 ? (
                             <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-300">
                                 <h2 className="text-xl font-bold mb-4 pb-2 border-b border-gray-300">
                                     Sản phẩm đã mua
                                 </h2>
                                 <div className="space-y-4">
-                                    {items.map((item, index) => (
-                                        <div
+                                    {itemsToDisplay.map((item, index) => (
+                                        <Link
+                                            href={`/product/${item.id}`}
                                             key={item.id}
-                                            className={`flex flex-col sm:flex-row items-start pb-4 hover:bg-gray-50 p-2 rounded ${
-                                                index !== items.length - 1
-                                                    ? "border-b border-gray-300"
-                                                    : ""
-                                            }`}
                                         >
-                                            <div className="sm:w-20 h-20 relative mb-2 sm:mb-0">
-                                                <Image
-                                                    src={
-                                                        item.image ||
-                                                        "/images/product-placeholder.jpg"
-                                                    }
-                                                    alt={item.name}
-                                                    layout="fill"
-                                                    objectFit="contain"
-                                                    className="rounded-md"
-                                                />
-                                            </div>
-                                            <div className="flex-1 sm:pl-4">
-                                                <h3 className="font-medium">
-                                                    {item.name}
-                                                </h3>
-                                                <div className="flex justify-between mt-1">
-                                                    <p className="text-gray-600">
-                                                        SL: {item.quantity}
-                                                    </p>
-                                                    <p className="font-medium">
-                                                        {formatCurrency(
-                                                            item.price,
-                                                        )}
-                                                    </p>
+                                            <div
+                                                key={item.id}
+                                                className={`flex flex-col sm:flex-row items-start pb-4 hover:bg-gray-50 p-2 rounded ${
+                                                    index !==
+                                                    itemsToDisplay.length - 1
+                                                        ? "border-b border-gray-300"
+                                                        : ""
+                                                }`}
+                                            >
+                                                <div className="sm:w-20 h-20 relative mb-2 sm:mb-0">
+                                                    <Image
+                                                        src={
+                                                            item.image ||
+                                                            "/images/product-placeholder.jpg"
+                                                        }
+                                                        alt={item.name}
+                                                        fill
+                                                        style={{
+                                                            objectFit:
+                                                                "contain",
+                                                        }}
+                                                        className="rounded-md"
+                                                    />
+                                                </div>
+                                                <div className="flex-1 sm:pl-4">
+                                                    <h3 className="font-medium">
+                                                        {item.name}
+                                                    </h3>
+                                                    <div className="flex justify-between mt-1">
+                                                        <p className="text-gray-600">
+                                                            SL: {item.quantity}
+                                                        </p>
+                                                        <p className="font-medium">
+                                                            {formatCurrency(
+                                                                item.price,
+                                                            )}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        </Link>
                                     ))}
                                 </div>
                             </div>
@@ -252,7 +362,6 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
                         )}
                     </div>
 
-                    {/* Order Summary */}
                     <div className="lg:col-span-1">
                         <div className="bg-white p-6 rounded-lg shadow-lg mb-6 border border-gray-300">
                             <h2 className="text-xl font-bold mb-4 pb-2 border-b border-gray-300">
@@ -263,7 +372,6 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({
                                     {shippingAddress.fullName}
                                 </p>
                                 <p>{shippingAddress.address}</p>
-                                <p>{shippingAddress.city}</p>
                                 <p>{shippingAddress.phone}</p>
                             </div>
                         </div>

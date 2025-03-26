@@ -22,20 +22,39 @@ export default function OrderTrackingDetailPage() {
     // Verification states - simplified to just OTP
     const [verificationNeeded, setVerificationNeeded] = useState(false);
     const [email, setEmail] = useState("");
-    const [emailSubmitted, setEmailSubmitted] = useState(false); // Add this new state
+    const [emailSubmitted, setEmailSubmitted] = useState(false);
     const [otp, setOtp] = useState("");
     const [otpError, setOtpError] = useState("");
+    const [verificationMessage, setVerificationMessage] = useState("");
 
     const hasFetched = useRef(false);
 
-    // Check session storage for previously verified orders
+    // Check session storage for previously verified orders, but only apply for the same email
     const checkSessionStorage = () => {
         try {
-            return (
-                sessionStorage.getItem(`verified-order-${orderId}`) === "true"
-            );
+            const key = `verified-order-${orderId}`;
+            const storedData = sessionStorage.getItem(key);
+            const currentSessionId =
+                sessionStorage.getItem("current-session-id");
+
+            // If there's stored data, it should be an object with email, timestamp, and sessionId
+            if (storedData && currentSessionId) {
+                const data = JSON.parse(storedData);
+
+                // Only consider valid if:
+                // 1. Verified in the last 24 hours
+                const isRecent =
+                    Date.now() - data.timestamp < 24 * 60 * 60 * 1000;
+
+                // 2. Matches current browser session
+                const isSameSession = data.sessionId === currentSessionId;
+
+                return isRecent && isSameSession ? data.email : null;
+            }
+            return null;
         } catch (e) {
-            return false;
+            console.error("Error reading from session storage:", e);
+            return null;
         }
     };
 
@@ -46,26 +65,71 @@ export default function OrderTrackingDetailPage() {
         if (hasFetched.current) return;
         hasFetched.current = true;
 
-        // Check if already verified
-        const isVerified = checkSessionStorage();
+        // Generate a unique session ID if one doesn't exist
+        if (!sessionStorage.getItem("current-session-id")) {
+            sessionStorage.setItem("current-session-id", Date.now().toString());
+        }
 
-        fetchOrderData(isVerified);
+        // Check if already verified, returns the email if verified
+        const verifiedEmail = checkSessionStorage();
+
+        // Only pass true if we have a verified email
+        fetchOrderData(!!verifiedEmail, verifiedEmail);
     }, [orderId]);
 
-    // Main data fetching function
-    const fetchOrderData = async (skipVerification = false) => {
+    // Updated fetch function to log detailed response
+    const fetchOrderData = async (
+        skipVerification = false,
+        verifiedEmail = null,
+    ) => {
         try {
             setIsLoading(true);
-            console.log(`Fetching order tracking data for: ${orderId}`);
 
             const response = await trackOrder(orderId);
 
             if (response.success) {
                 setOrderData(response.order);
-                console.log("Order data fetched:", response.order);
-                // Check if verification is needed and hasn't been done before
-                if (response.requiresVerification && !skipVerification) {
+
+                // Check authentication and ownership status
+                const isAuthenticated = response.isAuthenticated;
+                const isOwner = response.isOwner;
+
+                // Key logic change: For non-authenticated users, we should ALWAYS require verification
+                // UNLESS they're in the same browser session and recently verified
+                if (
+                    // Backend says verification is required
+                    response.requiresVerification &&
+                    // User is not an authenticated owner
+                    !isOwner &&
+                    // If user is not authenticated, only skip verification if they verified in this session
+                    (!isAuthenticated
+                        ? // For non-logged in users - only skip if recently verified in this session
+                          !(
+                              skipVerification &&
+                              verifiedEmail &&
+                              sessionStorage.getItem("current-session-id")
+                          )
+                        : // For logged in but non-owner users - always require verification
+                          true)
+                ) {
                     setVerificationNeeded(true);
+
+                    // Set message based on auth status
+                    if (isAuthenticated) {
+                        setVerificationMessage(
+                            "Bạn đã đăng nhập nhưng không phải là chủ đơn hàng này. " +
+                                "Vui lòng xác thực email đã sử dụng khi đặt hàng để xem chi tiết.",
+                        );
+                    } else {
+                        setVerificationMessage(
+                            "Vui lòng xác thực email đã sử dụng khi đặt hàng để xem chi tiết đơn hàng.",
+                        );
+
+                        // If we have a verified email from recent session, pre-fill it
+                        if (verifiedEmail) {
+                            setEmail(verifiedEmail);
+                        }
+                    }
                 } else {
                     setVerificationNeeded(false);
                 }
@@ -73,13 +137,14 @@ export default function OrderTrackingDetailPage() {
                 setError(response.message || "Không tìm thấy đơn hàng");
             }
         } catch (error) {
+            console.error("Error fetching order data:", error);
             setError("Có lỗi xảy ra khi tìm thông tin đơn hàng");
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Handle email submission and OTP request - modified to use button click instead of form submit
+    // Handle email submission and OTP request
     const handleEmailSubmit = async (e: React.MouseEvent) => {
         e.preventDefault();
 
@@ -97,10 +162,11 @@ export default function OrderTrackingDetailPage() {
         setIsLoading(true);
 
         try {
+            // Use orderId as orderNumber - the API will handle finding by orderNumber
             const response = await requestOrderTrackingOTP(orderId, email);
 
             if (response.success) {
-                setEmailSubmitted(true); // Set this flag instead of relying on email state alone
+                setEmailSubmitted(true);
                 toast.success("Mã xác thực đã được gửi đến email của bạn");
             } else {
                 toast.error(
@@ -114,7 +180,7 @@ export default function OrderTrackingDetailPage() {
         }
     };
 
-    // Handle OTP verification
+    // Updated OTP verification to store the email
     const handleOtpSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -129,10 +195,8 @@ export default function OrderTrackingDetailPage() {
         try {
             // Trim any whitespace from the OTP
             const trimmedOtp = otp.trim();
-            console.log(
-                `Submitting OTP: ${trimmedOtp} for order ${orderId} email ${email}`,
-            );
 
+            // Changed from orderId to orderNumber
             const response = await verifyOrderTrackingOTP(
                 orderId,
                 email,
@@ -140,9 +204,17 @@ export default function OrderTrackingDetailPage() {
             );
 
             if (response.success) {
-                // Save verification state to session storage
+                // Save verified email to session storage with timestamp AND session ID
                 try {
-                    sessionStorage.setItem(`verified-order-${orderId}`, "true");
+                    const verificationData = {
+                        email: email,
+                        timestamp: Date.now(),
+                        sessionId: sessionStorage.getItem("current-session-id"),
+                    };
+                    sessionStorage.setItem(
+                        `verified-order-${orderId}`,
+                        JSON.stringify(verificationData),
+                    );
                 } catch (e) {
                     console.error("Error saving to session storage:", e);
                 }
@@ -207,6 +279,11 @@ export default function OrderTrackingDetailPage() {
                         Xác thực đơn hàng #{orderData.orderNumber}
                     </h1>
 
+                    {/* Show context message about why verification is needed */}
+                    <p className="mb-4 text-gray-600 text-center">
+                        {verificationMessage}
+                    </p>
+
                     {!emailSubmitted ? (
                         // Step 1: Email input - completely revised to avoid form submission
                         <>
@@ -215,7 +292,6 @@ export default function OrderTrackingDetailPage() {
                                 dùng khi đặt hàng:
                             </p>
                             <div>
-                                {" "}
                                 {/* Changed from form to div to prevent HTML form behavior */}
                                 <div className="mb-4">
                                     <input
@@ -318,12 +394,6 @@ export default function OrderTrackingDetailPage() {
                                 Mã đơn hàng:{" "}
                                 <span className="font-medium">
                                     {orderData.orderNumber}
-                                </span>
-                            </p>
-                            <p>
-                                Trạng thái:{" "}
-                                <span className="font-medium">
-                                    {orderData.status}
                                 </span>
                             </p>
                             <p>
