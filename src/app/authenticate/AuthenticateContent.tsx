@@ -15,6 +15,10 @@ import { toast } from "react-hot-toast";
 type AuthScreen = "login" | "register" | "forgotPassword" | "verification";
 
 const AuthenticateContent: React.FC = () => {
+    useEffect(() => {
+        // Set the page title
+        document.title = "Đăng nhập hoặc Đăng ký";
+    }, []);
     const [activeTab, setActiveTab] = useState<"login" | "register">("login");
     const [currentScreen, setCurrentScreen] = useState<AuthScreen>("login");
     const [error, setError] = useState<string | null>(null);

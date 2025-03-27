@@ -1,10 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Card } from "flowbite-react";
 import { ShoppingBagIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 
 export default function StaffDashboard() {
+    useEffect(() => {
+        document.title = "Tổng quan";
+    }, []);
+
     return (
         <div>
             <h1 className="text-2xl font-semibold text-gray-800 mb-6">

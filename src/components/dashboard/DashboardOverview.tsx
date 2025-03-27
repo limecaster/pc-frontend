@@ -34,8 +34,6 @@ const DashboardOverview: React.FC = () => {
                 // Fetch orders if the API function exists
                 try {
                     const ordersResponse = await getOrderHistory();
-                    console.log("Orders response:", ordersResponse);
-
                     // Check if orders response is valid and contains an array
                     if (ordersResponse && Array.isArray(ordersResponse)) {
                         setOrderCount(ordersResponse.length || 0);

@@ -17,6 +17,7 @@ export default function OrderDetailsPage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        document.title = "Chi tiết đơn hàng";
         const fetchOrderDetails = async () => {
             setLoading(true);
             setError(null);

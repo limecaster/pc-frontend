@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { use, useEffect } from "react";
 import PCConfigurationsPage from "@/components/dashboard/pc-configurations/PCConfigurationsPage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
@@ -10,7 +10,9 @@ export default function PCConfigurations() {
     const router = useRouter();
 
     // Protect this page - only logged in users can see it
-    React.useEffect(() => {
+    useEffect(() => {
+        document.title = "Cấu hình PC của tôi";
+
         if (!isLoading && !isAuthenticated) {
             router.push("/login?redirect=/dashboard/pc-configurations");
         }

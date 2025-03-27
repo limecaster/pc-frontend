@@ -1,4 +1,5 @@
 import { API_URL } from "@/config/constants";
+import { trackOrderCreated } from "./events";
 
 /**
  * Create a new order for a logged-in user
@@ -28,7 +29,17 @@ export async function createOrder(orderData: any) {
             );
         }
 
-        return await response.json();
+        const result = await response.json();
+
+        // Track order creation event
+        if (result.success && result.order) {
+            trackOrderCreated(result.order.id.toString(), {
+                ...result.order,
+                items: orderData.items, // Use items from request as they have more details
+            });
+        }
+
+        return result;
     } catch (error) {
         console.error("Error creating order:", error);
         throw error;
@@ -58,7 +69,17 @@ export async function createGuestOrder(orderData: any) {
             );
         }
 
-        return await response.json();
+        const result = await response.json();
+
+        // Track order creation event for guest orders
+        if (result.success && result.order) {
+            trackOrderCreated(result.order.id.toString(), {
+                ...result.order,
+                items: orderData.items, // Use items from request as they have more details
+            });
+        }
+
+        return result;
     } catch (error) {
         console.error("Error creating guest order:", error);
         throw error;

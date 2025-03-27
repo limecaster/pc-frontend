@@ -1,4 +1,5 @@
 import { API_URL } from "@/config/constants";
+import { trackAddToCart, trackRemoveFromCart } from "./events";
 
 /**
  * Add a single product to the cart
@@ -182,6 +183,16 @@ export async function addToCartAndSync(
         // Save updated cart to localStorage
         localStorage.setItem("cart", JSON.stringify(localCart));
 
+        // Track the add to cart event
+        trackAddToCart(productId, quantity, {
+            name: product.name,
+            price: product.price,
+            originalPrice: product.originalPrice,
+            category: product.category,
+            brand: product.brand,
+            stock_quantity: product.stock_quantity,
+        });
+
         // If user is logged in, sync with the backend
         const token = localStorage.getItem("token");
         if (token) {
@@ -299,34 +310,53 @@ export async function updateCartItemQuantity(
             throw new Error("Authentication required");
         }
 
-        // // Enforce quantity limits
-        // if (quantity > 100) {
-        //     quantity = 100;
-        //     console.warn("Quantity limited to 100 units per product");
-        // }
+        // Fetch the current cart to get the previous quantity for comparison
+        let previousQuantity = 0;
+        try {
+            const cartData = await getCart();
+            if (cartData.success && cartData.cart && cartData.cart.items) {
+                const item = cartData.cart.items.find(
+                    (i: any) => i.productId === productId,
+                );
+                if (item) {
+                    previousQuantity = item.quantity;
+                }
+            }
+        } catch (e) {
+            console.warn("Failed to get previous quantity for tracking:", e);
+        }
 
-        // // Check for potential numeric overflow
-        // try {
-        //     const productInfo = await getProductPrice(productId);
-        //     if (productInfo && productInfo.price) {
-        //         // Check if price * quantity would exceed database limits (99,999,999.99)
-        //         const totalPrice = productInfo.price * quantity;
-        //         if (totalPrice > 99999999) {
-        //             // Find the maximum quantity that would be safe
-        //             const safeQuantity = Math.floor(
-        //                 99999999 / productInfo.price,
-        //             );
-        //             quantity = Math.min(quantity, Math.max(1, safeQuantity));
-        //             console.warn(
-        //                 `Quantity adjusted to ${quantity} to prevent numeric overflow`,
-        //             );
-        //         }
-        //     }
-        // } catch (priceError) {
-        //     console.warn("Could not verify price safety limits:", priceError);
-        // }
+        // Get product details for tracking
+        try {
+            const productResponse = await fetch(
+                `${API_URL}/products/${productId}`,
+            );
+            if (productResponse.ok) {
+                const product = await productResponse.json();
 
-        // FIXED: Using correct endpoint /cart/update-item instead of /cart/{productId}
+                // If quantity increased, track as an add to cart event
+                if (quantity > previousQuantity) {
+                    const addedQuantity = quantity - previousQuantity;
+                    trackAddToCart(productId, addedQuantity, {
+                        name: product.name,
+                        price: product.price,
+                        originalPrice: product.originalPrice,
+                        category: product.category,
+                        brand: product.brand,
+                    });
+                }
+                // If quantity decreased, could track as a partial removal
+                else if (quantity < previousQuantity && quantity > 0) {
+                    // Optional: Track quantity reduction event
+                    // This could be a custom event if needed
+                }
+            }
+        } catch (trackError) {
+            console.warn("Failed to track quantity update event:", trackError);
+            // Continue with update even if tracking fails
+        }
+
+        // Continue with the existing update logic
         const response = await fetch(`${API_URL}/cart/update-item`, {
             method: "PUT",
             headers: {
@@ -374,6 +404,28 @@ export async function removeCartItem(productId: string) {
             throw new Error("Authentication required");
         }
 
+        // First fetch product details for tracking
+        try {
+            const productResponse = await fetch(
+                `${API_URL}/products/${productId}`,
+            );
+            if (productResponse.ok) {
+                const product = await productResponse.json();
+
+                // Track removal event with product details
+                trackRemoveFromCart(productId, {
+                    name: product.name,
+                    price: product.price,
+                    originalPrice: product.originalPrice,
+                    category: product.category,
+                    brand: product.brand,
+                });
+            }
+        } catch (trackError) {
+            console.warn("Failed to track remove event:", trackError);
+            // Continue with removal even if tracking fails
+        }
+
         const response = await fetch(`${API_URL}/cart/remove-item`, {
             method: "DELETE",
             headers: {
@@ -401,6 +453,52 @@ export async function removeCartItem(productId: string) {
         return await response.json();
     } catch (error) {
         console.error(`Error removing item ${productId} from cart:`, error);
+        throw error;
+    }
+}
+
+/**
+ * Remove an item from the local cart with tracking
+ * @param productId The ID of the product to remove
+ */
+export function removeLocalCartItem(productId: string) {
+    try {
+        // Get current cart
+        const localCart = JSON.parse(localStorage.getItem("cart") || "[]");
+
+        // Find the item for tracking before removal
+        const item = localCart.find(
+            (cartItem: any) => cartItem.id === productId,
+        );
+
+        if (item) {
+            // Track removal
+            trackRemoveFromCart(productId, {
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity,
+                imageUrl: item.imageUrl,
+            });
+
+            // Remove item
+            const updatedCart = localCart.filter(
+                (cartItem: any) => cartItem.id !== productId,
+            );
+            localStorage.setItem("cart", JSON.stringify(updatedCart));
+
+            // Dispatch cart updated event
+            const event = new CustomEvent("cart-updated", {
+                detail: updatedCart,
+            });
+            window.dispatchEvent(event);
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error(
+            `Error removing item ${productId} from local cart:`,
+            error,
+        );
         throw error;
     }
 }

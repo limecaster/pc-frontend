@@ -2,7 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import "flowbite";
 import { getAllCompatibleParts } from "@/api/manual-build-pc";
-import { saveConfiguration, getConfiguration } from "@/api/pc-configuration";
+import {
+    saveConfiguration,
+    getConfiguration,
+    standardizeComponentType,
+} from "@/api/pc-configuration";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "react-hot-toast";
 import { saveAs } from "file-saver";
@@ -14,7 +18,7 @@ import PartSelectionModal from "./PartSelectionModal";
 import ConfigurationSummary from "./ConfigurationSummary";
 import SaveConfigurationModal from "./SaveConfigurationModal";
 
-const ManualBuildPCContent = () => {
+const ManualBuildPCContent: React.FC = () => {
     const router = useRouter();
     const { isAuthenticated } = useAuth();
     const searchParams = useSearchParams() as any;
@@ -65,7 +69,56 @@ const ManualBuildPCContent = () => {
             getConfiguration(configId)
                 .then((config) => {
                     if (config && config.products) {
-                        setSelectedProducts(config.products);
+                        // Log original products before any processing
+                        console.log(
+                            "[ManualBuildPC] Original loaded components:",
+                            config.products,
+                        );
+
+                        // Post-process any InternalHardDrive components
+                        // Explicitly type as Record<string, any> to allow string indexing
+                        const processedProducts: Record<string, any> = {
+                            ...config.products,
+                        };
+
+                        // Look for storage components that need special handling
+                        Object.entries(processedProducts).forEach(
+                            ([key, comp]: [string, any]) => {
+                                if (key === "InternalHardDrive") {
+                                    // Determine if it's SSD or HDD
+                                    const isSSD =
+                                        comp.type === "SSD" ||
+                                        comp.storageType === "SSD" ||
+                                        (comp.name &&
+                                            comp.name.includes("SSD")) ||
+                                        (comp.name &&
+                                            comp.name.includes("Solid State"));
+
+                                    const storageType = isSSD ? "SSD" : "HDD";
+                                    console.log(
+                                        `[ManualBuildPC] Reclassifying storage '${comp.name || "Unknown"}' as ${storageType}`,
+                                    );
+
+                                    // Add this component with the correct type key
+                                    processedProducts[storageType] = {
+                                        ...comp,
+                                        type: storageType,
+                                        storageType: storageType,
+                                    };
+
+                                    // Delete with explicit indexing - this is now properly typed
+                                    delete processedProducts[
+                                        "InternalHardDrive"
+                                    ];
+                                }
+                            },
+                        );
+
+                        console.log(
+                            "[ManualBuildPC] Processed products for display:",
+                            processedProducts,
+                        );
+                        setSelectedProducts(processedProducts);
                         setConfigName(config.name || "");
                         setConfigPurpose(config.purpose || "");
                     }
@@ -222,7 +275,8 @@ const ManualBuildPCContent = () => {
 
     const handleRemovePart = (category: string) => {
         setSelectedProducts((prev) => {
-            const newSelectedProducts = { ...prev };
+            // Explicitly type as Record<string, any> to allow string indexing
+            const newSelectedProducts: Record<string, any> = { ...prev };
             delete newSelectedProducts[category];
             return newSelectedProducts;
         });
@@ -239,6 +293,8 @@ const ManualBuildPCContent = () => {
     const calculateTotalWattage = () => {
         let totalWattage = 0;
         for (const [key, product] of Object.entries(selectedProducts)) {
+            console.log("Product key:", key);
+            console.log("Product value:", product);
             if (key === "CPU" || key === "Card đồ họa") {
                 totalWattage += parseFloat(product.tdp) || 0;
             }
@@ -251,14 +307,28 @@ const ManualBuildPCContent = () => {
             if (key === "Bo mạch chủ") {
                 totalWattage += 80;
             }
-            if (key === "RAM") {
-                totalWattage += parseInt(product.moduleNumber) * 5;
-            }
             if (key === "HDD" || key === "SSD") {
                 if (product.formFactor === "2.5") {
                     totalWattage += 5;
                 } else {
                     totalWattage += 10;
+                }
+            }
+            if (key === "Card đồ họa" || key === "GraphicsCard") {
+                totalWattage += parseFloat(product.tdp) || 0;
+            }
+            if (key === "RAM") {
+                //
+                const moduleNumber = parseInt(product.moduleNumber);
+                if (!isNaN(moduleNumber)) {
+                    totalWattage += moduleNumber * 5;
+                } else {
+                    // Try to parse the module number from the name
+                    // Find patterns like number + " x " + number + " GB"
+                    const match = product.name.match(/(\d+) x (\d+) GB/);
+                    if (match) {
+                        totalWattage += parseInt(match[1]) * 5;
+                    }
                 }
             }
         }
@@ -295,7 +365,7 @@ const ManualBuildPCContent = () => {
         if (!isAuthenticated) {
             toast.error("Vui lòng đăng nhập để lưu cấu hình!");
             router.push(
-                `/login?redirect=${encodeURIComponent(window.location.pathname)}`,
+                `/authenticate?redirect=${encodeURIComponent(window.location.pathname)}`,
             );
             return;
         }
@@ -321,11 +391,58 @@ const ManualBuildPCContent = () => {
         }
 
         try {
+            // Standardize component types before saving
+            const normalizedProducts = Object.entries(selectedProducts).reduce(
+                (result, [type, product]) => {
+                    // Log each product and its type for debugging
+                    console.log(`Preparing product of type ${type}:`, product);
+
+                    // Standardize component type
+                    const standardType = standardizeComponentType(type);
+
+                    // Ensure price is a number
+                    let price = 0;
+                    if (product.price !== undefined && product.price !== null) {
+                        // Convert to number if it's a string
+                        price =
+                            typeof product.price === "string"
+                                ? parseFloat(product.price.replace(/,/g, ""))
+                                : Number(product.price);
+
+                        // If conversion resulted in NaN, default to 0
+                        if (isNaN(price)) price = 0;
+                    }
+
+                    // Store original type in details
+                    const productWithDetails = {
+                        ...product,
+                        price: price, // Ensure price is a number
+                        details: {
+                            ...(product.details || {}),
+                            originalComponentType: type,
+                        },
+                    };
+
+                    // Use the original type as the key for proper mapping
+                    return {
+                        ...result,
+                        [type]: productWithDetails, // Keep original type as key
+                    };
+                },
+                {},
+            );
+
+            // Log the normalized products
+            console.log(
+                "Normalized products before saving:",
+                normalizedProducts,
+            );
+
             // Create config data object without id initially
             const configData: any = {
                 name: configName,
                 purpose: configPurpose,
-                products: selectedProducts,
+                products: normalizedProducts,
                 totalPrice: totalPrice,
                 wattage: totalWattage,
             };

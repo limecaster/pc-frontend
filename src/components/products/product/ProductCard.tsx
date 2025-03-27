@@ -6,9 +6,10 @@ import Eye from "@/assets/icon/shop/Eye.svg";
 import Cart from "@/assets/icon/shop/Cart.svg";
 import { Tooltip } from "@/components/ui/tooltip";
 import { toast } from "react-hot-toast";
-import { addToCart } from "@/api/cart";
+import { addToCartAndSync } from "@/api/cart";
 import { validateTokenFormat } from "@/api/auth";
 import { useWishlist } from "@/contexts/WishlistContext";
+import { trackProductClick } from "@/api/events";
 
 interface ProductCardProps {
     id: string;
@@ -131,59 +132,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
     };
 
     // Handler for adding to cart
-    const handleAddToCart = async () => {
+    const handleAddToCart = async (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent card click
+
         try {
-            // Check if we have a valid token before trying API
-            if (localStorage.getItem("token") && validateTokenFormat()) {
-                try {
-                    // Use the API function directly instead of fetch
-                    await addToCart(id, 1);
-
-                    // Show success notification
-                    toast.success(`Đã thêm sản phẩm vào giỏ hàng!`, {
-                        duration: 3000,
-                    });
-                    return;
-                } catch (error: any) {
-                    // If unauthorized or token invalid, fall back to localStorage
-                    if (
-                        error.message?.includes("Authentication") ||
-                        error.message?.includes("401")
-                    ) {
-                        console.log(
-                            "Authentication failed, using localStorage instead",
-                        );
-                    } else {
-                        // For other API errors, rethrow to be caught by outer catch
-                        throw error;
-                    }
-                }
-            }
-
-            // Fallback to localStorage (for unauthenticated users or if API fails)
-            const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
-
-            // Check if product already exists in cart
-            const existingItemIndex = cartItems.findIndex(
-                (item: any) => item.id === id,
-            );
-
-            if (existingItemIndex >= 0) {
-                // Update quantity if product already exists
-                cartItems[existingItemIndex].quantity += 1;
-            } else {
-                // Add new product to cart
-                cartItems.push({
-                    id,
-                    name,
-                    price,
-                    imageUrl,
-                    quantity: 1,
-                });
-            }
-
-            // Save updated cart to localStorage
-            localStorage.setItem("cart", JSON.stringify(cartItems));
+            // Use addToCartAndSync instead of direct localStorage manipulation
+            // This ensures tracking is always triggered regardless of auth status
+            const result = await addToCartAndSync(id, 1);
 
             // Show success notification
             toast.success(`Đã thêm sản phẩm vào giỏ hàng!`, {
@@ -196,11 +151,39 @@ const ProductCard: React.FC<ProductCardProps> = ({
     };
 
     const handleProductClick = () => {
+        // Track the product click before navigation
+        trackProductClick(id, {
+            name,
+            price,
+            originalPrice: effectiveOriginalPrice,
+            discountPercentage: effectiveDiscountPercentage,
+            isDiscounted: hasDiscount,
+            discountSource: effectiveDiscountSource,
+            discountType,
+            rating,
+            reviewCount,
+        });
+
         router.push(`/product/${id}`);
     };
 
     const handleQuickView = (e: React.MouseEvent) => {
         e.stopPropagation();
+
+        // Track quick view click
+        trackProductClick(id, {
+            name,
+            price,
+            originalPrice: effectiveOriginalPrice,
+            discountPercentage: effectiveDiscountPercentage,
+            isDiscounted: hasDiscount,
+            discountSource: effectiveDiscountSource,
+            discountType,
+            rating,
+            reviewCount,
+            interactionType: "quick_view",
+        });
+
         router.push(`/product/${id}`);
     };
 
@@ -408,7 +391,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                         onMouseLeave={() => setHoveredButton(null)}
                         onClick={(e) => {
                             e.stopPropagation();
-                            handleAddToCart();
+                            handleAddToCart(e);
                         }}
                         aria-label="Add to cart"
                     >

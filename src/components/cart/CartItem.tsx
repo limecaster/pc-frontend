@@ -203,6 +203,12 @@ const CartItem: React.FC<CartItemProps> = ({
         );
     };
 
+    // Simplify the remove handler since tracking is now in the API
+    const handleRemove = async () => {
+        // Simply call the onRemove function which now has tracking built in
+        await onRemove(id);
+    };
+
     return (
         <tr>
             <td className="py-4 px-6">
@@ -281,7 +287,7 @@ const CartItem: React.FC<CartItemProps> = ({
             </td>
             <td className="py-4 px-6 text-right">
                 <button
-                    onClick={() => onRemove(id)}
+                    onClick={handleRemove}
                     className="text-red-500 hover:text-red-700"
                 >
                     <svg

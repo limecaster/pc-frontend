@@ -11,6 +11,7 @@ import { ProductDetails } from "@/types/ProductDetails";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { fetchProductById } from "@/api/productDetail";
 import { addToCartAndSync } from "@/api/cart";
+import { trackProductView } from "@/api/events";
 
 const ProductDetailPage = () => {
     useEffect(() => {
@@ -41,6 +42,20 @@ const ProductDetailPage = () => {
                 if (productData?.imageUrl) {
                     setMainImage(productData.imageUrl);
                 }
+
+                // Track product view if product data is successfully loaded
+                if (productData) {
+                    trackProductView(id, {
+                        name: productData.name,
+                        price: productData.price,
+                        originalPrice: productData.originalPrice,
+                        category: productData.category,
+                        brand: productData.brand,
+                        rating: productData.rating,
+                        reviewCount: productData.reviewCount,
+                    });
+                }
+
                 setLoading(false);
             } catch (error) {
                 console.error("Error loading product:", error);

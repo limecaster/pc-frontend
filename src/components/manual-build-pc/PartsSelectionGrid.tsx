@@ -31,63 +31,77 @@ interface PartsSelectionGridProps {
 export const itemData = [
     {
         label: "CPU",
+        vietnameseLabel: "CPU",
         imageSrc: <CpuChipIcon className="w-12 h-12 text-gray-600" />,
     },
     {
-        label: "Bo mạch chủ",
+        label: "Motherboard",
+        vietnameseLabel: "Bo mạch chủ",
         imageSrc: <ServerIcon className="w-12 h-12 text-gray-600" />,
     },
     {
         label: "RAM",
+        vietnameseLabel: "RAM",
         imageSrc: <DeviceTabletIcon className="w-12 h-12 text-gray-600" />,
     },
     {
         label: "HDD",
+        vietnameseLabel: "HDD",
         imageSrc: <CircleStackIcon className="w-12 h-12 text-gray-600" />,
     },
     {
         label: "SSD",
+        vietnameseLabel: "SSD",
         imageSrc: <SquaresPlusIcon className="w-12 h-12 text-gray-600" />,
     },
     {
-        label: "Card đồ họa",
+        label: "GraphicsCard",
+        vietnameseLabel: "Card đồ họa",
         imageSrc: <ComputerDesktopIcon className="w-12 h-12 text-gray-600" />,
     },
     {
-        label: "Nguồn",
+        label: "PowerSupply",
+        vietnameseLabel: "Nguồn",
         imageSrc: <BoltIcon className="w-12 h-12 text-gray-600" />,
     },
     {
-        label: "Vỏ case",
+        label: "Case",
+        vietnameseLabel: "Vỏ case",
         imageSrc: <CubeIcon className="w-12 h-12 text-gray-600" />,
     },
     {
-        label: "Quạt tản nhiệt",
+        label: "CPUCooler",
+        vietnameseLabel: "Quạt tản nhiệt",
         imageSrc: <ArrowPathIcon className="w-12 h-12 text-gray-600" />,
     },
     {
-        label: "Màn hình",
+        label: "Monitor",
+        vietnameseLabel: "Màn hình",
         imageSrc: <ComputerDesktopIcon className="w-12 h-12 text-gray-600" />,
     },
-    // Fixed icons that were missing
     {
-        label: "Bàn phím",
+        label: "Keyboard",
+        vietnameseLabel: "Bàn phím",
         imageSrc: <RectangleGroupIcon className="w-12 h-12 text-gray-600" />,
     },
     {
-        label: "Chuột",
+        label: "Mouse",
+        vietnameseLabel: "Chuột",
         imageSrc: <CursorArrowRaysIcon className="w-12 h-12 text-gray-600" />,
     },
     {
-        label: "Card mạng không dây",
+        label: "WiFiCard",
+        vietnameseLabel: "Card mạng không dây",
         imageSrc: <SignalIcon className="w-12 h-12 text-gray-600" />,
     },
     {
-        label: "Card mạng có dây",
+        label: "WiredNetworkCard",
+        vietnameseLabel: "Card mạng có dây",
         imageSrc: <ServerStackIcon className="w-12 h-12 text-gray-600" />,
     },
     {
-        label: "Kem tản nhiệt",
+        label: "ThermalPaste",
+        vietnameseLabel: "Kem tản nhiệt",
         imageSrc: <BeakerIcon className="w-12 h-12 text-gray-600" />,
     },
 ];
@@ -99,12 +113,12 @@ const PartsSelectionGrid: React.FC<PartsSelectionGridProps> = ({
 }) => {
     return (
         <div className="grid grid-cols-1 gap-4">
-            {itemData.map(({ label, imageSrc }) => {
+            {itemData.map(({ label, imageSrc, vietnameseLabel }) => {
                 const selectedItem = selectedProducts[label];
                 return !selectedItem ? (
                     <ManualBuildPCItemCard
                         key={label}
-                        label={label}
+                        label={vietnameseLabel}
                         imageSrc={imageSrc}
                         description="Vui lòng chọn linh kiện"
                         buttonLabel="Chọn"

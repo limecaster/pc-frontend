@@ -1,8 +1,12 @@
 "use client";
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import SearchResultsContent from "./SearchResultsContent";
 
 const SearchPage: React.FC = () => {
+    useEffect(() => {
+        document.title = "Kết quả tìm kiếm";
+    }, []);
+
     return (
         <Suspense
             fallback={

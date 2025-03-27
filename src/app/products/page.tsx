@@ -1,9 +1,13 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import ProductsContent from "./ProductsContent";
 
 const ProductsPage: React.FC = () => {
+    useEffect(() => {
+        document.title = "Danh sách sản phẩm";
+    }, []);
+
     return (
         <Suspense
             fallback={

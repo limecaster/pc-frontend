@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { getOrderDetails } from "@/api/orders"; // Use the more complete API directly
 import { updateOrderPaymentStatus } from "@/api/order";
 import CheckoutSuccessPage from "@/components/checkout/CheckoutSuccessPage";
+import { trackPaymentCompleted } from "@/api/events";
 
 const CheckoutSuccessContent: React.FC = () => {
     const searchParams = useSearchParams();
@@ -18,6 +19,7 @@ const CheckoutSuccessContent: React.FC = () => {
                 const orderId = searchParams.get("orderId");
                 const paymentStatus = searchParams.get("status");
                 const paymentCode = searchParams.get("code");
+                const paymentId = searchParams.get("id");
 
                 // If we don't have an orderId, we can't proceed
                 if (!orderId) {
@@ -33,8 +35,16 @@ const CheckoutSuccessContent: React.FC = () => {
                         orderId,
                         paymentStatus,
                         paymentCode,
-                        searchParams.get("id"), // Include PayOS ID if present
+                        paymentId, // Include PayOS ID if present
                     );
+
+                    // Track payment completed event
+                    trackPaymentCompleted(orderId, {
+                        id: paymentId,
+                        status: paymentStatus,
+                        paymentMethod: "online", // Assuming online payment for PayOS
+                        amount: null, // Will be updated when we get order details
+                    });
                 }
 
                 // Use the proper API endpoint for fetching complete order details
@@ -44,6 +54,20 @@ const CheckoutSuccessContent: React.FC = () => {
 
                 if (orderDetails && orderDetails.order) {
                     setOrderData(orderDetails.order);
+
+                    // Update payment tracking with full order information if it was successful
+                    if (paymentStatus === "PAID" && paymentCode === "00") {
+                        trackPaymentCompleted(orderId, {
+                            id: paymentId,
+                            status: paymentStatus,
+                            paymentMethod:
+                                orderDetails.order.paymentMethod || "online",
+                            amount:
+                                orderDetails.order.totalPrice ||
+                                orderDetails.order.total,
+                            order: orderDetails.order,
+                        });
+                    }
 
                     // Clear cart and order data from localStorage
                     localStorage.removeItem("cart");

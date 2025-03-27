@@ -1,9 +1,13 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, use, useEffect } from "react";
 import ProductsCategoryContent from "./ProductsCategoryContent";
 
 const ProductsCategoryPage: React.FC = () => {
+    useEffect(() => {
+        document.title = "Danh mục sản phẩm";
+    }, []);
+
     return (
         <Suspense
             fallback={

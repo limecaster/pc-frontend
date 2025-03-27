@@ -9,7 +9,7 @@ const StaffPendingOrdersPage: React.FC = () => {
     const router = useRouter();
 
     useEffect(() => {
-        document.title = "Pending Orders | Staff Dashboard";
+        document.title = "Đơn hàng đang chờ | Staff Dashboard";
 
         // Check if user is logged in and has staff role
         if (!loading && (!user || user.role !== "staff")) {

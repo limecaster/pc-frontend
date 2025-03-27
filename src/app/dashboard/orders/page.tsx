@@ -54,14 +54,12 @@ export default function OrdersPage() {
         try {
             // Use getUserOrderHistory instead of trackOrder
             const result = await getUserOrderHistory();
-            console.log("Orders API response:", result);
 
             if (result) {
                 // The API might return orders directly or nested in a data property
                 const orderData = Array.isArray(result)
                     ? result
                     : result.orders || [];
-                console.log("Extracted order data:", orderData);
                 setOrders(orderData);
                 setTotalPages(Math.ceil(orderData.length / 10) || 1);
             } else {
@@ -83,10 +81,6 @@ export default function OrdersPage() {
         try {
             // Get payment data from API
             const result = await initiateOrderPayment(orderId);
-            console.log(
-                "Payment initiation result:",
-                JSON.stringify(result, null, 2),
-            );
 
             // Check if the response is successful
             if (result && result.success === true) {
@@ -94,26 +88,18 @@ export default function OrdersPage() {
 
                 // Case 1: Complete format with data.checkoutUrl
                 if (result.data && result.data.checkoutUrl) {
-                    console.log("Payment URL found:", result.data.checkoutUrl);
                     window.location.href = result.data.checkoutUrl;
                     return;
                 }
 
                 // Case 2: Direct format where checkoutUrl is at the root level (some APIs return this)
                 else if (result.checkoutUrl) {
-                    console.log(
-                        "Direct payment URL found:",
-                        result.checkoutUrl,
-                    );
                     window.location.href = result.checkoutUrl;
                     return;
                 }
 
                 // Case 3: Success but need to call another API to get the URL
                 else {
-                    console.log(
-                        "Payment initiated, redirecting to payment gateway page",
-                    );
                     router.push(`/checkout/direct-pay?orderId=${orderId}`);
                     return;
                 }

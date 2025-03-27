@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { addToCartAndSync } from "@/api/cart";
+import { standardizeComponentType } from "@/api/pc-configuration";
 
 interface ConfigurationSummaryProps {
     selectedProducts: { [key: string]: any };
@@ -42,8 +43,24 @@ const ConfigurationSummary: React.FC<ConfigurationSummaryProps> = ({
         try {
             setIsAddingToCart(true);
 
+            // Ensure we're using standardized component types for tracking
+            const normalizedProducts = Object.entries(selectedProducts).reduce(
+                (result, [type, product]) => {
+                    // Standardize the component type before using it
+                    const standardType = standardizeComponentType(type);
+                    return {
+                        ...result,
+                        [standardType]: {
+                            ...product,
+                            componentType: standardType,
+                        },
+                    };
+                },
+                {} as Record<string, any>,
+            );
+
             // Add each product to cart one by one
-            for (const product of Object.values(selectedProducts)) {
+            for (const product of Object.values(normalizedProducts) as any[]) {
                 if (!product.id) continue;
                 await addToCartAndSync(product.id, 1);
             }
@@ -82,7 +99,7 @@ const ConfigurationSummary: React.FC<ConfigurationSummaryProps> = ({
             setIsAddingToCart(true);
 
             // Add each product to cart
-            for (const product of Object.values(selectedProducts)) {
+            for (const product of Object.values(selectedProducts) as any[]) {
                 if (!product.id) continue;
                 await addToCartAndSync(product.id, 1);
             }
