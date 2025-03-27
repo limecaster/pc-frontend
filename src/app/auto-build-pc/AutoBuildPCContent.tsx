@@ -7,6 +7,23 @@ import { io, Socket } from "socket.io-client";
 import { useRouter } from "next/navigation";
 import { getAutoBuildSuggestions, PCConfiguration } from "@/api/auto-build-pc";
 import { API_URL } from "@/config/constants";
+import { toast } from "react-hot-toast";
+import {
+    saveConfiguration,
+    formatProductsForApi,
+} from "@/api/pc-configuration";
+import { useAuth } from "@/contexts/AuthContext";
+import { isStorageComponentSSD } from "@/utils/pcConfigurationMapper";
+// Import Heroicons components
+import {
+    ComputerDesktopIcon,
+    ArrowDownTrayIcon,
+    PencilIcon,
+    XMarkIcon,
+    BoltIcon,
+    CheckCircleIcon,
+    InformationCircleIcon,
+} from "@heroicons/react/24/outline";
 
 const WEBSOCKET_URL = API_URL;
 
@@ -22,6 +39,9 @@ const AutoBuildPCContent: React.FC = () => {
     const [showConfigModal, setShowConfigModal] = useState(false);
     const [selectedConfig, setSelectedConfig] = useState<any>(null);
     const [_, setSocket] = useState<Socket | null>(null);
+    const { isAuthenticated } = useAuth();
+    const [isSaving, setIsSaving] = useState<number | null>(null);
+    const [isModalSaving, setIsModalSaving] = useState(false);
 
     useEffect(() => {
         const socket = io(WEBSOCKET_URL);
@@ -90,33 +110,220 @@ const AutoBuildPCContent: React.FC = () => {
         }
     };
 
-    // New: Handle configuration card click to show details modal
+    // Handle configuration card click to show details modal
     const handleConfigClick = (config: any) => {
         setSelectedConfig(config);
         setShowConfigModal(true);
     };
 
     const handleCustomizeSelectedConfig = (config: PCConfiguration) => {
-        const selectedProducts: { [key: string]: any } = {};
+        try {
+            // Create a component mapping using exact keys from the provided list
+            const manualBuildProducts: Record<string, any> = {};
 
-        if (config.CPU) selectedProducts["CPU"] = config.CPU;
-        if (config.CPUCooler)
-            selectedProducts["Quạt tản nhiệt"] = config.CPUCooler;
-        if (config.Motherboard)
-            selectedProducts["Bo mạch chủ"] = config.Motherboard;
-        if (config.GraphicsCard)
-            selectedProducts["Card đồ họa"] = config.GraphicsCard;
-        if (config.RAM) selectedProducts["RAM"] = config.RAM;
-        if (config.InternalHardDrive)
-            selectedProducts["HDD"] = config.InternalHardDrive;
-        if (config.Case) selectedProducts["Vỏ case"] = config.Case;
-        if (config.PowerSupply) selectedProducts["Nguồn"] = config.PowerSupply;
+            // This mapping uses exactly the keys that appear in the user's list
+            const componentMapping: Record<string, string> = {
+                CPU: "CPU",
+                CPUCooler: "Quạt tản nhiệt",
+                Motherboard: "Bo mạch chủ",
+                GraphicsCard: "Card đồ họa",
+                RAM: "RAM",
+                Case: "Vỏ case",
+                PowerSupply: "Nguồn",
+            };
 
-        router.push(
-            `/manual-build-pc?selectedProducts=${encodeURIComponent(
-                JSON.stringify(selectedProducts),
-            )}`,
-        );
+            // Process standard components
+            Object.entries(componentMapping).forEach(([autoKey, manualKey]) => {
+                if (config[autoKey as keyof PCConfiguration]) {
+                    // Ensure we have a valid component with id and price
+                    manualBuildProducts[manualKey] = {
+                        ...config[autoKey as keyof PCConfiguration],
+                        id:
+                            config[autoKey as keyof PCConfiguration]?.id ||
+                            config[autoKey as keyof PCConfiguration]?.partId,
+                        componentType: autoKey,
+                        details: {
+                            ...(config[autoKey as keyof PCConfiguration]
+                                ?.details || {}),
+                            originalComponentType: autoKey,
+                        },
+                    };
+                }
+            });
+
+            // Handle storage components - always map to SSD for now as that's in the expected list
+            if (config.InternalHardDrive) {
+                const storage = config.InternalHardDrive;
+                const isSSD = isStorageComponentSSD(storage);
+                const storageKey = isSSD ? "SSD" : "HDD";
+
+                manualBuildProducts[storageKey] = {
+                    ...storage,
+                    id: storage.id || storage.partId,
+                    componentType: "InternalHardDrive",
+                    type: storageKey,
+                    storageType: storageKey,
+                    details: {
+                        ...(storage.details || {}),
+                        type: storageKey,
+                        storageType: storageKey,
+                    },
+                };
+                console.log(`Mapped InternalHardDrive to ${storageKey}`);
+            }
+
+            // Add explicitly defined SSD and HDD if they exist
+            if (config.SSD) {
+                manualBuildProducts["SSD"] = {
+                    ...config.SSD,
+                    id: config.SSD.id || config.SSD.partId,
+                    componentType: "SSD",
+                    type: "SSD",
+                    storageType: "SSD",
+                };
+            }
+
+            if (config.HDD) {
+                manualBuildProducts["HDD"] = {
+                    ...config.HDD,
+                    id: config.HDD.id || config.HDD.partId,
+                    componentType: "HDD",
+                    type: "HDD",
+                    storageType: "HDD",
+                };
+            }
+
+            router.push(
+                `/manual-build-pc?selectedProducts=${encodeURIComponent(
+                    JSON.stringify(manualBuildProducts),
+                )}`,
+            );
+        } catch (error) {
+            console.error("Error mapping configuration:", error);
+            toast.error(
+                "Đã xảy ra lỗi khi chuyển đổi cấu hình. Vui lòng thử lại!",
+            );
+
+            // Fallback to a simpler mapping if the full mapping fails
+            const basicProducts: Record<string, any> = {};
+            if (config.CPU) basicProducts["CPU"] = config.CPU;
+            if (config.RAM) basicProducts["RAM"] = config.RAM;
+            if (config.GraphicsCard)
+                basicProducts["Card đồ họa"] = config.GraphicsCard;
+
+            router.push(
+                `/manual-build-pc?selectedProducts=${encodeURIComponent(
+                    JSON.stringify(basicProducts),
+                )}`,
+            );
+        }
+    };
+
+    // New handler for saving a configuration directly
+    const handleSaveConfiguration = async (
+        config: PCConfiguration,
+        index: number,
+    ) => {
+        try {
+            // Check if user is authenticated
+            if (!isAuthenticated) {
+                toast.error("Vui lòng đăng nhập để lưu cấu hình!");
+                router.push(
+                    `/authenticate?redirect=${encodeURIComponent(window.location.pathname)}`,
+                );
+                return;
+            }
+
+            setIsSaving(index);
+
+            // Create a properly formatted configuration by performing the same transformations as in handleCustomizeSelectedConfig
+            const transformedConfig: Record<string, any> = {};
+
+            // Process standard components
+            Object.entries(config).forEach(([componentType, component]) => {
+                if (!component) return;
+
+                // Skip InternalHardDrive as we'll handle it separately
+                if (componentType === "InternalHardDrive") return;
+
+                // Skip SSD/HDD as we'll handle them specially
+                if (componentType === "SSD" || componentType === "HDD") return;
+
+                transformedConfig[componentType] = {
+                    ...component,
+                    id: component.id || component.partId,
+                    details: {
+                        ...(component.details || {}),
+                        originalComponentType: componentType,
+                    },
+                };
+            });
+
+            // Handle storage components - properly classify as SSD or HDD
+            if (config.InternalHardDrive) {
+                const storage = config.InternalHardDrive;
+                const isSSD = isStorageComponentSSD(storage);
+                const storageKey = isSSD ? "SSD" : "HDD";
+
+                transformedConfig[storageKey] = {
+                    ...storage,
+                    id: storage.id || storage.partId,
+                    componentType: "InternalHardDrive",
+                    type: storageKey,
+                    storageType: storageKey,
+                    details: {
+                        ...(storage.details || {}),
+                        type: storageKey,
+                        storageType: storageKey,
+                    },
+                };
+            }
+
+            // Handle explicit SSD
+            if (config.SSD) {
+                transformedConfig["SSD"] = {
+                    ...config.SSD,
+                    id: config.SSD.id || config.SSD.partId,
+                    componentType: "SSD",
+                    type: "SSD",
+                    storageType: "SSD",
+                };
+            }
+
+            // Handle explicit HDD
+            if (config.HDD) {
+                transformedConfig["HDD"] = {
+                    ...config.HDD,
+                    id: config.HDD.id || config.HDD.partId,
+                    componentType: "HDD",
+                    type: "HDD",
+                    storageType: "HDD",
+                };
+            }
+
+            // Format the configuration for saving
+            const configData = {
+                name: `Cấu hình tự động #${index + 1}`,
+                purpose: input || "Cấu hình được tạo tự động",
+                products: formatProductsForApi(transformedConfig),
+                totalPrice: Object.values(config).reduce(
+                    (acc: number, part: any) => acc + (part.price || 0),
+                    0,
+                ),
+                wattage: Object.values(config).reduce(
+                    (acc: number, part: any) => acc + (part.tdp || 0),
+                    0,
+                ),
+            };
+
+            await saveConfiguration(configData);
+            toast.success("Đã lưu cấu hình thành công!");
+        } catch (error) {
+            console.error("Error saving configuration:", error);
+            toast.error("Đã xảy ra lỗi khi lưu cấu hình. Vui lòng thử lại!");
+        } finally {
+            setIsSaving(null);
+        }
     };
 
     return (
@@ -195,7 +402,7 @@ const AutoBuildPCContent: React.FC = () => {
                         {pcConfigs.map((config, idx) => (
                             <div
                                 key={idx}
-                                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden"
+                                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer"
                                 onClick={() => handleConfigClick(config)}
                             >
                                 <div className="bg-gradient-to-r from-blue-500 to-purple-600 h-2"></div>
@@ -206,18 +413,7 @@ const AutoBuildPCContent: React.FC = () => {
                                     <div className="flex justify-between items-center mb-4">
                                         <div className="flex items-center">
                                             <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full mr-2">
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-5 w-5 text-blue-600 dark:text-blue-400"
-                                                    viewBox="0 0 20 20"
-                                                    fill="currentColor"
-                                                >
-                                                    <path
-                                                        fillRule="evenodd"
-                                                        d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z"
-                                                        clipRule="evenodd"
-                                                    />
-                                                </svg>
+                                                <ComputerDesktopIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                             </div>
                                             <span className="text-lg font-semibold text-gray-900 dark:text-white">
                                                 {Object.values(config)
@@ -236,18 +432,7 @@ const AutoBuildPCContent: React.FC = () => {
                                         </div>
                                         <div className="flex items-center">
                                             <div className="p-2 bg-green-100 dark:bg-green-900 rounded-full mr-2">
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-5 w-5 text-green-600 dark:text-green-400"
-                                                    viewBox="0 0 20 20"
-                                                    fill="currentColor"
-                                                >
-                                                    <path
-                                                        fillRule="evenodd"
-                                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                                        clipRule="evenodd"
-                                                    />
-                                                </svg>
+                                                <InformationCircleIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
                                             </div>
                                             <span className="text-md font-medium text-gray-600 dark:text-gray-300">
                                                 Benchmark:{" "}
@@ -305,25 +490,43 @@ const AutoBuildPCContent: React.FC = () => {
                                             </span>
                                         </div>
                                     </div>
-                                    <button
-                                        className="mt-4 w-full bg-primary hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors duration-200 flex items-center justify-center"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleCustomizeSelectedConfig(
-                                                config,
-                                            );
-                                        }}
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            className="h-5 w-5 mr-2"
-                                            viewBox="0 0 20 20"
-                                            fill="currentColor"
+                                    <div className="mt-4 grid grid-cols-2 gap-2">
+                                        <button
+                                            className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-2 rounded transition-colors duration-200 flex items-center justify-center"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleSaveConfiguration(
+                                                    config,
+                                                    idx,
+                                                );
+                                            }}
+                                            disabled={isSaving === idx}
                                         >
-                                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                                        </svg>
-                                        Cá nhân hóa
-                                    </button>
+                                            {isSaving === idx ? (
+                                                <>
+                                                    <div className="animate-spin h-4 w-4 mr-2 border-b-2 border-white rounded-full"></div>
+                                                    Đang lưu...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ArrowDownTrayIcon className="h-5 w-5 mr-1" />
+                                                    Lưu
+                                                </>
+                                            )}
+                                        </button>
+                                        <button
+                                            className="bg-primary hover:bg-blue-700 text-white font-medium py-2 px-2 rounded transition-colors duration-200 flex items-center justify-center"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleCustomizeSelectedConfig(
+                                                    config,
+                                                );
+                                            }}
+                                        >
+                                            <PencilIcon className="h-5 w-5 mr-1" />
+                                            Tùy chỉnh
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -353,17 +556,7 @@ const AutoBuildPCContent: React.FC = () => {
                                     className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-full p-2 ml-auto transition-colors duration-200"
                                     onClick={() => setShowConfigModal(false)}
                                 >
-                                    <svg
-                                        className="w-6 h-6"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                    >
-                                        <path
-                                            fillRule="evenodd"
-                                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                            clipRule="evenodd"
-                                        />
-                                    </svg>
+                                    <XMarkIcon className="w-6 h-6" />
                                     <span className="sr-only">Đóng</span>
                                 </button>
                             </div>
@@ -428,7 +621,7 @@ const AutoBuildPCContent: React.FC = () => {
                                                         <div className="flex-shrink-0">
                                                             <Image
                                                                 src={
-                                                                    partData.image ||
+                                                                    partData.imageUrl ||
                                                                     "/images/image-placeholder.webp"
                                                                 }
                                                                 alt={
@@ -452,64 +645,83 @@ const AutoBuildPCContent: React.FC = () => {
                                                                 )}
                                                                 đ
                                                             </div>
-
-                                                            <div className="inline-flex items-center mt-1">
-                                                                <svg
-                                                                    xmlns="http://www.w3.org/2000/svg"
-                                                                    className="h-4 w-4 text-secondary"
-                                                                    viewBox="0 0 20 20"
-                                                                    fill="currentColor"
-                                                                >
-                                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                                                </svg>
-                                                                <span className="text-xs text-gray-800 dark:text-gray-300 ml-1">
-                                                                    Benchmark:{" "}
-                                                                    {partData.benchmarkScore ===
-                                                                    0
-                                                                        ? "Không có thông tin"
-                                                                        : partData.benchmarkScore.toFixed(
-                                                                              1,
-                                                                          )}
-                                                                </span>
-                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             ),
                                         )
                                     ) : (
-                                        <p className="text-lg text-gray-900 dark:text-white col-span-2">
-                                            Không có chi tiết cấu hình.
+                                        <p className="text-gray-600 dark:text-gray-300">
+                                            Không có thông tin cấu hình.
                                         </p>
                                     )}
                                 </div>
                             </div>
-                            <div className="flex items-center justify-end p-5 gap-3 border-t dark:border-gray-700">
-                                <button
-                                    type="button"
-                                    className="bg-rose-500 hover:bg-rose-600 text-white font-medium py-2 px-5 rounded transition-colors duration-200"
-                                    onClick={() => setShowConfigModal(false)}
-                                >
-                                    Đóng
-                                </button>
-                                <button
-                                    className="bg-primary hover:bg-blue-700 text-white font-medium py-2 px-5 rounded flex items-center transition-colors duration-200"
-                                    onClick={() =>
-                                        handleCustomizeSelectedConfig(
-                                            selectedConfig,
-                                        )
-                                    }
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="h-5 w-5 mr-2"
-                                        viewBox="0 0 20 20"
-                                        fill="currentColor"
+                            <div className="flex items-center justify-between p-5 gap-3 border-t dark:border-gray-700">
+                                <div>
+                                    {/* Add Save Configuration button on the left */}
+                                    <button
+                                        className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-5 rounded flex items-center transition-colors duration-200"
+                                        onClick={() => {
+                                            setIsModalSaving(true);
+                                            // Find the index of the selected config in pcConfigs array
+                                            const configIndex =
+                                                pcConfigs.findIndex(
+                                                    (config) =>
+                                                        config ===
+                                                        selectedConfig,
+                                                );
+                                            handleSaveConfiguration(
+                                                selectedConfig,
+                                                configIndex >= 0
+                                                    ? configIndex
+                                                    : pcConfigs.length,
+                                            )
+                                                .then(() => {
+                                                    setShowConfigModal(false);
+                                                })
+                                                .finally(() => {
+                                                    setIsModalSaving(false);
+                                                });
+                                        }}
+                                        disabled={isModalSaving}
                                     >
-                                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                                    </svg>
-                                    Cá nhân hóa
-                                </button>
+                                        {isModalSaving ? (
+                                            <>
+                                                <div className="animate-spin h-4 w-4 mr-2 border-b-2 border-white rounded-full"></div>
+                                                Đang lưu...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
+                                                Lưu cấu hình
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        className="bg-rose-500 hover:bg-rose-600 text-white font-medium py-2 px-5 rounded transition-colors duration-200"
+                                        onClick={() =>
+                                            setShowConfigModal(false)
+                                        }
+                                    >
+                                        Đóng
+                                    </button>
+                                    <button
+                                        className="bg-primary hover:bg-blue-700 text-white font-medium py-2 px-5 rounded flex items-center transition-colors duration-200"
+                                        onClick={() =>
+                                            handleCustomizeSelectedConfig(
+                                                selectedConfig,
+                                            )
+                                        }
+                                    >
+                                        <PencilIcon className="h-5 w-5 mr-2" />
+                                        Cá nhân hóa
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

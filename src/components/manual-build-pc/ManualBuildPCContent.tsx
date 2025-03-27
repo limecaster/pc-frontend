@@ -69,12 +69,6 @@ const ManualBuildPCContent: React.FC = () => {
             getConfiguration(configId)
                 .then((config) => {
                     if (config && config.products) {
-                        // Log original products before any processing
-                        console.log(
-                            "[ManualBuildPC] Original loaded components:",
-                            config.products,
-                        );
-
                         // Post-process any InternalHardDrive components
                         // Explicitly type as Record<string, any> to allow string indexing
                         const processedProducts: Record<string, any> = {
@@ -86,20 +80,10 @@ const ManualBuildPCContent: React.FC = () => {
                             ([key, comp]: [string, any]) => {
                                 if (key === "InternalHardDrive") {
                                     // Determine if it's SSD or HDD
-                                    const isSSD =
-                                        comp.type === "SSD" ||
-                                        comp.storageType === "SSD" ||
-                                        (comp.name &&
-                                            comp.name.includes("SSD")) ||
-                                        (comp.name &&
-                                            comp.name.includes("Solid State"));
+                                    const isSSD = comp.type === "SSD";
 
                                     const storageType = isSSD ? "SSD" : "HDD";
-                                    console.log(
-                                        `[ManualBuildPC] Reclassifying storage '${comp.name || "Unknown"}' as ${storageType}`,
-                                    );
 
-                                    // Add this component with the correct type key
                                     processedProducts[storageType] = {
                                         ...comp,
                                         type: storageType,
@@ -114,10 +98,6 @@ const ManualBuildPCContent: React.FC = () => {
                             },
                         );
 
-                        console.log(
-                            "[ManualBuildPC] Processed products for display:",
-                            processedProducts,
-                        );
                         setSelectedProducts(processedProducts);
                         setConfigName(config.name || "");
                         setConfigPurpose(config.purpose || "");
@@ -132,6 +112,73 @@ const ManualBuildPCContent: React.FC = () => {
                 });
         }
     }, [configId]);
+
+    // Load initial products from query params or configuration
+    useEffect(() => {
+        try {
+            if (selectedProductsQuery) {
+                const parsedProducts = JSON.parse(
+                    selectedProductsQuery as string,
+                );
+
+                // Validate basic structure of products
+                if (
+                    typeof parsedProducts !== "object" ||
+                    parsedProducts === null
+                ) {
+                    console.error("Invalid products format:", parsedProducts);
+                    return;
+                }
+
+                // Post-process to ensure correct component properties
+                const processedProducts = Object.entries(parsedProducts).reduce(
+                    (result, [componentType, product]: [string, any]) => {
+                        // Skip invalid products
+                        if (!product) {
+                            console.warn(
+                                `Skipping invalid product for ${componentType}`,
+                            );
+                            return result;
+                        }
+
+                        // Process storage types to ensure consistency
+                        if (componentType === "InternalHardDrive") {
+                            // Determine if it's SSD or HDD
+                            const isSSD =
+                                product.type === "SSD" ||
+                                product.storageType === "SSD" ||
+                                (product.name &&
+                                    product.name.includes("SSD")) ||
+                                (product.name &&
+                                    product.name.includes("Solid State"));
+
+                            const storageType = isSSD ? "SSD" : "HDD";
+                            result[storageType] = {
+                                ...product,
+                                type: storageType,
+                                storageType: storageType,
+                            };
+                        } else {
+                            // All other component types
+                            result[componentType] = {
+                                ...product,
+                                // Ensure the component has the type in its properties
+                                componentType:
+                                    product.componentType || componentType,
+                            };
+                        }
+                        return result;
+                    },
+                    {} as Record<string, any>,
+                );
+
+                setSelectedProducts(processedProducts);
+            }
+        } catch (error) {
+            console.error("Error parsing selected products:", error);
+            toast.error("Đã xảy ra lỗi khi tải dữ liệu sản phẩm.");
+        }
+    }, [selectedProductsQuery]);
 
     // Calculate totals when selected products change
     useEffect(() => {
@@ -293,8 +340,6 @@ const ManualBuildPCContent: React.FC = () => {
     const calculateTotalWattage = () => {
         let totalWattage = 0;
         for (const [key, product] of Object.entries(selectedProducts)) {
-            console.log("Product key:", key);
-            console.log("Product value:", product);
             if (key === "CPU" || key === "Card đồ họa") {
                 totalWattage += parseFloat(product.tdp) || 0;
             }
@@ -394,9 +439,6 @@ const ManualBuildPCContent: React.FC = () => {
             // Standardize component types before saving
             const normalizedProducts = Object.entries(selectedProducts).reduce(
                 (result, [type, product]) => {
-                    // Log each product and its type for debugging
-                    console.log(`Preparing product of type ${type}:`, product);
-
                     // Standardize component type
                     const standardType = standardizeComponentType(type);
 
@@ -432,12 +474,6 @@ const ManualBuildPCContent: React.FC = () => {
                 {},
             );
 
-            // Log the normalized products
-            console.log(
-                "Normalized products before saving:",
-                normalizedProducts,
-            );
-
             // Create config data object without id initially
             const configData: any = {
                 name: configName,
@@ -452,10 +488,6 @@ const ManualBuildPCContent: React.FC = () => {
                 // Make sure configId is a string
                 configData.id = configId;
             }
-
-            console.log("Operation type:", configId ? "UPDATE" : "CREATE");
-            console.log("Config ID value:", configId || "null/undefined");
-            console.log("Sending configuration data:", configData);
 
             const saved = await saveConfiguration(configData);
 

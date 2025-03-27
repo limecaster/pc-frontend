@@ -31,42 +31,33 @@ export interface PCConfiguration {
  * Standard mapping between component types in different languages and formats
  */
 export const COMPONENT_TYPE_MAPPING: Record<string, string> = {
-    // English standard names
+    // English standard names to Vietnamese
     CPU: "CPU",
-    CPUCooler: "CPUCooler",
-    "CPU Cooler": "CPUCooler",
-    Motherboard: "Motherboard",
+    CPUCooler: "Quạt tản nhiệt",
+    "CPU Cooler": "Quạt tản nhiệt",
+    Motherboard: "Bo mạch chủ",
     RAM: "RAM",
     Memory: "RAM",
-    GraphicsCard: "GraphicsCard",
-    "Graphics Card": "GraphicsCard",
-    GPU: "GraphicsCard",
-    InternalHardDrive: "InternalHardDrive",
-    Storage: "InternalHardDrive",
+    GraphicsCard: "Card đồ họa",
+    "Graphics Card": "Card đồ họa",
+    GPU: "Card đồ họa",
+    InternalHardDrive: "Ổ cứng",
+    Storage: "Ổ cứng",
     SSD: "SSD",
     HDD: "HDD",
-    Case: "Case",
-    PowerSupply: "PowerSupply",
-    "Power Supply": "PowerSupply",
-    PSU: "PowerSupply",
+    Case: "Vỏ case",
+    PowerSupply: "Nguồn",
+    "Power Supply": "Nguồn",
+    PSU: "Nguồn",
 
-    // Vietnamese names
+    // Vietnamese to English (the reverse mapping)
     "Bo mạch chủ": "Motherboard",
     "Quạt tản nhiệt": "CPUCooler",
     "Card đồ họa": "GraphicsCard",
     "Bộ nhớ": "RAM",
-    "Lưu trữ": "InternalHardDrive",
     "Ổ cứng": "InternalHardDrive",
-    "Ổ SSD": "InternalHardDrive",
     "Vỏ case": "Case",
     Nguồn: "PowerSupply",
-    "Nguồn máy tính": "PowerSupply",
-    "Màn hình": "Monitor",
-    "Bàn phím": "Keyboard",
-    Chuột: "Mouse",
-    "Card mạng không dây": "WiFiCard",
-    "Card mạng có dây": "WiredNetworkCard",
-    "Kem tản nhiệt": "ThermalPaste",
 };
 
 /**
@@ -133,29 +124,16 @@ export function formatProductsForApi(
             // Ensure price is a number - add detailed logging
             let price = 0;
             if (product.price !== undefined && product.price !== null) {
-                console.log(
-                    `[${componentType}] Original price: "${product.price}" (${typeof product.price})`,
-                );
-
                 // Convert to number if it's a string
                 if (typeof product.price === "string") {
                     const cleanPrice = product.price.replace(/,/g, "");
                     price = parseFloat(cleanPrice);
-                    console.log(
-                        `[${componentType}] Cleaned string price: "${cleanPrice}" → ${price}`,
-                    );
                 } else {
                     price = Number(product.price);
-                    console.log(
-                        `[${componentType}] Converted number price: ${price}`,
-                    );
                 }
 
                 // If conversion resulted in NaN, default to 0
                 if (isNaN(price)) {
-                    console.log(
-                        `[${componentType}] Price is NaN, defaulting to 0`,
-                    );
                     price = 0;
                 }
             } else {
@@ -182,14 +160,6 @@ export function formatProductsForApi(
         },
     );
 
-    // Log the final products array for debugging
-    console.log(
-        "Final products array before filtering nulls:",
-        productsArray.map((p) =>
-            p ? `${p.componentType}: ${p.name} (price: ${p.price})` : "null",
-        ),
-    );
-
     // Fix the type predicate by using a type guard function instead
     return productsArray.filter(
         (item): item is PCConfigurationProduct => item !== null,
@@ -202,76 +172,71 @@ export function formatProductsForApi(
 export function formatProductsForFrontend(
     productsArray: PCConfigurationProduct[],
 ): Record<string, any> {
-    console.log(
-        "[formatProductsForFrontend] Processing products:",
-        productsArray,
-    );
     const productsObj: Record<string, any> = {};
 
+    // Make sure we use the exact Vietnamese keys expected by ManualBuildPC
+    const expectedManualBuildKeys = [
+        "CPU",
+        "Quạt tản nhiệt",
+        "Bo mạch chủ",
+        "Card đồ họa",
+        "RAM",
+        "Vỏ case",
+        "Nguồn",
+        "SSD",
+        "HDD",
+        "CPUCooler",
+        "Monitor",
+        "Keyboard",
+        "Mouse",
+        "WiFiCard",
+        "WiredNetworkCard",
+        "ThermalPaste",
+        "InternalHardDrive",
+        "GraphicsCard",
+        "PowerSupply",
+        "Case",
+        "Motherboard",
+    ];
+
     productsArray.forEach((product) => {
-        // Get original component type if available
-        const originalType =
-            product.details?.originalType ||
-            product.details?.originalComponentType ||
-            product.componentType;
+        // Get the original component type if available
+        let componentKey =
+            product.details?.originalComponentType || product.componentType;
 
-        // Special handling for storage devices - look for these in ascending order of priority
-        let storageType = null;
+        // Map to Vietnamese key if it's in English
+        if (COMPONENT_TYPE_MAPPING[componentKey]) {
+            componentKey = COMPONENT_TYPE_MAPPING[componentKey];
+        }
 
-        // 1. Check special property storageType
+        // Special handling for storage
         if (product.componentType === "InternalHardDrive") {
-            // 2. Check details.type
-            if (
-                product.details?.storageType === "SSD" ||
-                product.details?.type === "SSD"
-            ) {
-                storageType = "SSD";
-            } else if (
-                product.details?.storageType === "HDD" ||
-                product.details?.type === "HDD"
-            ) {
-                storageType = "HDD";
-            }
-            // 3. Check product name for common SSD patterns
-            else if (
-                product.name &&
-                (product.name.includes("SSD") ||
-                    product.name.includes("Solid State") ||
-                    /NVMe|M\.2/.test(product.name))
-            ) {
-                storageType = "SSD";
-            }
-            // 4. Default fallback - if it has no identified type, assume HDD
-            else {
-                storageType = "HDD";
-            }
+            // Determine if it's SSD or HDD
+            const isSSD =
+                product.details?.type === "SSD" ||
+                product.details?.storageType === "SSD";
 
-            console.log(
-                `[formatProductsForFrontend] Identified storage '${product.name}' as ${storageType}`,
+            componentKey = isSSD ? "SSD" : "HDD";
+        }
+
+        // Verify the key is in the expected list
+        if (!expectedManualBuildKeys.includes(componentKey)) {
+            console.warn(
+                `Component key ${componentKey} is not in the expected list: ${expectedManualBuildKeys.join(", ")}`,
             );
         }
 
-        // Set the component key based on our detection
-        const componentKey = storageType || product.componentType;
-
-        // Use the determined component key
         productsObj[componentKey] = {
             id: product.productId,
-            category: product.category || componentKey,
             name: product.name,
             price: product.price,
-            componentType: originalType,
-            // Add storage type to the object for consistency
-            type: storageType || product.details?.type,
-            storageType: storageType || product.details?.storageType,
+            componentType: product.componentType,
+            type: product.details?.type,
+            storageType: product.details?.storageType,
             ...(product.details || {}),
         };
     });
 
-    console.log(
-        "[formatProductsForFrontend] Processed components:",
-        Object.keys(productsObj),
-    );
     return productsObj;
 }
 
@@ -308,12 +273,6 @@ export async function saveConfiguration(
         if (requestData.products && !Array.isArray(requestData.products)) {
             requestData.products = formatProductsForApi(requestData.products);
         }
-
-        console.log(`Operation type: ${isUpdate ? "UPDATE" : "CREATE"}`);
-        console.log(
-            "Saving configuration with data:",
-            JSON.stringify(requestData),
-        );
 
         const response = await fetch(url, {
             method,
