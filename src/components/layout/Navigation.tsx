@@ -13,8 +13,25 @@ import caretDown from "@/assets/icon/others/CaretDown.svg";
 import phone from "@/assets/icon/others/Phone.svg";
 import phoneCall from "@/assets/icon/others/PhoneCall.svg";
 
+// Define types for the category structure
+interface SubcategoryType {
+    title: string;
+    key: string;
+}
+
+interface CategoryItemType {
+    name: string;
+    href: string;
+    subcategories?: SubcategoryType[];
+}
+
+interface CategoryType {
+    title: string;
+    items: CategoryItemType[];
+}
+
 // Product categories base data (only most popular subcategories shown)
-const productCategories = [
+const productCategories: CategoryType[] = [
     {
         title: "Linh kiện PC",
         items: [
@@ -24,6 +41,9 @@ const productCategories = [
                 subcategories: [
                     { title: "Thương hiệu", key: "manufacturer" },
                     { title: "Socket", key: "socket" },
+                    { title: "Series", key: "series" },
+                    { title: "Số lõi", key: "coreCount" },
+                    { title: "Vi kiến trúc", key: "microarchitecture" },
                 ],
             },
             {
@@ -32,6 +52,10 @@ const productCategories = [
                 subcategories: [
                     { title: "Thương hiệu", key: "manufacturer" },
                     { title: "Chipset", key: "chipset" },
+                    { title: "Socket", key: "socketCPU" },
+                    { title: "Kích thước", key: "formFactor" },
+                    { title: "Loại RAM", key: "memoryType" },
+                    { title: "Số khe RAM", key: "memorySlots" },
                 ],
             },
             {
@@ -40,6 +64,7 @@ const productCategories = [
                 subcategories: [
                     { title: "Thương hiệu", key: "manufacturer" },
                     { title: "Dung lượng", key: "moduleSize" },
+                    { title: "Bus", key: "speed" },
                 ],
             },
             {
@@ -48,6 +73,9 @@ const productCategories = [
                 subcategories: [
                     { title: "Thương hiệu", key: "manufacturer" },
                     { title: "Chipset", key: "chipset" },
+                    { title: "VRAM", key: "memory" },
+                    { title: "Số quạt tản nhiệt", key: "cooling" },
+                    { title: "TDP", key: "tdp" },
                 ],
             },
             {
@@ -56,13 +84,26 @@ const productCategories = [
                 subcategories: [
                     { title: "Thương hiệu", key: "manufacturer" },
                     { title: "Loại", key: "type" },
+                    { title: "Dung lượng", key: "capacity" },
                 ],
             },
             {
                 name: "PSU - Nguồn máy tính",
                 href: "/products?category=PowerSupply",
+                subcategories: [
+                    { title: "Thương hiệu", key: "manufacturer" },
+                    { title: "Công suất", key: "wattage" },
+                    { title: "80 Plus", key: "efficiencyRating" },
+                ],
             },
-            { name: "Case - Vỏ máy tính", href: "/products?category=Case" },
+            {
+                name: "Case - Vỏ máy tính",
+                href: "/products?category=Case",
+                subcategories: [
+                    { title: "Thương hiệu", key: "manufacturer" },
+                    { title: "Kích thước", key: "type" },
+                ],
+            },
         ],
     },
     {
@@ -342,8 +383,8 @@ const Navigation: React.FC = () => {
                                                                     <div className="grid grid-cols-3 gap-4">
                                                                         {item.subcategories.map(
                                                                             (
-                                                                                subcat,
-                                                                                subcatIdx,
+                                                                                subcat: SubcategoryType,
+                                                                                subcatIdx: number,
                                                                             ) => (
                                                                                 <div
                                                                                     key={
