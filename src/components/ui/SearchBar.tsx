@@ -35,7 +35,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
             setIsLoading(true);
             try {
                 const results = await getSearchSuggestions(query);
-                console.log("Suggestions received:", results); // Debug log
                 setSuggestions(results || []);
                 setShowSuggestions(results && results.length > 0);
             } catch (error) {

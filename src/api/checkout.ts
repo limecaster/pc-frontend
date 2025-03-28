@@ -150,8 +150,6 @@ export async function checkPaymentStatus(paymentId: string) {
  */
 export async function getOrderDetails(orderId: string | number) {
     try {
-        console.log(`Fetching order details for ID: ${orderId}`);
-
         const token = localStorage.getItem("token");
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
@@ -159,19 +157,15 @@ export async function getOrderDetails(orderId: string | number) {
 
         if (token) {
             headers.Authorization = `Bearer ${token}`;
-            console.log("Token available, adding to Authorization header");
         } else {
-            console.log("No token available, proceeding without Authorization");
+            throw new Error("Authentication required");
         }
 
         const response = await fetch(`${API_URL}/orders/${orderId}`, {
             headers,
         });
 
-        console.log(`Order details API response status: ${response.status}`);
-
         const data = await response.json();
-        console.log("Order details API response data:", data);
 
         if (!response.ok) {
             throw new Error(

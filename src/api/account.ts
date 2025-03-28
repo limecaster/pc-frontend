@@ -54,7 +54,7 @@ export async function updateProfile(profileData: ProfileData): Promise<any> {
     }
 
     // Ensure gender is never empty - if undefined or empty, default to "male"
-    console.log(profileData);
+
     if (!profileData.gender) {
         profileData.gender = "male";
     }

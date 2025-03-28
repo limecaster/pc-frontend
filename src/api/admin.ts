@@ -130,9 +130,6 @@ export async function adminLogin(credentials: {
     password: string;
 }) {
     try {
-        // Debug: Log the API URL and endpoint being used
-        console.log(`Attempting admin login to: ${API_URL}/auth/admin/login`);
-
         const response = await fetch(`${API_URL}/auth/admin/login`, {
             method: "POST",
             headers: {
@@ -143,11 +140,7 @@ export async function adminLogin(credentials: {
             // Remove credentials: 'include' if not using cookies
         });
 
-        // Log the response status for debugging
-        console.log(`Admin login response status: ${response.status}`);
-
         const responseText = await response.text(); // Get response as text first
-        console.log("Raw response:", responseText);
 
         let data;
         try {
@@ -171,8 +164,6 @@ export async function adminLogin(credentials: {
             );
         }
 
-        console.log("Admin login successful, received token and user data");
-
         // Store token and user data in localStorage if successful
         if (data.access_token && data.user) {
             localStorage.setItem("token", data.access_token);
@@ -188,7 +179,6 @@ export async function adminLogin(credentials: {
                 role: data.user.role || "admin", // Ensure the role is set correctly
             };
 
-            console.log("Storing user data with role:", userData.role);
             localStorage.setItem("user", JSON.stringify(userData));
         } else {
             console.error("Login response missing token or user data:", data);
@@ -211,9 +201,6 @@ export async function staffLogin(credentials: {
     password: string;
 }) {
     try {
-        // Debug: Log the API URL and endpoint being used
-        console.log(`Attempting staff login to: ${API_URL}/auth/staff/login`);
-
         const response = await fetch(`${API_URL}/auth/staff/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -233,7 +220,6 @@ export async function staffLogin(credentials: {
         }
 
         const data = await response.json();
-        console.log("Staff login successful, received token");
 
         // Store token and user data in localStorage if successful
         if (data.access_token && data.user) {

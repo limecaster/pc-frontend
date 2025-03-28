@@ -84,9 +84,6 @@ export async function fetchProductsForSelector(
         );
 
         if (!response.ok) {
-            console.warn(
-                `API error: Failed to fetch products: ${response.status}`,
-            );
             return {
                 products: getFallbackProducts(),
                 total: 10,
@@ -134,9 +131,6 @@ export async function fetchCategoriesForSelector(): Promise<string[]> {
         });
 
         if (!response.ok) {
-            console.warn(
-                `API error: Failed to fetch categories: ${response.status}`,
-            );
             // Return fallback categories
             return [
                 "CPU",
@@ -208,9 +202,6 @@ export async function fetchCustomersForSelector(
         );
 
         if (!response.ok) {
-            console.warn(
-                `API error: Failed to fetch customers: ${response.status}`,
-            );
             return {
                 customers: getFallbackCustomers(),
                 total: 5,

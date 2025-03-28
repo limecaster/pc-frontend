@@ -7,19 +7,19 @@ const PromotionSection: React.FC = () => {
         <div className="relative rounded-lg overflow-hidden h-full min-h-[500px]">
             <Image
                 src="/images/promotion-banner-4.webp"
-                alt="Special promotion"
+                alt="Khuyến mãi đặc biệt"
                 fill
                 className="object-cover"
             />
             <div className="absolute inset-0 flex flex-col justify-end p-8 bg-gradient-to-t from-black/80 via-black/50 to-transparent">
                 <span className="text-yellow-400 font-semibold mb-2">
-                    Limited Time Offer
+                    Ưu đãi có thời hạn
                 </span>
                 <h2 className="text-white text-3xl font-bold mb-3">
-                    Build Your Gaming PC
+                    Xây Dựng PC Chơi Game
                 </h2>
                 <p className="text-white text-lg mb-6">
-                    Get up to 30% off on selected components
+                    Giảm giá lên đến 30% cho các linh kiện được chọn
                 </p>
                 <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-4">
@@ -28,7 +28,7 @@ const PromotionSection: React.FC = () => {
                         </div>
                         <div>
                             <h3 className="text-white font-semibold">
-                                CPU & Mainboards
+                                CPU & Bo mạch chủ
                             </h3>
                             <p className="text-gray-300 text-sm">Intel & AMD</p>
                         </div>
@@ -39,7 +39,7 @@ const PromotionSection: React.FC = () => {
                         </div>
                         <div>
                             <h3 className="text-white font-semibold">
-                                Graphics Cards
+                                Card đồ họa
                             </h3>
                             <p className="text-gray-300 text-sm">
                                 NVIDIA & AMD

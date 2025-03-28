@@ -90,7 +90,7 @@ export default function Chatbot() {
             );
             const data = await response.json();
             const responseData = data.response.data;
-            console.log(responseData);
+
             setMessages((prev) => [
                 ...prev,
                 {

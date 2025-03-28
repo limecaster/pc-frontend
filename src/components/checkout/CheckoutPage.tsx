@@ -96,8 +96,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     try {
                         const response = await getCart();
                         if (response.success && response.cart) {
-                            console.log("Cart loaded from API:", response.cart);
-
                             // Map cart items from API to the Product interface with safety checks
                             const apiCartItems =
                                 response.cart.items
@@ -176,10 +174,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 if (storedCart) {
                     try {
                         const parsedCart = JSON.parse(storedCart);
-                        console.log(
-                            "Cart loaded from localStorage:",
-                            parsedCart,
-                        );
 
                         // Ensure all cart items have necessary properties
                         const validCartItems = parsedCart.filter(

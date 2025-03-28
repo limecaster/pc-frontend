@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "react-hot-toast";
-import { CartItem } from "../types";
+import { CartItem } from "../components/cart/types";
 import {
     getCart,
     addToCart,
@@ -13,7 +13,7 @@ import {
     getProductsStockQuantities,
     getProductsWithDiscounts,
 } from "@/api/product";
-import { loadLocalCart } from "../utils/cartHelpers";
+import { loadLocalCart } from "../components/cart/utils/cartHelpers";
 
 export function useCart() {
     const [cartItems, setCartItems] = useState<CartItem[]>([]);

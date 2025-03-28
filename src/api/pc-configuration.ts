@@ -137,7 +137,7 @@ export function formatProductsForApi(
                     price = 0;
                 }
             } else {
-                console.log(
+                console.warn(
                     `[${componentType}] No price found, defaulting to 0`,
                 );
             }

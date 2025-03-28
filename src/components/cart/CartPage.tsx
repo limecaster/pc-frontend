@@ -5,8 +5,8 @@ import Link from "next/link";
 import CartItems from "./CartItems";
 import CartSummary from "./CartSummary";
 import DiscountConfirmationModal from "./DiscountConfirmationModal";
-import { useCart } from "./hooks/useCart";
-import { useDiscount } from "./hooks/useDiscount";
+import { useCart } from "../../hooks/useCart";
+import { useDiscount } from "../../hooks/useDiscount";
 import {
     recalculateCartTotals,
     saveLocalCart,

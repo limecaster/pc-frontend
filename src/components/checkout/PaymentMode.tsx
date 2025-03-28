@@ -31,18 +31,12 @@ const PaymentMode: React.FC<PaymentModeProps> = ({
             paymentData.checkoutUrl &&
             paymentData.paymentLinkId
         ) {
-            console.log("Using provided payment data with complete fields");
             setPaymentDetails(paymentData);
             return;
         }
 
         // If we have payment data but without required fields, try to extract what we can
         if (paymentData) {
-            console.log(
-                "Payment data is incomplete, trying to extract useful info:",
-                paymentData,
-            );
-
             // Even if we don't have complete data, use what we do have
             setPaymentDetails({
                 ...paymentData,
@@ -58,9 +52,7 @@ const PaymentMode: React.FC<PaymentModeProps> = ({
             fetchPaymentDetails(orderId);
         } else if (retryCount >= 2) {
             // After retries, switch to fallback mode
-            console.log(
-                "Switching to fallback payment mode after failed retries",
-            );
+
             setFallbackMode(true);
         }
     }, [orderId, paymentData, retryCount]);
@@ -68,12 +60,8 @@ const PaymentMode: React.FC<PaymentModeProps> = ({
     const fetchPaymentDetails = async (id: string) => {
         try {
             setIsLoading(true);
-            console.log(
-                `Fetching payment details for order ID: ${id}, attempt: ${retryCount + 1}`,
-            );
 
             const result = await initiateOrderPayment(id);
-            console.log("Payment fetch result:", result);
 
             if (result.success) {
                 if (result.data && result.data.checkoutUrl) {
@@ -82,10 +70,7 @@ const PaymentMode: React.FC<PaymentModeProps> = ({
                     setFallbackMode(false);
                 } else {
                     // We have success but incomplete payment data - create fallback data
-                    console.log(
-                        "Creating fallback payment info with finalPrice:",
-                        result.finalPrice,
-                    );
+
                     setPaymentDetails({
                         finalPrice: result.finalPrice || paymentAmount,
                         orderId: id,

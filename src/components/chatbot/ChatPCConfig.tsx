@@ -28,9 +28,6 @@ function identifyStorageType(product: any): string | null {
             product.name.includes("Solid State") ||
             /NVMe|M\.2/.test(product.name))
     ) {
-        console.log(
-            `[ChatPCConfig] Identified '${product.name}' as SSD based on name`,
-        );
         return "SSD";
     }
 
@@ -43,10 +40,6 @@ function identifyStorageType(product: any): string | null {
         return "SSD";
     }
 
-    // Default fallback
-    console.log(
-        `[ChatPCConfig] No clear SSD indicators found for '${product.name}', defaulting to HDD`,
-    );
     return "HDD";
 }
 
@@ -73,7 +66,6 @@ export default function ChatbotPCConfig({
     const formatConfigForApi = (): PCConfiguration => {
         // Ensure the config exists
         if (!config) {
-            console.error("Config is undefined");
             return {
                 name: "Cấu hình từ Chat AI",
                 purpose: message || "Cấu hình được đề xuất bởi chatbot",
@@ -95,10 +87,6 @@ export default function ChatbotPCConfig({
                     );
                     return;
                 }
-
-                console.log(
-                    `[ChatPCConfig] Processing component ${componentType}: ${productData.name}`,
-                );
 
                 // Add proper category based on standardized component type
                 productData.category =
@@ -126,20 +114,12 @@ export default function ChatbotPCConfig({
                     // Set the type in details
                     productData.details.type = storageType;
                     productData.details.storageType = storageType;
-
-                    console.log(
-                        `[ChatPCConfig] Set storage type for '${productData.name}' to ${storageType}`,
-                    );
                 }
             },
         );
 
         // Format the products for API using helper function
         const formattedProducts = formatProductsForApi(enrichedConfig);
-        console.log(
-            "[ChatPCConfig] Formatted products for API:",
-            formattedProducts,
-        );
 
         return {
             name: "Cấu hình từ Chat AI",
@@ -189,8 +169,6 @@ export default function ChatbotPCConfig({
             const productIds = Object.values(config)
                 .filter((part: any) => part.id)
                 .map((part: any) => part.id);
-
-            console.log(`Adding ${productIds.length} products to cart`);
 
             if (productIds.length === 0) {
                 throw new Error("No valid products found in the configuration");
@@ -294,9 +272,6 @@ export default function ChatbotPCConfig({
 
             // Format PC configuration data using our new helper function
             const configData = formatConfigForApi();
-
-            // Log the formatted data for debugging
-            console.log("Saving PC configuration:", configData);
 
             // Save configuration using API
             const result = await saveConfiguration(configData);

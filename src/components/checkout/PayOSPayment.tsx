@@ -28,8 +28,6 @@ const PayOSPayment: React.FC<PayOSPaymentProps> = ({
     useEffect(() => {
         if (isPayOSLoaded && paymentData && !paymentInitialized) {
             try {
-                console.log("Initializing PayOS with data:", paymentData);
-
                 // Make sure we have the required fields
                 if (!paymentData.paymentLinkId) {
                     console.error(
@@ -49,7 +47,6 @@ const PayOSPayment: React.FC<PayOSPaymentProps> = ({
                         paymentLinkId: paymentData.paymentLinkId,
                         containerID: "payos-checkout",
                         onSuccess: function (data: any) {
-                            console.log("Payment success:", data);
                             onSuccess();
                         },
                         onError: function (error: any) {
@@ -58,13 +55,8 @@ const PayOSPayment: React.FC<PayOSPaymentProps> = ({
                                 "Thanh toán thất bại. Vui lòng thử lại sau.",
                             );
                         },
-                        onClose: function () {
-                            console.log("Payment closed");
-                        },
+                        onClose: function () {},
                     };
-
-                    // Log the config we're using
-                    console.log("PayOS init config:", payOSConfig);
 
                     // Initialize PayOS
                     payOS.init(payOSConfig);
@@ -116,7 +108,6 @@ const PayOSPayment: React.FC<PayOSPaymentProps> = ({
                 );
 
                 if (response.success && response.status === "PAID") {
-                    console.log("Payment completed successfully!", response);
                     // If the server updated the order, include the orderId in success
                     if (response.orderUpdated && response.orderId) {
                         // Store additional order info in localStorage

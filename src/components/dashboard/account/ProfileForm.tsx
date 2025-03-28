@@ -64,7 +64,6 @@ const ProfileForm: React.FC = () => {
                 gender: profile.gender || "male",
             };
 
-            console.log("Submitting profile:", updatedProfile);
             await updateProfile(updatedProfile);
 
             // Success

@@ -5,12 +5,12 @@ import {
     fetchAutomaticDiscounts,
     validateDiscount,
 } from "@/api/discount";
-import { CartItem, PendingDiscountData } from "../types";
+import { CartItem, PendingDiscountData } from "../components/cart/types";
 import {
     getCurrentCustomerId,
     checkIfFirstPurchase,
     formatCurrency,
-} from "../utils/cartHelpers";
+} from "../components/cart/utils/cartHelpers";
 
 interface UseDiscountProps {
     cartItems: CartItem[];
