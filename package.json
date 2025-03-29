@@ -43,6 +43,7 @@
     },
     "devDependencies": {
         "@types/file-saver": "^2.0.7",
+        "@types/lodash.debounce": "^4.0.9",
         "@types/node": "20.17.28",
         "@types/react": "^19",
         "@types/react-beautiful-dnd": "^13.1.8",

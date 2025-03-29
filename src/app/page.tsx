@@ -25,115 +25,6 @@ export default function HomePage() {
             <HeroSection />
 
             {/* Featured PC Builds Section */}
-            <section className="container mx-auto px-4 py-12">
-                <div className="text-center mb-10">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-3">
-                        Cấu hình PC đề xuất
-                    </h2>
-                    <p className="text-gray-600 max-w-2xl mx-auto">
-                        Khám phá các cấu hình PC gaming, văn phòng và đồ họa
-                        được thiết kế bởi chuyên gia
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Gaming PC Config */}
-                    <div className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all">
-                        <div className="relative h-48">
-                            <Image
-                                src="/images/gaming-pc.jpg"
-                                alt="Gaming PC Configuration"
-                                fill
-                                className="object-cover"
-                            />
-                            <div className="absolute top-0 right-0 bg-rose-500 text-white px-3 py-1 m-3 rounded-full text-sm font-medium">
-                                Phổ biến
-                            </div>
-                        </div>
-                        <div className="p-5">
-                            <h3 className="font-bold text-xl mb-2">
-                                Gaming PC - Hiệu năng cao
-                            </h3>
-                            <p className="text-gray-600 mb-3">
-                                RTX 4070, Ryzen 7 7800X3D, 32GB RAM
-                            </p>
-                            <div className="flex items-center justify-between">
-                                <span className="text-primary font-bold text-xl">
-                                    35.990.000đ
-                                </span>
-                                <Link
-                                    href="/pc-builds/gaming"
-                                    className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-                                >
-                                    Xem cấu hình
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Office PC Config */}
-                    <div className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all">
-                        <div className="relative h-48">
-                            <Image
-                                src="/images/office-pc.jpg"
-                                alt="Office PC Configuration"
-                                fill
-                                className="object-cover"
-                            />
-                        </div>
-                        <div className="p-5">
-                            <h3 className="font-bold text-xl mb-2">
-                                Văn phòng - Tối ưu chi phí
-                            </h3>
-                            <p className="text-gray-600 mb-3">
-                                Intel Core i5, 16GB RAM, SSD 512GB
-                            </p>
-                            <div className="flex items-center justify-between">
-                                <span className="text-primary font-bold text-xl">
-                                    15.990.000đ
-                                </span>
-                                <Link
-                                    href="/pc-builds/office"
-                                    className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-                                >
-                                    Xem cấu hình
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Designer PC Config */}
-                    <div className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all">
-                        <div className="relative h-48">
-                            <Image
-                                src="/images/designer-pc.jpg"
-                                alt="Designer PC Configuration"
-                                fill
-                                className="object-cover"
-                            />
-                        </div>
-                        <div className="p-5">
-                            <h3 className="font-bold text-xl mb-2">
-                                Đồ họa - Chuyên nghiệp
-                            </h3>
-                            <p className="text-gray-600 mb-3">
-                                RTX 4080, Intel i9 13900K, 64GB RAM
-                            </p>
-                            <div className="flex items-center justify-between">
-                                <span className="text-primary font-bold text-xl">
-                                    59.990.000đ
-                                </span>
-                                <Link
-                                    href="/pc-builds/designer"
-                                    className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-                                >
-                                    Xem cấu hình
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
             {/* Hot Sales Section - Add this section */}
             <HotSalesSection />
@@ -258,10 +149,11 @@ export default function HomePage() {
                             </svg>
                         </div>
                         <h3 className="font-bold text-lg mb-2">
-                            Thanh toán đa dạng
+                            Thanh toán trực tuyến
                         </h3>
                         <p className="text-gray-600">
-                            Nhiều hình thức thanh toán tiện lợi
+                            Hỗ trợ thanh toán trực tuyến bằng cách quét mã QR
+                            hoặc chuyển khoản ngân hàng
                         </p>
                     </div>
 
@@ -322,95 +214,6 @@ export default function HomePage() {
                             </div>
                         </div>
                     </div>
-                </div>
-            </section>
-
-            {/* Blog/Guides Section */}
-            <section className="container mx-auto px-4 py-12">
-                <div className="text-center mb-10">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                        Hướng dẫn & Chia sẻ
-                    </h2>
-                    <p className="text-gray-600 max-w-2xl mx-auto">
-                        Khám phá các bài viết hữu ích về công nghệ và PC
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Link href="/blog/build-guide" className="group">
-                        <div className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all">
-                            <div className="relative h-48">
-                                <Image
-                                    src="/images/blog-1.jpg"
-                                    alt="PC Building Guide"
-                                    fill
-                                    className="object-cover group-hover:scale-105 transition-transform"
-                                />
-                            </div>
-                            <div className="p-5">
-                                <span className="text-xs text-primary font-medium bg-primary/10 px-3 py-1 rounded-full">
-                                    Hướng dẫn
-                                </span>
-                                <h3 className="font-bold text-xl mt-3 mb-2 group-hover:text-primary transition-colors">
-                                    Cách lắp ráp PC từ A đến Z
-                                </h3>
-                                <p className="text-gray-600">
-                                    Hướng dẫn chi tiết dành cho người mới bắt
-                                    đầu lắp ráp PC...
-                                </p>
-                            </div>
-                        </div>
-                    </Link>
-
-                    <Link href="/blog/cpu-comparison" className="group">
-                        <div className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all">
-                            <div className="relative h-48">
-                                <Image
-                                    src="/images/blog-2.jpg"
-                                    alt="CPU Comparison"
-                                    fill
-                                    className="object-cover group-hover:scale-105 transition-transform"
-                                />
-                            </div>
-                            <div className="p-5">
-                                <span className="text-xs text-primary font-medium bg-primary/10 px-3 py-1 rounded-full">
-                                    So sánh
-                                </span>
-                                <h3 className="font-bold text-xl mt-3 mb-2 group-hover:text-primary transition-colors">
-                                    So sánh CPU Intel vs AMD 2023
-                                </h3>
-                                <p className="text-gray-600">
-                                    Phân tích chi tiết hiệu năng và giá trị của
-                                    các CPU mới nhất...
-                                </p>
-                            </div>
-                        </div>
-                    </Link>
-
-                    <Link href="/blog/gpu-guide" className="group">
-                        <div className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all">
-                            <div className="relative h-48">
-                                <Image
-                                    src="/images/blog-3.jpg"
-                                    alt="GPU Guide"
-                                    fill
-                                    className="object-cover group-hover:scale-105 transition-transform"
-                                />
-                            </div>
-                            <div className="p-5">
-                                <span className="text-xs text-primary font-medium bg-primary/10 px-3 py-1 rounded-full">
-                                    Công nghệ
-                                </span>
-                                <h3 className="font-bold text-xl mt-3 mb-2 group-hover:text-primary transition-colors">
-                                    Tìm hiểu về công nghệ DLSS 3
-                                </h3>
-                                <p className="text-gray-600">
-                                    Khám phá công nghệ DLSS 3 của NVIDIA và lợi
-                                    ích trong gaming...
-                                </p>
-                            </div>
-                        </div>
-                    </Link>
                 </div>
             </section>
 

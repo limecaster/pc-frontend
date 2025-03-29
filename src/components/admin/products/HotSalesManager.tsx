@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -8,6 +8,8 @@ import {
     faPlus,
     faArrowUp,
     faArrowDown,
+    faTimes,
+    faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
 import {
     getHotSalesProducts,
@@ -18,6 +20,17 @@ import {
 import { getSimpleProductList } from "@/api/admin-products";
 import { formatPrice } from "@/utils/format";
 import { ProductDetailsDto } from "@/types/product";
+import debounce from "lodash.debounce";
+
+// Enhanced product interface for search results
+interface SearchProductResult {
+    id: string;
+    name: string;
+    price?: number;
+    imageUrl?: string;
+    isDiscounted?: boolean;
+    discountPercentage?: number;
+}
 
 const HotSalesManager = () => {
     const [products, setProducts] = useState<ProductDetailsDto[]>([]);
@@ -26,11 +39,15 @@ const HotSalesManager = () => {
     const [productList, setProductList] = useState<
         { id: string; name: string }[]
     >([]);
-    const [searchResults, setSearchResults] = useState<
-        { id: string; name: string }[]
-    >([]);
+    const [searchResults, setSearchResults] = useState<SearchProductResult[]>(
+        [],
+    );
     const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
     const [showProductSearch, setShowProductSearch] = useState(false);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchPage, setSearchPage] = useState(1);
+    const [totalSearchPages, setTotalSearchPages] = useState(1);
+    const [totalSearchResults, setTotalSearchResults] = useState(0);
 
     useEffect(() => {
         fetchHotSalesProducts();
@@ -94,31 +111,84 @@ const HotSalesManager = () => {
         }
     };
 
-    const handleShowProductSearch = async () => {
-        setShowProductSearch(true);
+    const debouncedSearch = useCallback(
+        debounce(async (query: string, page: number = 1) => {
+            if (!query.trim() && page === 1) {
+                setSearchResults([]);
+                setTotalSearchPages(1);
+                setTotalSearchResults(0);
+                setSearchLoading(false);
+                return;
+            }
 
-        try {
-            const { products } = await getSimpleProductList();
-            setProductList(products);
-            setSearchResults(products);
-        } catch (error) {
-            console.error("Error fetching products:", error);
-            toast.error("Failed to load products");
-        }
-    };
+            try {
+                setSearchLoading(true);
+                const limit = 10; // Items per page
+                const { products, total, pages } = await getSimpleProductList(
+                    query,
+                    page,
+                    limit,
+                );
+
+                // Fetch additional product details for each product in the search results
+                const enhancedProducts = await Promise.all(
+                    products.map(async (product) => {
+                        // You can make additional API calls here to get more product details if needed
+                        // For example: const details = await getProductDetails(product.id);
+                        // For now, we'll just return the basic info
+                        return {
+                            id: product.id,
+                            name: product.name,
+                            // Add more fields as needed - these would come from your detailed product API
+                        } as SearchProductResult;
+                    }),
+                );
+
+                // If we're on page 1, replace results, otherwise append
+                if (page === 1) {
+                    setSearchResults(enhancedProducts);
+                } else {
+                    setSearchResults((prev) => [...prev, ...enhancedProducts]);
+                }
+
+                setTotalSearchPages(pages);
+                setTotalSearchResults(total);
+            } catch (error) {
+                console.error("Error searching products:", error);
+                toast.error("Failed to search products");
+            } finally {
+                setSearchLoading(false);
+            }
+        }, 500),
+        [],
+    );
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const query = e.target.value;
         setSearchQuery(query);
+        setSearchPage(1); // Reset to first page on new search
+        debouncedSearch(query, 1);
+    };
 
-        if (query.trim() === "") {
-            setSearchResults(productList);
-        } else {
-            const filteredProducts = productList.filter((product) =>
-                product.name.toLowerCase().includes(query.toLowerCase()),
-            );
-            setSearchResults(filteredProducts);
+    const handleLoadMoreResults = () => {
+        const nextPage = searchPage + 1;
+        if (nextPage <= totalSearchPages) {
+            setSearchPage(nextPage);
+            debouncedSearch(searchQuery, nextPage);
         }
+    };
+
+    const handleShowProductSearch = () => {
+        setShowProductSearch(true);
+        setSearchQuery("");
+        setSearchResults([]);
+        setSearchPage(1);
+    };
+
+    const handleCloseProductSearch = () => {
+        setShowProductSearch(false);
+        setSearchQuery("");
+        setSearchResults([]);
     };
 
     const handleAddToHotSales = async (productId: string) => {
@@ -149,55 +219,149 @@ const HotSalesManager = () => {
 
             {showProductSearch && (
                 <div className="mb-6 p-4 border border-gray-200 rounded-lg">
-                    <h3 className="font-medium mb-2">
-                        Add Product to Hot Sales
-                    </h3>
-                    <div className="flex gap-2 mb-4">
-                        <div className="flex-1 relative">
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={handleSearchChange}
-                                placeholder="Search products..."
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <FontAwesomeIcon
-                                icon={faSearch}
-                                className="absolute right-3 top-3 text-gray-400"
-                            />
-                        </div>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-medium">
+                            Add Product to Hot Sales
+                        </h3>
                         <button
-                            onClick={() => setShowProductSearch(false)}
-                            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                            onClick={handleCloseProductSearch}
+                            className="text-gray-500 hover:text-gray-700"
+                            aria-label="Close search"
                         >
-                            Cancel
+                            <FontAwesomeIcon icon={faTimes} />
                         </button>
                     </div>
 
-                    <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-md">
-                        {searchResults.length > 0 ? (
-                            <ul className="divide-y divide-gray-200">
-                                {searchResults.map((product) => (
-                                    <li
-                                        key={product.id}
-                                        className="p-2 hover:bg-gray-50 cursor-pointer flex justify-between items-center"
-                                        onClick={() =>
-                                            handleAddToHotSales(product.id)
-                                        }
-                                    >
-                                        <span>{product.name}</span>
-                                        <button className="text-primary">
-                                            <FontAwesomeIcon icon={faPlus} />
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="p-4 text-center text-gray-500">
-                                No products found
-                            </p>
-                        )}
+                    <div className="relative mb-4">
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={handleSearchChange}
+                            placeholder="Search for products by name..."
+                            className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            {searchLoading ? (
+                                <FontAwesomeIcon
+                                    icon={faSpinner}
+                                    className="text-gray-400 animate-spin"
+                                />
+                            ) : (
+                                <FontAwesomeIcon
+                                    icon={faSearch}
+                                    className="text-gray-400"
+                                />
+                            )}
+                        </div>
                     </div>
+
+                    {searchResults.length > 0 ? (
+                        <div className="border border-gray-200 rounded-md">
+                            <div className="max-h-80 overflow-y-auto">
+                                <ul className="divide-y divide-gray-200">
+                                    {searchResults.map((product) => (
+                                        <li
+                                            key={product.id}
+                                            className="p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                                            onClick={() =>
+                                                handleAddToHotSales(product.id)
+                                            }
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center">
+                                                    {product.imageUrl && (
+                                                        <div className="relative h-10 w-10 mr-3">
+                                                            <Image
+                                                                src={
+                                                                    product.imageUrl
+                                                                }
+                                                                alt={
+                                                                    product.name
+                                                                }
+                                                                fill
+                                                                className="object-cover rounded-md"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex-1">
+                                                        <h4 className="font-medium text-gray-900 text-sm">
+                                                            {product.name}
+                                                        </h4>
+                                                        {product.price && (
+                                                            <div className="text-xs text-gray-500">
+                                                                {formatPrice(
+                                                                    product.price,
+                                                                )}
+                                                                {product.isDiscounted &&
+                                                                    product.discountPercentage && (
+                                                                        <span className="ml-2 text-green-600">
+                                                                            (
+                                                                            {
+                                                                                product.discountPercentage
+                                                                            }
+                                                                            %
+                                                                            off)
+                                                                        </span>
+                                                                    )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    className="text-primary hover:text-blue-700 ml-4"
+                                                    title="Add to hot sales"
+                                                >
+                                                    <FontAwesomeIcon
+                                                        icon={faPlus}
+                                                    />
+                                                </button>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            {searchPage < totalSearchPages && (
+                                <div className="p-3 border-t border-gray-200 text-center">
+                                    <button
+                                        onClick={handleLoadMoreResults}
+                                        className="text-primary hover:text-blue-700 text-sm font-medium"
+                                        disabled={searchLoading}
+                                    >
+                                        {searchLoading ? (
+                                            <>
+                                                <FontAwesomeIcon
+                                                    icon={faSpinner}
+                                                    className="animate-spin mr-2"
+                                                />
+                                                Loading...
+                                            </>
+                                        ) : (
+                                            `Load more (${totalSearchResults - searchResults.length} remaining)`
+                                        )}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="p-8 text-center text-gray-500 border border-gray-200 rounded-md">
+                            {searchLoading ? (
+                                <div className="flex flex-col items-center">
+                                    <FontAwesomeIcon
+                                        icon={faSpinner}
+                                        className="text-primary animate-spin text-xl mb-2"
+                                    />
+                                    <p>Searching products...</p>
+                                </div>
+                            ) : searchQuery ? (
+                                <p>
+                                    No products found matching "{searchQuery}"
+                                </p>
+                            ) : (
+                                <p>Start typing to search for products</p>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
 

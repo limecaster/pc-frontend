@@ -9,6 +9,8 @@ interface SearchSortProps {
     onFilteredProductsChange?: (filteredProducts: any[]) => void;
     onSort?: (sortOption: string) => void;
     isGlobalSearch?: boolean; // To differentiate between global search and local search
+    onSearch?: (query: string) => void;
+    initialSearchQuery?: string;
 }
 
 const SearchSort: React.FC<SearchSortProps> = ({
@@ -17,10 +19,15 @@ const SearchSort: React.FC<SearchSortProps> = ({
     onFilteredProductsChange,
     onSort,
     isGlobalSearch = false,
+    onSearch,
+    initialSearchQuery = "",
 }) => {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState(initialQuery);
     const [sortOption, setSortOption] = useState("relevance");
+    const [searchInput, setSearchInput] = useState<string>(
+        initialSearchQuery || "",
+    );
 
     // If initialQuery changes (from parent component), update searchTerm state
     useEffect(() => {
@@ -63,6 +70,10 @@ const SearchSort: React.FC<SearchSortProps> = ({
         }
 
         // For local search, the useEffect above will handle filtering
+
+        if (onSearch) {
+            onSearch(searchInput);
+        }
     };
 
     const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

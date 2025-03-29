@@ -131,3 +131,65 @@ export async function updateHotSalesOrder(
         throw error;
     }
 }
+
+/**
+ * Fetch hot sales products with filtering, sorting and pagination
+ */
+export const getFilteredHotSalesProducts = async (
+    page = 1,
+    limit = 12,
+    brands?: string[],
+    minPrice?: number,
+    maxPrice?: number,
+    minRating?: number,
+    sortBy?: string,
+    search?: string,
+): Promise<{
+    products: ProductDetailsDto[];
+    total: number;
+    pages: number;
+    page: number;
+}> => {
+    try {
+        const params = new URLSearchParams();
+        params.append("page", page.toString());
+        params.append("limit", limit.toString());
+
+        if (brands && brands.length > 0) {
+            params.append("brands", brands.join(","));
+        }
+
+        if (minPrice !== undefined && minPrice > 0) {
+            params.append("minPrice", minPrice.toString());
+        }
+
+        if (maxPrice !== undefined && maxPrice < 100_000_000) {
+            params.append("maxPrice", maxPrice.toString());
+        }
+
+        if (minRating !== undefined) {
+            params.append("minRating", minRating.toString());
+        }
+
+        if (sortBy) {
+            params.append("sortBy", sortBy);
+        }
+
+        if (search && search.trim() !== "") {
+            params.append("search", search.trim());
+        }
+
+        const response = await fetch(
+            `${API_URL}/products/hot-sales-filtered?${params.toString()}`,
+        );
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch filtered hot sales products");
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching filtered hot sales products:", error);
+        throw error;
+    }
+};

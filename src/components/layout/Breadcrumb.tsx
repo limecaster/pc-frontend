@@ -34,6 +34,7 @@ const pathNameMap: { [key: string]: string } = {
     support: "Hỗ trợ khách hàng",
     "about-us": "Về chúng tôi",
     about: "Về chúng tôi",
+    "hot-sales": "Khuyến mãi",
 };
 
 const Breadcrumb: React.FC = () => {
