@@ -31,6 +31,9 @@ const pathNameMap: { [key: string]: string } = {
     search: "Tìm kiếm",
     "pc-configurations": "Cấu hình PC",
     reviews: "Đánh giá",
+    support: "Hỗ trợ khách hàng",
+    "about-us": "Về chúng tôi",
+    about: "Về chúng tôi",
 };
 
 const Breadcrumb: React.FC = () => {

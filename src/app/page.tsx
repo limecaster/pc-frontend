@@ -11,6 +11,8 @@ import ProductGrid from "@/components/products/product/ProductGrid";
 import HeroSection from "@/components/home/HeroSection";
 import PromotionSection from "@/components/home/PromotionSection";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
+import BrandShowcase from "@/components/home/BrandShowcase";
+import HotSalesSection from "@/components/home/HotSalesSection";
 
 export default function HomePage() {
     useEffect(() => {
@@ -133,6 +135,9 @@ export default function HomePage() {
                 </div>
             </section>
 
+            {/* Hot Sales Section - Add this section */}
+            <HotSalesSection />
+
             {/* Second row: Hot Sale Products */}
             <section className="container mx-auto px-4 py-12 bg-gradient-to-r from-rose-50 to-rose-100 rounded-3xl my-6">
                 <div className="flex flex-col md:flex-row justify-between items-center mb-8">
@@ -155,36 +160,8 @@ export default function HomePage() {
                 <ProductGrid />
             </section>
 
-            {/* Brand Showcase */}
-            <section className="container mx-auto px-4 py-12">
-                <div className="text-center mb-8">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                        Thương hiệu nổi bật
-                    </h2>
-                    <p className="text-gray-600">
-                        Chúng tôi hợp tác với các thương hiệu hàng đầu
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                    {["asus", "msi", "corsair", "amd", "intel", "nvidia"].map(
-                        (brand) => (
-                            <div
-                                key={brand}
-                                className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center"
-                            >
-                                <Image
-                                    src={`/images/brands/${brand}.png`}
-                                    alt={brand.toUpperCase()}
-                                    width={120}
-                                    height={60}
-                                    className="object-contain h-12 w-auto opacity-80 hover:opacity-100 transition-opacity"
-                                />
-                            </div>
-                        ),
-                    )}
-                </div>
-            </section>
+            {/* Brand Showcase - Replace the static section with our new component */}
+            <BrandShowcase />
 
             {/* Third row: Product Categories */}
             <section className="container mx-auto px-4 py-12 bg-gray-100">

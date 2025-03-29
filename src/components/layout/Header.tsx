@@ -12,8 +12,12 @@ import {
     faSignOutAlt,
     faUserCircle,
 } from "@fortawesome/free-solid-svg-icons";
-// Import the new SearchBar component instead of SearchSort
 import SearchBar from "@/components/ui/SearchBar";
+import { getLogo } from "@/api/logo";
+import { ContentSection } from "@/api/cms";
+
+// Default logo path to use as fallback
+const DEFAULT_LOGO = "/logo.png";
 
 const Header = () => {
     const [showUserMenu, setShowUserMenu] = useState(false);
@@ -65,13 +69,36 @@ const Header = () => {
         };
     }, [showUserMenu]);
 
+    const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO);
+    const [logoLink, setLogoLink] = useState<string>("/");
+
+    // Fetch logo from CMS
+    useEffect(() => {
+        const fetchLogo = async () => {
+            try {
+                const logoData = await getLogo(ContentSection.HEADER);
+                if (logoData && logoData.imageUrl) {
+                    setLogoUrl(logoData.imageUrl);
+                    if (logoData.link) {
+                        setLogoLink(logoData.link);
+                    }
+                }
+            } catch (error) {
+                console.error("Error loading logo:", error);
+                // Keep using the default logo on error
+            }
+        };
+
+        fetchLogo();
+    }, []);
+
     return (
         <header className="bg-primary shadow-md">
             <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-                {/* Logo */}
-                <Link href="/" className="flex items-center gap-2">
+                {/* Logo - Updated to use CMS logo */}
+                <Link href={logoLink} className="flex items-center gap-2">
                     <Image
-                        src="/logo.png"
+                        src={logoUrl}
                         alt="B Store Logo"
                         width={40}
                         height={40}

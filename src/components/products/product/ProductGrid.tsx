@@ -186,9 +186,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                         isDiscounted={product.isDiscounted}
                         discountSource={product.discountSource}
                         discountType={product.discountType}
-                        rating={product.rating}
-                        reviewCount={product.reviewCount}
-                        imageUrl={product.imageUrl}
+                        rating={product.rating || 0}
+                        reviewCount={product.reviewCount || 0}
+                        imageUrl={product.imageUrl || "/images/placeholder.png"}
                     />
                 ))
             ) : (

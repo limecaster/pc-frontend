@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 // FAQ data
-const faqItems = [
+export const faqItems = [
     {
         id: 1,
         question: "Bạn cung cấp những dịch vụ gì?",

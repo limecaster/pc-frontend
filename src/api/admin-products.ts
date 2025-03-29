@@ -2,10 +2,10 @@ import { API_URL } from "@/config/constants";
 import { fetchAllProducts } from "./product";
 
 // Helper to include auth token in requests
-const getAuthHeaders = () => {
+const getAuthHeaders = (includeContentType = true) => {
     const token = localStorage.getItem("token");
     return {
-        "Content-Type": "application/json",
+        ...(includeContentType && { "Content-Type": "application/json" }),
         Authorization: token ? `Bearer ${token}` : "",
     };
 };
@@ -310,6 +310,41 @@ export async function getProductCountByCategory() {
         return await response.json();
     } catch (error) {
         console.error("Error getting category counts:", error);
+        throw error;
+    }
+}
+
+/**
+ * Get a simple list of products (id, name only) for admin use
+ * Used in dropdowns and selection interfaces
+ */
+export async function getSimpleProductList(
+    search?: string,
+    page: number = 1,
+    limit: number = 100,
+): Promise<{
+    products: { id: string; name: string }[];
+    total: number;
+    pages: number;
+}> {
+    try {
+        let url = `${API_URL}/products/admin/simple-list?page=${page}&limit=${limit}`;
+
+        if (search) {
+            url += `&search=${encodeURIComponent(search)}`;
+        }
+
+        const response = await fetch(url, {
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching simple product list:", error);
         throw error;
     }
 }

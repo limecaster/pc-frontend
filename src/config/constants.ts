@@ -1,4 +1,4 @@
-// Ensure we have the right API URL configured
+// Make sure this URL points to your running NestJS server
 export const API_URL =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 

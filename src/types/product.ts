@@ -27,6 +27,7 @@ export interface ProductDetailsDto {
     color?: string;
     size?: string;
     stockQuantity?: number;
+    slug?: string; // Add the slug property
 }
 
 /**

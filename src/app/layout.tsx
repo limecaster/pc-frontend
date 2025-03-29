@@ -14,6 +14,7 @@ import { CheckoutProvider } from "@/contexts/CheckoutContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { FooterProvider } from "@/contexts/FooterContext";
 import { usePathname } from "next/navigation";
+import FaviconManager from "@/components/common/FaviconManager";
 
 const roboto = Roboto({
     subsets: ["vietnamese"],
@@ -36,6 +37,9 @@ export default function RootLayout({
             <body
                 className={`${roboto.className} antialiased bg-gray-50 text-gray-800`}
             >
+                {/* Add the FaviconManager to manage the favicon */}
+                <FaviconManager />
+
                 <Providers>
                     <WishlistProvider>
                         <CheckoutProvider>
