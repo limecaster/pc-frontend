@@ -41,7 +41,7 @@ export default function StaffLayout({
     children: React.ReactNode;
 }) {
     return (
-        <ProtectedRoute>
+        <ProtectedRoute allowedRoles={["staff"]}>
             <StaffSidebarProvider>
                 <StaffContent>{children}</StaffContent>
             </StaffSidebarProvider>

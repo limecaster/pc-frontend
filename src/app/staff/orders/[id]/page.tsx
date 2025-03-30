@@ -24,9 +24,51 @@ export default function OrderDetailsPage() {
             try {
                 const response = await getStaffOrderDetails(orderId);
 
+                // Improve response structure handling
                 if (response && response.success) {
                     if (response.order) {
-                        setOrder(response.order);
+                        // Transform any necessary fields here
+                        const orderData = {
+                            ...response.order,
+                            // If status is missing, set a default value
+                            status: response.order.status || "pending_approval",
+                            // If order items is undefined, set empty array
+                            items: response.order.items || [],
+                            // If dates are strings, convert to Date objects
+                            orderDate: response.order.orderDate
+                                ? new Date(response.order.orderDate)
+                                : new Date(),
+                            createdAt: response.order.createdAt
+                                ? new Date(response.order.createdAt)
+                                : undefined,
+                            updatedAt: response.order.updatedAt
+                                ? new Date(response.order.updatedAt)
+                                : undefined,
+                            // Ensure customer data is normalized
+                            customer: response.order.customer || {
+                                id: response.order.customerId,
+                                // Use customerName directly rather than non-existent guestName
+                                firstname: response.order.customerName
+                                    ? response.order.customerName
+                                          .split(" ")
+                                          .slice(-1)
+                                          .join(" ")
+                                    : "",
+                                lastname: response.order.customerName
+                                    ? response.order.customerName
+                                          .split(" ")
+                                          .slice(0, -1)
+                                          .join(" ")
+                                    : "",
+                                // Use customerEmail directly rather than guestEmail/email
+                                email: response.order.customerEmail || "",
+                                // Use customerPhone directly rather than guestPhone/phone
+                                phoneNumber: response.order.customerPhone || "",
+                            },
+                        };
+
+                        setOrder(orderData);
+                        console.log("Order data loaded:", orderData);
                     } else {
                         console.error(
                             "Missing order property in response:",
@@ -65,7 +107,8 @@ export default function OrderDetailsPage() {
                     Quay lại
                 </Button>
                 <h1 className="text-2xl font-semibold text-gray-800">
-                    Chi tiết đơn hàng
+                    Chi tiết đơn hàng{" "}
+                    {order?.orderNumber ? `#${order.orderNumber}` : ""}
                 </h1>
             </div>
 

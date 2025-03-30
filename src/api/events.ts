@@ -602,6 +602,18 @@ export const trackPaymentCompleted = async (
     paymentData: any,
 ) => {
     try {
+        // Check if this payment event has already been tracked
+        const trackingKey = `payment_tracked_${orderId}`;
+        if (
+            typeof window !== "undefined" &&
+            sessionStorage.getItem(trackingKey)
+        ) {
+            console.log(
+                `Payment for order ${orderId} already tracked, skipping duplicate event`,
+            );
+            return; // Skip tracking if already done
+        }
+
         // Build eventData with payment information
         const eventDataObj: Record<string, any> = {
             orderId,
@@ -656,16 +668,142 @@ export const trackPaymentCompleted = async (
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
             console.error(
                 `Payment completion tracking failed: ${response.status}`,
-                errorText,
             );
+            return;
+        }
+
+        // Mark this payment as tracked in sessionStorage
+        if (typeof window !== "undefined") {
+            sessionStorage.setItem(trackingKey, "true");
         }
     } catch (error) {
         console.error("Failed to track payment completion:", error);
+        // Non-critical error, don't throw
     }
 };
+
+/**
+ * Tracks discount usage in an order
+ * @param orderId The ID of the order
+ * @param discountData Information about the discount(s) applied
+ */
+export async function trackDiscountUsage(
+    orderId: string | number,
+    discountData: {
+        discountAmount: number;
+        manualDiscountId?: number;
+        appliedDiscountIds?: string[];
+        orderTotal: number;
+        orderSubtotal: number;
+        itemDiscounts?: Array<{
+            productId: string;
+            productName: string;
+            originalPrice: number;
+            finalPrice: number;
+            discountAmount: number;
+            discountId?: number;
+            discountType?: string;
+        }>;
+    },
+): Promise<void> {
+    try {
+        // Check if this discount event has already been tracked
+        const trackingKey = `discount_tracked_${orderId}`;
+        if (
+            typeof window !== "undefined" &&
+            sessionStorage.getItem(trackingKey)
+        ) {
+            console.log(
+                `Discount for order ${orderId} already tracked, skipping duplicate event`,
+            );
+            return; // Skip tracking if already done
+        }
+
+        // Get customer ID from local storage if available
+        const customerId = localStorage.getItem("userId");
+        const sessionId =
+            localStorage.getItem("sessionId") || generateSessionId();
+
+        // Calculate savings percentage
+        const savingsPercent = calculateSavingsPercent(
+            discountData.discountAmount,
+            discountData.orderSubtotal,
+        );
+
+        // Create event payload
+        const eventData = {
+            eventType: "discount_used",
+            sessionId,
+            customerId: customerId || undefined,
+            entityId: orderId.toString(),
+            entityType: "order",
+            pageUrl: window.location.href,
+            referrerUrl: document.referrer,
+            deviceInfo: {
+                userAgent: navigator.userAgent,
+                screenSize: `${window.innerWidth}x${window.innerHeight}`,
+            },
+            eventData: {
+                orderId,
+                discountAmount: discountData.discountAmount,
+                discountType: discountData.manualDiscountId
+                    ? "manual"
+                    : "automatic",
+                discountIds: discountData.manualDiscountId
+                    ? [discountData.manualDiscountId.toString()]
+                    : discountData.appliedDiscountIds,
+                itemDiscounts: discountData.itemDiscounts,
+                orderTotal: discountData.orderTotal,
+                orderSubtotal: discountData.orderSubtotal,
+                savingsPercent,
+                timestamp: Date.now(),
+            },
+        };
+
+        // Send event to tracking API
+        await fetch(`${API_URL}/events/discount-usage`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(eventData),
+        });
+
+        // Mark this discount as tracked in sessionStorage
+        if (typeof window !== "undefined") {
+            sessionStorage.setItem(trackingKey, "true");
+        }
+
+        console.log("Discount usage tracked successfully", eventData);
+    } catch (error) {
+        console.error("Failed to track discount usage:", error);
+        // Don't throw - tracking errors shouldn't break the app
+    }
+}
+
+/**
+ * Calculates the percentage of savings from a discount
+ */
+function calculateSavingsPercent(
+    discountAmount: number,
+    subtotal: number,
+): number {
+    if (!subtotal || subtotal === 0) return 0;
+    return Math.round((discountAmount / subtotal) * 100);
+}
+
+/**
+ * Generates a session ID if one doesn't exist
+ */
+function generateSessionId(): string {
+    const sessionId =
+        Math.random().toString(36).substring(2, 15) +
+        Math.random().toString(36).substring(2, 15);
+    localStorage.setItem("sessionId", sessionId);
+    return sessionId;
+}
 
 export default {
     trackEvent,
@@ -677,4 +815,5 @@ export default {
     trackRemoveFromCart,
     trackOrderCreated,
     trackPaymentCompleted,
+    trackDiscountUsage,
 };

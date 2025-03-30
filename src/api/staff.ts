@@ -296,7 +296,7 @@ export async function getStaffOrderDetails(orderId: string | number) {
         }
 
         // Use the staff-specific endpoint
-        const response = await fetch(`${API_URL}/orders/staff/${orderId}`, {
+        const response = await fetch(`${API_URL}/orders/${orderId}`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -305,17 +305,116 @@ export async function getStaffOrderDetails(orderId: string | number) {
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(
-                error.message || `HTTP error! status: ${response.status}`,
-            );
+            const errorData = await response.json().catch(() => ({}));
+            const errorMessage =
+                errorData.message || `HTTP error! status: ${response.status}`;
+            console.error(`Order detail API error: ${errorMessage}`, errorData);
+            return {
+                success: false,
+                message: errorMessage,
+                error: errorData,
+            };
         }
 
         const data = await response.json();
+        console.log("Order details response:", data);
 
-        return data;
+        // Get the order object (handling both possible response formats)
+        const orderData = data.order || data;
+
+        // Normalize the order structure based on the actual API response
+        const normalizedOrder = {
+            id: orderData.id,
+            orderNumber: orderData.orderNumber || `#${orderData.id}`,
+            status: orderData.status || "pending_approval",
+
+            // Customer information
+            customerId: orderData.customerId,
+            customer: {
+                id: orderData.customerId,
+                firstname: orderData.customerName
+                    ? orderData.customerName.split(" ").slice(-1).join(" ")
+                    : "",
+                lastname: orderData.customerName
+                    ? orderData.customerName.split(" ").slice(0, -1).join(" ")
+                    : "",
+                email: orderData.customerEmail || "",
+                phoneNumber: orderData.customerPhone || "",
+            },
+            customerName: orderData.customerName,
+            customerEmail: orderData.customerEmail,
+            customerPhone: orderData.customerPhone,
+
+            // Order details
+            orderDate: orderData.orderDate
+                ? new Date(orderData.orderDate)
+                : new Date(),
+            deliveryAddress: orderData.deliveryAddress || "",
+            paymentMethod: orderData.paymentMethod || "Unknown",
+            paymentStatus: orderData.paymentStatus || "Pending",
+            notes: orderData.notes || "",
+
+            // Financial information
+            total: orderData.total || "0",
+            subtotal: orderData.subtotal || orderData.total || "0",
+            shippingFee: orderData.shippingFee || 0,
+            discountAmount: orderData.discountAmount || "0",
+
+            // Normalize items to match expected structure in OrderDetails component
+            items: Array.isArray(orderData.items)
+                ? orderData.items.map((item: any) => {
+                      // If item already has a product property, keep it
+                      if (item.product) {
+                          return {
+                              ...item,
+                              id:
+                                  item.id ||
+                                  Math.random().toString(36).substring(7),
+                              quantity: item.quantity || 1,
+                              subPrice: item.subPrice || item.price || "0",
+                          };
+                      }
+
+                      // Otherwise, transform flat structure to nested structure
+                      return {
+                          id:
+                              item.id ||
+                              Math.random().toString(36).substring(7),
+                          quantity: item.quantity || 1,
+                          subPrice: String(
+                              Number(item.price || 0) * (item.quantity || 1),
+                          ),
+                          product: {
+                              id: item.id || "",
+                              name: item.name || "Unknown Product",
+                              price: item.price || "0",
+                              imageUrl: item.imageUrl,
+                          },
+                      };
+                  })
+                : [],
+
+            // Timestamps
+            createdAt: orderData.createdAt
+                ? new Date(orderData.createdAt)
+                : undefined,
+            updatedAt: orderData.updatedAt
+                ? new Date(orderData.updatedAt)
+                : undefined,
+        };
+
+        return {
+            success: true,
+            order: normalizedOrder,
+        };
     } catch (error) {
         console.error(`Error fetching order #${orderId} details:`, error);
-        throw error;
+        return {
+            success: false,
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Unknown error fetching order details",
+        };
     }
 }

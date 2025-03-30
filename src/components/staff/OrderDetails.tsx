@@ -11,10 +11,12 @@ interface OrderItem {
     id: number;
     quantity: number;
     subPrice: string; // Changed from price to subPrice and type to string
+    imageUrl?: string; // Add optional imageUrl property
     product: {
         id: string;
         name: string;
         price: string; // Changed from number to string
+        imageUrl?: string; // Add optional imageUrl property
         description?: string;
         stockQuantity?: number;
         status?: string;
@@ -164,11 +166,73 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
         );
     }
 
-    // Format customer name - with better fallback handling
-    const customerName = order?.customer
-        ? `${order.customer.firstname || ""} ${order.customer.lastname || ""}`.trim() ||
-          "Không có tên"
-        : "Khách hàng không đăng nhập";
+    // Format customer name with improved empty data handling
+    const customerName = React.useMemo(() => {
+        // Handle completely missing customer object
+        if (!order?.customer) {
+            if (order?.guestEmail)
+                return `Khách vãng lai (${order.guestEmail})`;
+            return "Khách hàng không đăng nhập";
+        }
+
+        // Handle empty customer data
+        const firstName = order.customer.firstname || "";
+        const lastName = order.customer.lastname || "";
+        const fullName = `${firstName} ${lastName}`.trim();
+
+        if (!fullName) {
+            if (order.customer.email)
+                return `Khách hàng (${order.customer.email})`;
+            if (order.customer.id) return `Khách hàng ID: ${order.customer.id}`;
+            return "Không có thông tin khách hàng";
+        }
+
+        return fullName;
+    }, [order?.customer, order?.guestEmail]);
+
+    // Get more detailed missing data info
+    const getMissingDataInfo = () => {
+        const missing = [];
+
+        // Check for missing customer info
+        if (!customerName || customerName === "Không có thông tin khách hàng") {
+            missing.push("thông tin khách hàng");
+        }
+
+        // Check for empty items
+        if (!order?.items || order.items.length === 0) {
+            missing.push("danh sách sản phẩm");
+        }
+
+        // Check for missing delivery info
+        if (!order?.deliveryAddress) {
+            missing.push("địa chỉ giao hàng");
+        }
+
+        // Check for missing payment info
+        if (!order?.paymentMethod) {
+            missing.push("phương thức thanh toán");
+        }
+
+        // Check for invalid or future date
+        if (order?.orderDate) {
+            const orderDate = new Date(order.orderDate);
+            const now = new Date();
+            if (orderDate > now) {
+                missing.push("ngày đặt hàng (hiển thị ngày trong tương lai)");
+            }
+        } else {
+            missing.push("ngày đặt hàng");
+        }
+
+        return missing;
+    };
+
+    const missingDataInfo = getMissingDataInfo();
+    const hasIncompleteData = missingDataInfo.length > 0;
+    const incompleteMessage = hasIncompleteData
+        ? `Dữ liệu đơn hàng thiếu ${missingDataInfo.join(", ")}. Một số thông tin có thể không hiển thị chính xác.`
+        : "";
 
     // Get price as number for calculations - with better error handling
     const getNumericPrice = (
@@ -178,20 +242,6 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
         if (typeof price === "number") return price;
         return 0;
     };
-
-    // Add description about incomplete data if needed with more specific feedback
-    const missingFields = [];
-    if (!order?.total || order?.total === "0") missingFields.push("tổng tiền");
-    if (!order?.deliveryAddress) missingFields.push("địa chỉ giao hàng");
-    if (!order?.paymentMethod) missingFields.push("phương thức thanh toán");
-    if (!order?.items || order?.items?.length === 0)
-        // Fixed: Added optional chaining
-        missingFields.push("danh sách sản phẩm");
-
-    const hasIncompleteData = missingFields.length > 0;
-    const incompleteMessage = hasIncompleteData
-        ? `Dữ liệu đơn hàng thiếu ${missingFields.join(", ")}. Một số thông tin có thể không hiển thị chính xác.`
-        : "";
 
     // Define the OrderStatus enum at the top of the component
     const OrderStatus = {
@@ -203,6 +253,39 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
         COMPLETED: "completed",
         CANCELLED: "cancelled",
         REFUNDED: "refunded",
+    };
+
+    // Helper function to handle different item structures
+    const getProductName = (item: any): string => {
+        if (item.product && item.product.name) {
+            return item.product.name;
+        }
+        return item.name || "Sản phẩm không có tên";
+    };
+
+    const getProductId = (item: any): string => {
+        if (item.product && item.product.id) {
+            return item.product.id;
+        }
+        return item.id || "N/A";
+    };
+
+    const getProductPrice = (item: any): string => {
+        if (item.product && item.product.price) {
+            return item.product.price;
+        }
+        return item.price || "0";
+    };
+
+    const getItemSubPrice = (item: any): string => {
+        if (item.subPrice) {
+            return item.subPrice;
+        }
+
+        // Calculate subPrice if not available
+        const quantity = item.quantity || 1;
+        const price = getNumericPrice(getProductPrice(item));
+        return (price * quantity).toString();
     };
 
     return (
@@ -306,6 +389,14 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
                             <span className="font-medium">Số điện thoại:</span>{" "}
                             {order?.customer?.phoneNumber || "Không có"}
                         </p>
+                        {order?.customerId && (
+                            <p>
+                                <span className="font-medium">
+                                    ID Khách hàng:
+                                </span>{" "}
+                                {order.customerId}
+                            </p>
+                        )}
                     </div>
                 </Card>
 
@@ -331,17 +422,21 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
                     <h2 className="text-lg font-semibold mb-4">
                         Thông tin thanh toán
                     </h2>
-                    <div className="space-y-2">
+                    <div className="space-y-2 flex flex-col justify-start">
                         <p>
-                            <span className="font-medium">Phương thức:</span>{" "}
-                            {order?.paymentMethod || "Không có"}
+                            <span className="font-medium">Phương thức: </span>
+                            {order?.paymentMethod || "PayOS"}
                         </p>
                         <p>
-                            <span className="font-medium">Trạng thái:</span>{" "}
-                            {order?.paymentStatus || "Chưa thanh toán"}
+                            <span className="font-medium">
+                                Trạng thái đơn hàng:{" "}
+                            </span>
+                            <OrderStatusBadge
+                                status={order?.status || "unknown"}
+                            />
                         </p>
-                        <p>
-                            <span className="font-medium">Tổng tiền:</span>{" "}
+                        <p className="mt-2">
+                            <span className="font-medium">Tổng tiền: </span>
                             <span className="text-primary font-bold">
                                 {formatPrice(getNumericPrice(order?.total))} đ
                             </span>
@@ -499,7 +594,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
             {/* Order Items */}
             <Card>
                 <h2 className="text-lg font-semibold mb-4">Sản phẩm</h2>
-                {order?.items && order?.items?.length > 0 ? ( // Fixed: Added optional chaining
+                {order?.items && order?.items?.length > 0 ? (
                     <Table hoverable>
                         <Table.Head>
                             <Table.HeadCell>Sản phẩm</Table.HeadCell>
@@ -513,29 +608,47 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
                                     <Table.Cell>
                                         <div className="flex items-center">
                                             <div className="flex-shrink-0 h-12 w-12 bg-gray-100 rounded-md flex items-center justify-center mr-3">
-                                                {/* Use a default image or placeholder */}
-                                                <svg
-                                                    className="h-6 w-6 text-gray-400"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                                {/* Handle image with type safety */}
+                                                {(item as any).imageUrl ||
+                                                (item.product as any)
+                                                    .imageUrl ? (
+                                                    <Image
+                                                        src={
+                                                            (item as any)
+                                                                .imageUrl ||
+                                                            (
+                                                                item.product as any
+                                                            ).imageUrl
+                                                        }
+                                                        alt={getProductName(
+                                                            item,
+                                                        )}
+                                                        width={48}
+                                                        height={48}
+                                                        className="h-10 w-10 object-contain"
                                                     />
-                                                </svg>
+                                                ) : (
+                                                    <svg
+                                                        className="h-6 w-6 text-gray-400"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                                        />
+                                                    </svg>
+                                                )}
                                             </div>
                                             <div>
                                                 <p className="font-medium">
-                                                    {item.product?.name ||
-                                                        "Sản phẩm không có tên"}
+                                                    {getProductName(item)}
                                                 </p>
                                                 <p className="text-sm text-gray-500">
-                                                    ID:{" "}
-                                                    {item.product?.id || "N/A"}
+                                                    ID: {getProductId(item)}
                                                 </p>
                                             </div>
                                         </div>
@@ -543,7 +656,7 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
                                     <Table.Cell>
                                         {formatPrice(
                                             getNumericPrice(
-                                                item.product?.price,
+                                                getProductPrice(item),
                                             ),
                                         )}{" "}
                                         đ
@@ -553,7 +666,9 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
                                     </Table.Cell>
                                     <Table.Cell className="font-medium">
                                         {formatPrice(
-                                            getNumericPrice(item.subPrice),
+                                            getNumericPrice(
+                                                getItemSubPrice(item),
+                                            ),
                                         )}{" "}
                                         đ
                                     </Table.Cell>
@@ -562,7 +677,15 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({
                         </Table.Body>
                     </Table>
                 ) : (
-                    <p className="text-gray-500">Không có sản phẩm nào</p>
+                    <div className="p-4 bg-gray-50 rounded-md">
+                        <p className="text-gray-500 text-center">
+                            Không có sản phẩm nào trong đơn hàng này
+                        </p>
+                        <p className="text-sm text-gray-400 text-center mt-2">
+                            Đơn hàng có thể đang trong quá trình xử lý hoặc có
+                            lỗi dữ liệu
+                        </p>
+                    </div>
                 )}
 
                 {/* Order Summary */}

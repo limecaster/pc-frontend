@@ -4,13 +4,28 @@ import { useSearchParams } from "next/navigation";
 import { getOrderDetails } from "@/api/orders"; // Use the more complete API directly
 import { updateOrderPaymentStatus } from "@/api/order";
 import CheckoutSuccessPage from "@/components/checkout/CheckoutSuccessPage";
-import { trackPaymentCompleted } from "@/api/events";
+import { trackPaymentCompleted, trackDiscountUsage } from "@/api/events";
+
+// Add an interface for the order item
+interface OrderItem {
+    id?: string;
+    productId?: string;
+    name?: string;
+    productName?: string;
+    originalPrice?: number;
+    finalPrice?: number;
+    price?: number;
+    discountAmount?: number;
+    discountId?: number | string;
+    discountType?: string;
+}
 
 const CheckoutSuccessContent: React.FC = () => {
     const searchParams = useSearchParams();
     const [orderData, setOrderData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [discountTracked, setDiscountTracked] = useState(false);
 
     useEffect(() => {
         const fetchOrderData = async () => {
@@ -26,8 +41,17 @@ const CheckoutSuccessContent: React.FC = () => {
                     throw new Error("Order ID not found in URL parameters");
                 }
 
-                // If payment status parameters are present, update payment status first
-                if (paymentStatus === "PAID" && paymentCode === "00") {
+                // Check if this payment has already been tracked to prevent duplicate events
+                const paymentTrackingKey = `payment_tracked_${orderId}`;
+                const isPaymentTracked =
+                    sessionStorage.getItem(paymentTrackingKey);
+
+                // If payment status parameters are present and we haven't tracked this payment yet, update payment status
+                if (
+                    paymentStatus === "PAID" &&
+                    paymentCode === "00" &&
+                    !isPaymentTracked
+                ) {
                     console.log(
                         "Payment success detected, updating order status",
                     );
@@ -38,13 +62,16 @@ const CheckoutSuccessContent: React.FC = () => {
                         paymentId, // Include PayOS ID if present
                     );
 
-                    // Track payment completed event
+                    // Track payment completed event exactly once
                     trackPaymentCompleted(orderId, {
                         id: paymentId,
                         status: paymentStatus,
                         paymentMethod: "online", // Assuming online payment for PayOS
                         amount: null, // Will be updated when we get order details
                     });
+
+                    // Mark this payment as tracked to prevent duplicate events
+                    sessionStorage.setItem(paymentTrackingKey, "true");
                 }
 
                 // Use the proper API endpoint for fetching complete order details
@@ -55,8 +82,68 @@ const CheckoutSuccessContent: React.FC = () => {
                 if (orderDetails && orderDetails.order) {
                     setOrderData(orderDetails.order);
 
-                    // Update payment tracking with full order information if it was successful
-                    if (paymentStatus === "PAID" && paymentCode === "00") {
+                    // Check if discount tracking has already been done for this order
+                    const discountTrackingKey = `discount_tracked_${orderId}`;
+                    const isDiscountTracked =
+                        sessionStorage.getItem(discountTrackingKey);
+
+                    // Track discount usage if not already tracked and there is a discount
+                    if (
+                        !isDiscountTracked &&
+                        !discountTracked &&
+                        orderDetails.order.discountAmount > 0
+                    ) {
+                        console.log(
+                            "Tracking discount usage for order:",
+                            orderId,
+                        );
+
+                        // Fix the itemDiscounts mapping with proper typing
+                        const itemDiscounts = orderDetails.order.items
+                            .map((item: OrderItem) => ({
+                                productId: item.id || item.productId,
+                                productName: item.name || item.productName,
+                                originalPrice: item.originalPrice,
+                                finalPrice: item.finalPrice || item.price,
+                                discountAmount: item.discountAmount || 0,
+                                discountId: item.discountId,
+                                discountType: item.discountType,
+                            }))
+                            .filter(
+                                (item: { discountAmount: number }) =>
+                                    item.discountAmount > 0,
+                            );
+
+                        // Track discount usage with all relevant information
+                        trackDiscountUsage(orderId, {
+                            discountAmount: orderDetails.order.discountAmount,
+                            // Include discount IDs if available in the order response
+                            manualDiscountId:
+                                orderDetails.order.manualDiscountId,
+                            appliedDiscountIds:
+                                orderDetails.order.appliedDiscountIds,
+                            orderTotal: orderDetails.order.total,
+                            orderSubtotal:
+                                orderDetails.order.subtotal ||
+                                orderDetails.order.total,
+                            // Add item-level discount information
+                            itemDiscounts:
+                                itemDiscounts.length > 0
+                                    ? itemDiscounts
+                                    : undefined,
+                        });
+
+                        // Mark discount as tracked both in state and session storage
+                        setDiscountTracked(true);
+                        sessionStorage.setItem(discountTrackingKey, "true");
+                    }
+
+                    // Update payment tracking with full order information if it was successful and not tracked yet
+                    if (
+                        paymentStatus === "PAID" &&
+                        paymentCode === "00" &&
+                        !isPaymentTracked
+                    ) {
                         trackPaymentCompleted(orderId, {
                             id: paymentId,
                             status: paymentStatus,
@@ -67,6 +154,9 @@ const CheckoutSuccessContent: React.FC = () => {
                                 orderDetails.order.total,
                             order: orderDetails.order,
                         });
+
+                        // Mark payment as tracked
+                        sessionStorage.setItem(paymentTrackingKey, "true");
                     }
 
                     // Clear cart and order data from localStorage
@@ -86,7 +176,7 @@ const CheckoutSuccessContent: React.FC = () => {
         };
 
         fetchOrderData();
-    }, [searchParams]);
+    }, [searchParams, discountTracked]);
 
     return (
         <CheckoutSuccessPage

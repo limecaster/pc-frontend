@@ -31,10 +31,15 @@ interface CheckoutContextProps {
     error: string | null;
     orderData: any;
     createCheckoutOrder: (
-        items: CartItem[],
-        shippingInfo: ShippingInfo,
-        notes?: string,
-        discountInfo?: DiscountInfo, // Add discountInfo parameter
+        orderData: any, // First parameter is the full order data
+        shippingInfo: {
+            // Second parameter is shipping info
+            fullName: string;
+            email: string;
+            phone: string;
+            address: string;
+        },
+        notes?: string, // Third parameter is optional notes
     ) => Promise<any>;
     checkOrderPaymentStatus: (orderId: string) => Promise<any>;
     initiateOrderPayment: (orderId: string) => Promise<any>;
@@ -54,63 +59,95 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({
     const [orderData, setOrderData] = useState<any>(null);
 
     const createCheckoutOrder = async (
-        items: CartItem[],
-        shippingInfo: ShippingInfo,
-        notes?: string,
-        discountInfo?: DiscountInfo, // Add discountInfo parameter
+        orderData: any,
+        shippingInfo: {
+            fullName: string;
+            email: string;
+            phone: string;
+            address: string;
+        },
+        notes: string = "",
     ) => {
         setLoading(true);
         setError(null);
         try {
             const isAuthenticated = !!localStorage.getItem("token");
-            const orderItems = items.map((item) => ({
+
+            if (!orderData.orderItems) {
+                console.error(
+                    "Order items are missing in the order data",
+                    orderData,
+                );
+                throw new Error(
+                    "Dữ liệu đơn hàng không hợp lệ. Vui lòng thử lại.",
+                );
+            }
+
+            // Map the order items from the received structure
+            const orderItems = orderData.orderItems.map((item: any) => ({
                 productId: item.productId || item.id,
                 quantity: item.quantity,
                 price: item.price,
+                // Pass along the discount information - only include if values exist
+                ...(item.originalPrice && {
+                    originalPrice: item.originalPrice,
+                }),
+                ...(item.finalPrice && { finalPrice: item.finalPrice }),
+                ...(item.discountAmount > 0 && {
+                    discountAmount: item.discountAmount,
+                }),
+                ...(item.discountType && { discountType: item.discountType }),
+                ...(item.discountId && { discountId: item.discountId }),
             }));
 
-            const total = items.reduce(
-                (sum, item) => sum + item.price * item.quantity,
-                0,
-            );
+            // Use the total from the incoming order data
+            const subtotal = orderData.subtotal || 0;
+            const finalTotal = orderData.total || subtotal;
 
-            // Calculate total with discount applied
-            const subtotal = total;
-            let finalTotal = total;
-            if (discountInfo?.discountAmount) {
-                finalTotal = Math.max(0, total - discountInfo.discountAmount);
-            }
-
-            const orderData = {
-                total: finalTotal,
-                subtotal: subtotal, // Add subtotal field
-                paymentMethod: "PAYOS", // Default payment method
+            // Create payload with correct field names matching the database entity fields
+            const payload = {
+                // Customer information with correct field names
+                // customerName: shippingInfo.fullName, // Use customerName instead of fullName
+                // customerPhone: shippingInfo.phone, // Use customerPhone instead of phone
+                // email is not directly on the Order entity - may be in customer relationship
                 deliveryAddress: shippingInfo.address,
+
+                // Order items
                 items: orderItems,
+
+                // Financial information
+                total: finalTotal,
+                subtotal: subtotal,
+                paymentMethod: "PayOS",
+
+                // Optional fields
                 notes: notes || "",
-                // Add discount information
-                discountAmount: discountInfo?.discountAmount || 0,
-                manualDiscountId: discountInfo?.isManual
-                    ? discountInfo.discountId
-                    : undefined,
-                appliedDiscountIds: !discountInfo?.isManual
-                    ? discountInfo?.automaticDiscountIds
-                    : undefined,
+
+                // Discount information - only include if values exist
+                ...(orderData.discountAmount > 0 && {
+                    discountAmount: orderData.discountAmount,
+                }),
+                ...(orderData.manualDiscountId && {
+                    manualDiscountId: orderData.manualDiscountId,
+                }),
+                ...(orderData.appliedDiscountIds && {
+                    appliedDiscountIds: orderData.appliedDiscountIds,
+                }),
             };
+
+            console.log(
+                "Sending order payload:",
+                JSON.stringify(payload, null, 2),
+            );
 
             let result;
 
             if (isAuthenticated) {
                 // Authenticated user checkout
-                result = await createOrder(orderData);
+                result = await createOrder(payload);
             } else {
-                // Guest checkout with additional shipping info
-                result = await createGuestOrder({
-                    ...orderData,
-                    customerName: shippingInfo.fullName,
-                    email: shippingInfo.email,
-                    phone: shippingInfo.phone,
-                });
+                // Guest checkout
+                result = await createGuestOrder(payload);
             }
 
             if (result.success) {
@@ -131,6 +168,29 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({
             }
         } catch (err) {
             console.error("Error creating order:", err);
+
+            // Log more details for debugging
+            if (err instanceof Error) {
+                console.error("Error details:", err.message);
+
+                // If the error contains information about request validation issues,
+                // try to extract a more user-friendly message
+                const errorMsg = err.message;
+                if (
+                    errorMsg.includes("validation failed") ||
+                    errorMsg.includes("Bad Request")
+                ) {
+                    setError(
+                        "Có lỗi khi tạo đơn hàng: Thông tin đơn hàng không hợp lệ",
+                    );
+                    return {
+                        success: false,
+                        message:
+                            "Thông tin đơn hàng không hợp lệ. Vui lòng kiểm tra lại.",
+                    };
+                }
+            }
+
             const errorMessage =
                 (err as Error).message || "Không thể tạo đơn hàng.";
             setError(errorMessage);
@@ -141,7 +201,6 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     };
 
-    // Add missing function for checking order payment status
     const checkOrderPaymentStatus = async (orderId: string) => {
         setLoading(true);
         setError(null);
@@ -160,7 +219,6 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     };
 
-    // Add missing function for initiating order payment
     const initiateOrderPayment = async (orderId: string) => {
         setLoading(true);
         setError(null);

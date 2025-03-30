@@ -11,7 +11,11 @@ import { getOrderDetails } from "@/api/checkout";
 
 // Import our new modular components
 import ShippingForm, { CheckoutFormData } from "./ShippingForm";
-import CartSummary, { Product, Discount } from "./CartSummary";
+// Rename the imported Product type to avoid conflict with our local interface
+import CartSummary, {
+    Product as CartSummaryProduct,
+    Discount,
+} from "./CartSummary";
 import PaymentSection from "./PaymentSection";
 import PaymentMode from "./PaymentMode";
 
@@ -38,6 +42,21 @@ interface CheckoutPageProps {
     automaticDiscountAmount: number;
     totalDiscount: number;
     isUsingManualDiscount: boolean;
+}
+
+// Use our own Product interface for this component
+export interface Product {
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+    imageUrl: string;
+    originalPrice?: number;
+    // Add missing discount properties
+    discountAmount?: number;
+    discountType?: "percentage" | "fixed" | "none";
+    discountId?: string | number;
+    discountSource?: string;
 }
 
 const CheckoutPage: React.FC<CheckoutPageProps> = ({
@@ -376,20 +395,91 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 }
             }
 
-            // Use checkout context to create order with discount info
-            const result = await createCheckoutOrder(
-                cartItems.map((item) => ({
-                    ...item,
+            // Prepare order items with discount information
+            const orderItems = cartItems.map((item) => {
+                // Get original price if available, otherwise use current price
+                const originalPrice = item.originalPrice || item.price;
+                const finalPrice = item.price;
+
+                // Calculate discount amount for this item
+                const discountAmount =
+                    isUsingManualDiscount &&
+                    appliedDiscount &&
+                    appliedDiscount.targetedProducts &&
+                    appliedDiscount.targetedProducts.includes(item.name)
+                        ? // Item-specific manual discount
+                          (originalPrice - finalPrice) * item.quantity
+                        : // Automatic discount already applied in the price
+                          item.discountAmount ||
+                          (originalPrice - finalPrice) * item.quantity;
+
+                // Only include discount fields if there's actually a discount
+                const hasDiscount = discountAmount > 0;
+
+                return {
                     productId: item.id,
-                })),
+                    quantity: item.quantity,
+                    price: finalPrice,
+                    // Only include discount details if there's a discount
+                    ...(hasDiscount && {
+                        originalPrice: originalPrice,
+                        finalPrice: finalPrice,
+                        discountAmount: discountAmount,
+                        discountType:
+                            item.discountType ||
+                            (discountAmount > 0 ? "percentage" : "none"),
+                        discountId:
+                            isUsingManualDiscount && appliedDiscount
+                                ? appliedDiscount.id
+                                : item.discountId,
+                    }),
+                };
+            });
+
+            // Create order payload with both order-level and item-level discount info
+            const orderData = {
+                customerInfo: {
+                    fullName: formData.fullName,
+                    email: formData.email,
+                    phone: formData.phone,
+                    address: fullAddress,
+                },
+                orderItems: orderItems,
+                subtotal: subtotal,
+                shippingFee: deliveryFee,
+                total: subtotal + deliveryFee - totalDiscount,
+                // Only include discount info if there's actually a discount
+                ...(totalDiscount > 0 && {
+                    discountAmount: totalDiscount,
+                    ...(isUsingManualDiscount &&
+                        appliedDiscount && {
+                            manualDiscountId: appliedDiscount.id,
+                        }),
+                    ...(!isUsingManualDiscount &&
+                        appliedAutomaticDiscounts?.length > 0 && {
+                            appliedDiscountIds: appliedAutomaticDiscounts.map(
+                                (d) => d.id,
+                            ),
+                        }),
+                }),
+                notes: formData.notes,
+            };
+
+            console.log(
+                "Submitting order:",
+                JSON.stringify(orderData, null, 2),
+            );
+
+            // Fix: Improve error handling in the createCheckoutOrder call
+            const result = await createCheckoutOrder(
+                orderData,
                 {
                     fullName: formData.fullName,
                     email: formData.email,
                     phone: formData.phone,
                     address: fullAddress,
                 },
-                formData.notes,
-                discountInfo,
+                formData.notes || "",
             );
 
             if (result && result.success) {
@@ -398,15 +488,28 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 localStorage.removeItem("cart");
                 localStorage.removeItem("appliedDiscounts");
 
-                // Navigate to dashboard
-                router.push("/dashboard/orders");
+                // Navigate to dashboard or success page
+                toast.success("Đơn hàng đã được tạo thành công!");
+                router.push(
+                    result.order?.id
+                        ? `/checkout/success?orderId=${result.order.id}`
+                        : "/dashboard/orders",
+                );
             } else {
-                throw new Error("Failed to create order");
+                // Display specific error from the result if available
+                const errorMsg =
+                    result?.message ||
+                    "Không thể tạo đơn hàng. Vui lòng thử lại.";
+                setErrorMessage(errorMsg);
+
+                // Instead of throwing an error, just display it to the user
+                console.error("Order creation failed:", errorMsg);
             }
         } catch (error) {
             console.error("Error creating order:", error);
             setErrorMessage(
-                `Có lỗi xảy ra khi đặt hàng: ${(error as Error).message}`,
+                (error as Error).message ||
+                    "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.",
             );
         } finally {
             setIsProcessingPayment(false);
@@ -461,7 +564,9 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                             {/* Right column - Order Summary */}
                             <div className="w-full lg:w-1/3">
                                 <CartSummary
-                                    cartItems={cartItems}
+                                    cartItems={
+                                        cartItems as unknown as CartSummaryProduct[]
+                                    } // Type cast to match CartSummary's expected props
                                     subtotal={subtotal}
                                     deliveryFee={deliveryFee}
                                     appliedDiscount={appliedDiscount}

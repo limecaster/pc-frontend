@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import RouteGuard from "@/components/auth/RouteGuard";
 import AdminSidebar from "@/components/admin/layout/AdminSidebar";
 import { Toaster } from "react-hot-toast";
 import {
@@ -9,6 +8,7 @@ import {
     useAdminSidebar,
 } from "@/contexts/AdminSidebarContext";
 import { Roboto } from "next/font/google";
+import ProtectedRoute from "@/components/common/ProtectedRoute";
 
 const roboto = Roboto({
     subsets: ["vietnamese"],
@@ -28,7 +28,7 @@ function AdminContent({ children }: { children: React.ReactNode }) {
                     isCollapsed ? "ml-0 md:ml-16" : "ml-0 md:ml-64"
                 }`}
             >
-                <main className="h-full overflow-y-auto">{children}</main>
+                <main className="h-full overflow-y-auto pb-8">{children}</main>
             </div>
             <Toaster position="top-center" />
         </div>
@@ -41,10 +41,10 @@ export default function AdminLayout({
     children: React.ReactNode;
 }) {
     return (
-        <RouteGuard allowedRoles={["admin"]}>
+        <ProtectedRoute allowedRoles={["admin"]}>
             <AdminSidebarProvider>
                 <AdminContent>{children}</AdminContent>
             </AdminSidebarProvider>
-        </RouteGuard>
+        </ProtectedRoute>
     );
 }

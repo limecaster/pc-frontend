@@ -6,13 +6,19 @@ import { trackOrderCreated } from "./events";
  * @param orderData Order data to be created
  * @returns Promise with the created order
  */
-export async function createOrder(orderData: any) {
+export async function createOrder(orderData: any): Promise<any> {
     try {
         const token = localStorage.getItem("token");
         if (!token) {
-            throw new Error("Authentication required");
+            throw new Error("You must be logged in to create an order");
         }
 
+        console.log(
+            "Creating order with data:",
+            JSON.stringify(orderData, null, 2),
+        );
+
+        // Use the exact endpoint that's implemented in checkout.controller.ts
         const response = await fetch(`${API_URL}/checkout/create-order`, {
             method: "POST",
             headers: {
@@ -22,27 +28,64 @@ export async function createOrder(orderData: any) {
             body: JSON.stringify(orderData),
         });
 
+        // Always parse the response body before checking response.ok
+        let responseData;
+        try {
+            responseData = await response.json();
+        } catch (e) {
+            console.error("Error parsing JSON response:", e);
+            responseData = {
+                success: false,
+                message: "Invalid response from server",
+            };
+        }
+
         if (!response.ok) {
-            const data = await response.json();
-            throw new Error(
-                data.error || `Failed to create order: ${response.status}`,
-            );
+            // Log the full error response for debugging
+            console.error("Order creation failed:", responseData);
+
+            // Extract the most specific error message available
+            let errorMessage = "Failed to create order";
+
+            // Handle validation error arrays
+            if (responseData.message && Array.isArray(responseData.message)) {
+                errorMessage = responseData.message.join(", ");
+                // Also log the complete detailed error for debugging
+                console.error("Validation errors:", responseData.message);
+            } else if (responseData.message) {
+                errorMessage = responseData.message;
+            } else if (responseData.error) {
+                errorMessage = responseData.error;
+            }
+
+            throw new Error(errorMessage);
         }
 
-        const result = await response.json();
-
-        // Track order creation event
-        if (result.success && result.order) {
-            trackOrderCreated(result.order.id.toString(), {
-                ...result.order,
-                items: orderData.items, // Use items from request as they have more details
-            });
+        // If successful and we have an order ID, try to track the order creation
+        if (responseData.success && responseData.order?.id) {
+            try {
+                await trackOrderCreated(
+                    responseData.order.id.toString(),
+                    responseData.order,
+                );
+            } catch (trackingError) {
+                console.warn("Failed to track order creation:", trackingError);
+                // Non-critical, so we continue without throwing
+            }
         }
 
-        return result;
+        return responseData;
     } catch (error) {
-        console.error("Error creating order:", error);
-        throw error;
+        console.error("Error in createOrder:", error);
+
+        // Return a structured error response
+        return {
+            success: false,
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Unknown error creating order",
+        };
     }
 }
 
@@ -51,9 +94,15 @@ export async function createOrder(orderData: any) {
  * @param orderData Order data to be created
  * @returns Promise with the created order
  */
-export async function createGuestOrder(orderData: any) {
+export async function createGuestOrder(orderData: any): Promise<any> {
     try {
-        const response = await fetch(`${API_URL}/checkout/create-guest-order`, {
+        console.log(
+            "Creating guest order with data:",
+            JSON.stringify(orderData, null, 2),
+        );
+
+        // Use the exact endpoint that's implemented in checkout.controller.ts
+        const response = await fetch(`${API_URL}/checkout/guest-order`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -61,28 +110,62 @@ export async function createGuestOrder(orderData: any) {
             body: JSON.stringify(orderData),
         });
 
+        // Always parse the response body before checking response.ok
+        let responseData;
+        try {
+            responseData = await response.json();
+        } catch (e) {
+            console.error("Error parsing JSON response:", e);
+            responseData = {
+                success: false,
+                message: "Invalid response from server",
+            };
+        }
+
         if (!response.ok) {
-            const data = await response.json();
-            throw new Error(
-                data.error ||
-                    `Failed to create guest order: ${response.status}`,
-            );
+            console.error("Guest order creation failed:", responseData);
+
+            // Extract the most specific error message available
+            let errorMessage = "Failed to create guest order";
+
+            // Handle validation error arrays
+            if (responseData.message && Array.isArray(responseData.message)) {
+                errorMessage = responseData.message.join(", ");
+                // Also log the complete detailed error for debugging
+                console.error("Validation errors:", responseData.message);
+            } else if (responseData.message) {
+                errorMessage = responseData.message;
+            } else if (responseData.error) {
+                errorMessage = responseData.error;
+            }
+
+            throw new Error(errorMessage);
         }
 
-        const result = await response.json();
-
-        // Track order creation event for guest orders
-        if (result.success && result.order) {
-            trackOrderCreated(result.order.id.toString(), {
-                ...result.order,
-                items: orderData.items, // Use items from request as they have more details
-            });
+        // If successful and we have an order ID, try to track the order creation
+        if (responseData.success && responseData.order?.id) {
+            try {
+                await trackOrderCreated(
+                    responseData.order.id.toString(),
+                    responseData.order,
+                );
+            } catch (trackingError) {
+                console.warn("Failed to track order creation:", trackingError);
+                // Non-critical, so we continue without throwing
+            }
         }
 
-        return result;
+        return responseData;
     } catch (error) {
-        console.error("Error creating guest order:", error);
-        throw error;
+        console.error("Error in createGuestOrder:", error);
+
+        return {
+            success: false,
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Unknown error creating guest order",
+        };
     }
 }
 

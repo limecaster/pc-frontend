@@ -35,6 +35,7 @@ const pathNameMap: { [key: string]: string } = {
     "about-us": "Về chúng tôi",
     about: "Về chúng tôi",
     "hot-sales": "Khuyến mãi",
+    success: "Thành công",
 };
 
 const Breadcrumb: React.FC = () => {

@@ -438,13 +438,13 @@ export default function DiscountsManagement() {
                 </div>
             </div>
 
-            {/* Statistics Cards */}
+            {/* Statistics Cards
             <StatisticsCards
                 totalUsage={statistics.totalUsage}
                 totalSavings={statistics.totalSavings}
                 mostUsedDiscounts={statistics.mostUsedDiscounts}
                 isLoading={isLoading}
-            />
+            /> */}
 
             {/* Discount Table */}
             <DiscountTable

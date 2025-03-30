@@ -10,6 +10,7 @@ export interface Product {
     price: number;
     quantity: number;
     imageUrl: string;
+    originalPrice?: number; // Add originalPrice to Product interface
 }
 
 export interface Discount {
@@ -97,6 +98,27 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         );
     };
 
+    // Add new helper function to display item-level discounts
+    const renderItemDiscountInfo = (item: Product) => {
+        if (!item.originalPrice || item.price >= item.originalPrice) {
+            return null;
+        }
+
+        const discountAmount =
+            (item.originalPrice - item.price) * item.quantity;
+        const discountPercent = Math.round(
+            (1 - item.price / item.originalPrice) * 100,
+        );
+
+        return (
+            <div className="ml-5 text-xs text-green-600">
+                <span>
+                    Giảm {discountPercent}% ({formatCurrency(discountAmount)})
+                </span>
+            </div>
+        );
+    };
+
     return (
         <div className="bg-white rounded-lg shadow p-6 sticky top-20">
             <h2 className="text-lg font-medium text-gray-900 mb-4">
@@ -140,6 +162,9 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                                 <span className="text-sm font-medium text-primary">
                                     {formatCurrency(item.price)}
                                 </span>
+
+                                {/* Add item-level discount info */}
+                                {renderItemDiscountInfo(item)}
                             </div>
                             <div className="flex-shrink-0">
                                 <button

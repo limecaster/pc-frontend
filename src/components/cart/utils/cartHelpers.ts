@@ -11,24 +11,27 @@ export const getCurrentCustomerId = async (): Promise<string | undefined> => {
         const token = localStorage.getItem("token");
         if (!token) return undefined;
 
-        // Get user info from localStorage or you could make an API call
-        const userInfo = JSON.parse(localStorage.getItem("user_info") || "{}");
-        return userInfo.id?.toString();
+        // Extract customer ID from token if possible
+        const tokenParts = token.split(".");
+        if (tokenParts.length === 3) {
+            const payload = JSON.parse(atob(tokenParts[1]));
+            return payload.sub;
+        }
+        return undefined;
     } catch (error) {
         console.error("Error getting customer ID:", error);
         return undefined;
     }
 };
 
-export const checkIfFirstPurchase = async (): Promise<boolean | undefined> => {
+export const checkIfFirstPurchase = async (): Promise<boolean> => {
     try {
-        const token = localStorage.getItem("token");
-        if (!token) return undefined;
-
-        return false; // Default to false until we have a proper implementation
+        // You would implement this to check if the customer has previous orders
+        // This is a placeholder implementation
+        return false;
     } catch (error) {
         console.error("Error checking if first purchase:", error);
-        return undefined;
+        return false;
     }
 };
 
@@ -46,6 +49,7 @@ export const loadLocalCart = (): CartItem[] => {
  */
 export const saveLocalCart = (cartItems: CartItem[]): void => {
     if (typeof window === "undefined") return;
+    // Save the cart with all discount information preserved
     localStorage.setItem("cart", JSON.stringify(cartItems));
 
     // Dispatch a custom event that components can listen for
@@ -60,7 +64,8 @@ export const clearLocalCart = (): void => {
     if (typeof window === "undefined") return;
 
     // Clear cart from localStorage
-    localStorage.setItem("cart", JSON.stringify([]));
+    localStorage.removeItem("cart");
+    localStorage.removeItem("appliedDiscounts");
 
     // Dispatch a custom event that components can listen for
     const event = new CustomEvent("cart-updated", { detail: [] });
@@ -68,11 +73,25 @@ export const clearLocalCart = (): void => {
 
     // Clear any checkout data that might reference the cart
     localStorage.removeItem("checkoutData");
-    localStorage.removeItem("appliedDiscounts");
 
     // Show feedback to user
     toast.success("Giỏ hàng đã được xóa");
 };
+
+/**
+ * Save discount info to localStorage
+ */
+export function saveAppliedDiscounts(discountData: {
+    discount: any | null;
+    appliedAutomaticDiscounts: any[];
+    manualDiscountAmount: number;
+    totalAutoDiscountAmount: number;
+    isUsingManualDiscount: boolean;
+}) {
+    if (typeof window !== "undefined") {
+        localStorage.setItem("appliedDiscounts", JSON.stringify(discountData));
+    }
+}
 
 /**
  * Format currency in Vietnamese format
@@ -125,6 +144,12 @@ export const recalculateCartTotals = (
         },
         { subtotal: 0, itemCount: 0, discountedItemCount: 0 },
     );
+
+    // Dispatch an event for real-time updates
+    if (typeof window !== "undefined") {
+        const event = new CustomEvent("cart-updated", { detail: cartItems });
+        window.dispatchEvent(event);
+    }
 
     return {
         subtotal: Math.round(totals.subtotal), // Round to avoid floating point issues

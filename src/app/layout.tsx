@@ -13,13 +13,49 @@ import { WishlistProvider } from "@/contexts/WishlistContext";
 import { CheckoutProvider } from "@/contexts/CheckoutContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { FooterProvider } from "@/contexts/FooterContext";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import FaviconManager from "@/components/common/FaviconManager";
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const roboto = Roboto({
     subsets: ["vietnamese"],
     weight: ["100", "300", "400", "500", "700", "900"],
 });
+
+function CustomerRouteGuard({ children }: { children: React.ReactNode }) {
+    const { user, isLoading } = useAuth();
+    const router = useRouter();
+    const pathname = usePathname();
+
+    // Exclude auth pages and admin/staff pages from the check
+    const isExcludedPath =
+        pathname?.startsWith("/authenticate") ||
+        pathname?.startsWith("/admin") ||
+        pathname?.startsWith("/staff");
+
+    useEffect(() => {
+        if (isLoading || isExcludedPath) return;
+
+        // If user is admin or staff, redirect them to their dashboard
+        if (user && (user.role === "admin" || user.role === "staff")) {
+            const redirectPath =
+                user.role === "admin" ? "/admin/dashboard" : "/staff";
+            router.push(redirectPath);
+        }
+    }, [user, isLoading, router, isExcludedPath]);
+
+    if (isLoading || isExcludedPath) {
+        return <>{children}</>;
+    }
+
+    // If user is admin/staff, show nothing until redirect happens
+    if (user && (user.role === "admin" || user.role === "staff")) {
+        return null;
+    }
+
+    return <>{children}</>;
+}
 
 export default function RootLayout({
     children,
@@ -45,19 +81,21 @@ export default function RootLayout({
                         <CheckoutProvider>
                             <AuthProvider>
                                 <FooterProvider>
-                                    {!isNotCustomerPage && (
-                                        <>
-                                            <Header />
-                                            <Navigation />
-                                            <Breadcrumb />
-                                        </>
-                                    )}
-                                    {children}
-                                    {!isNotCustomerPage && <Footer />}
-                                    {!isNotCustomerPage && <Chatbot />}
-                                    {!isNotCustomerPage && (
-                                        <Toaster position="top-center" />
-                                    )}
+                                    <CustomerRouteGuard>
+                                        {!isNotCustomerPage && (
+                                            <>
+                                                <Header />
+                                                <Navigation />
+                                                <Breadcrumb />
+                                            </>
+                                        )}
+                                        {children}
+                                        {!isNotCustomerPage && <Footer />}
+                                        {!isNotCustomerPage && <Chatbot />}
+                                        {!isNotCustomerPage && (
+                                            <Toaster position="top-center" />
+                                        )}
+                                    </CustomerRouteGuard>
                                 </FooterProvider>
                             </AuthProvider>
                         </CheckoutProvider>

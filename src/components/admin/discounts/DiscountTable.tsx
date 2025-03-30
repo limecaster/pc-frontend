@@ -67,7 +67,7 @@ const DiscountTable: React.FC<DiscountTableProps> = ({
             </div>
 
             {/* Discounts Table */}
-            <div className="overflow-x-auto bg-white rounded-lg shadow">
+            <div className="overflow-x-auto bg-white rounded-lg shadow border border-gray-200">
                 {isLoading ? (
                     <div className="text-center py-10">
                         <Spinner size="xl" />
