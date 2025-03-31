@@ -46,12 +46,10 @@ interface SalesReportProps {
 
 interface SalesSummary {
     totalRevenue: number;
-    totalProfit: number;
     totalTax: number;
     orderCount: number;
     averageOrderValue: number;
     revenueChange: number;
-    profitChange: number;
     orderCountChange: number;
 }
 
@@ -59,7 +57,6 @@ interface SalesSummary {
 interface SalesDataPoint {
     date: string;
     revenue: number;
-    profit: number;
 }
 
 interface BestSellingProduct {
@@ -77,12 +74,10 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [salesSummary, setSalesSummary] = useState<SalesSummary>({
         totalRevenue: 0,
-        totalProfit: 0,
         totalTax: 0,
         orderCount: 0,
         averageOrderValue: 0,
         revenueChange: 0,
-        profitChange: 0,
         orderCountChange: 0,
     });
     // Add proper typing to state arrays
@@ -141,9 +136,19 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
     }, [dateRange]);
 
     const formatCurrency = (value: number) => {
+        // Handle undefined, NaN, or non-numeric values
+        if (value === undefined || value === null || isNaN(value)) {
+            return new Intl.NumberFormat("vi-VN", {
+                style: "currency",
+                currency: "VND",
+                maximumFractionDigits: 0,
+            }).format(0);
+        }
+
         return new Intl.NumberFormat("vi-VN", {
             style: "currency",
             currency: "VND",
+            maximumFractionDigits: 0,
         }).format(value);
     };
 
@@ -152,22 +157,15 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
         toast.success("Đang xuất báo cáo doanh thu...");
     };
 
-    // Prepare data for Chart.js bar chart
+    // Prepare data for Chart.js bar chart - only revenue, no profit
     const revenueData = {
-        labels: salesData.map((item) => item.date),
+        labels: salesData?.map((item) => item.date) || [],
         datasets: [
             {
                 label: "Doanh thu",
-                data: salesData.map((item) => item.revenue),
+                data: salesData?.map((item) => item.revenue) || [],
                 backgroundColor: "rgba(59, 130, 246, 0.6)",
                 borderColor: "#3B82F6",
-                borderWidth: 1,
-            },
-            {
-                label: "Lợi nhuận",
-                data: salesData.map((item) => item.profit),
-                backgroundColor: "rgba(16, 185, 129, 0.6)",
-                borderColor: "#10B981",
                 borderWidth: 1,
             },
         ],
@@ -175,10 +173,10 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
 
     // Prepare data for Chart.js pie chart
     const categoriesData = {
-        labels: bestSellingCategories.map((cat) => cat.name),
+        labels: bestSellingCategories?.map((cat) => cat.name) || [],
         datasets: [
             {
-                data: bestSellingCategories.map((cat) => cat.value),
+                data: bestSellingCategories?.map((cat) => cat.value) || [],
                 backgroundColor: COLORS,
                 borderColor: COLORS.map((color) => `${color}DD`),
                 borderWidth: 1,
@@ -243,6 +241,14 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
         },
     };
 
+    // When displaying values from the API, ensure we're handling possible string values
+    const displayValue = (value: number | string): number => {
+        if (typeof value === "string") {
+            return parseFloat(value) || 0;
+        }
+        return value || 0;
+    };
+
     if (isLoading) {
         return (
             <div className="flex justify-center items-center h-64">
@@ -272,15 +278,17 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
                 </button>
             </div>
 
-            {/* Summary cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Summary cards - removed profit card */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
                     <div className="text-sm text-gray-500 font-medium">
                         Tổng doanh thu
                     </div>
                     <div className="flex items-end mt-2">
                         <div className="text-2xl font-bold">
-                            {formatCurrency(salesSummary.totalRevenue)}
+                            {formatCurrency(
+                                displayValue(salesSummary.totalRevenue),
+                            )}
                         </div>
                         <div
                             className={`flex items-center ml-2 ${
@@ -299,7 +307,10 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
                                 size="xs"
                             />
                             <span className="text-sm">
-                                {Math.abs(salesSummary.revenueChange)}%
+                                {Math.abs(salesSummary.revenueChange).toFixed(
+                                    1,
+                                )}
+                                %
                             </span>
                         </div>
                     </div>
@@ -307,38 +318,7 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
 
                 <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
                     <div className="text-sm text-gray-500 font-medium">
-                        Lợi nhuận
-                    </div>
-                    <div className="flex items-end mt-2">
-                        <div className="text-2xl font-bold">
-                            {formatCurrency(salesSummary.totalProfit)}
-                        </div>
-                        <div
-                            className={`flex items-center ml-2 ${
-                                salesSummary.profitChange >= 0
-                                    ? "text-green-600"
-                                    : "text-red-600"
-                            }`}
-                        >
-                            <FontAwesomeIcon
-                                icon={
-                                    salesSummary.profitChange >= 0
-                                        ? faArrowUp
-                                        : faArrowDown
-                                }
-                                className="mr-1"
-                                size="xs"
-                            />
-                            <span className="text-sm">
-                                {Math.abs(salesSummary.profitChange)}%
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
-                    <div className="text-sm text-gray-500 font-medium">
-                        Số đơn hàng
+                        Số đơn hàng thành công
                     </div>
                     <div className="flex items-end mt-2">
                         <div className="text-2xl font-bold">
@@ -361,7 +341,10 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
                                 size="xs"
                             />
                             <span className="text-sm">
-                                {Math.abs(salesSummary.orderCountChange)}%
+                                {Math.abs(
+                                    salesSummary.orderCountChange,
+                                ).toFixed(1)}
+                                %
                             </span>
                         </div>
                     </div>
@@ -379,11 +362,9 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
                 </div>
             </div>
 
-            {/* Revenue and Profit chart - Now using Chart.js */}
+            {/* Revenue chart - Removed profit series */}
             <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
-                <h3 className="text-lg font-medium mb-4">
-                    Doanh thu & lợi nhuận
-                </h3>
+                <h3 className="text-lg font-medium mb-4">Doanh thu</h3>
                 <div className="h-80">
                     <Bar data={revenueData} options={barOptions} />
                 </div>
@@ -412,39 +393,62 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {bestSellingProducts.map((product, index) => (
-                                    <tr
-                                        key={index}
-                                        className="border-t border-gray-200"
-                                    >
-                                        <td className="py-2 text-sm font-medium">
-                                            {product.name}
-                                        </td>
-                                        <td className="py-2 text-sm text-right">
-                                            {product.quantity}
-                                        </td>
-                                        <td className="py-2 text-sm text-right">
-                                            {formatCurrency(product.revenue)}
+                                {bestSellingProducts?.length > 0 ? (
+                                    bestSellingProducts.map(
+                                        (product, index) => (
+                                            <tr
+                                                key={index}
+                                                className="border-t border-gray-200"
+                                            >
+                                                <td className="py-2 text-sm font-medium">
+                                                    {product.name}
+                                                </td>
+                                                <td className="py-2 text-sm text-right">
+                                                    {product.quantity}
+                                                </td>
+                                                <td className="py-2 text-sm text-right">
+                                                    {formatCurrency(
+                                                        displayValue(
+                                                            product.revenue,
+                                                        ),
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ),
+                                    )
+                                ) : (
+                                    <tr className="border-t border-gray-200">
+                                        <td
+                                            colSpan={3}
+                                            className="py-4 text-center text-sm text-gray-500"
+                                        >
+                                            Không có dữ liệu
                                         </td>
                                     </tr>
-                                ))}
+                                )}
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                {/* Categories pie chart - Now using Chart.js */}
+                {/* Categories pie chart */}
                 <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
                     <h3 className="text-lg font-medium mb-4">
                         Doanh thu theo danh mục
                     </h3>
                     <div className="h-64">
-                        <Pie data={categoriesData} options={pieOptions} />
+                        {bestSellingCategories?.length > 0 ? (
+                            <Pie data={categoriesData} options={pieOptions} />
+                        ) : (
+                            <div className="flex items-center justify-center h-full text-gray-500">
+                                Không có dữ liệu
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Taxes breakdown - Unchanged */}
+            {/* Taxes breakdown */}
             <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
                 <h3 className="text-lg font-medium mb-4">Chi tiết thuế</h3>
                 <div className="flex justify-between">
@@ -453,7 +457,9 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
                             Tổng thuế đã thu
                         </div>
                         <div className="text-xl font-bold mt-1">
-                            {formatCurrency(salesSummary.totalTax)}
+                            {formatCurrency(
+                                displayValue(salesSummary.totalTax),
+                            )}
                         </div>
                     </div>
                     <div>
@@ -461,11 +467,15 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
                             Tỷ lệ thuế trung bình
                         </div>
                         <div className="text-xl font-bold mt-1">
-                            {(
-                                (salesSummary.totalTax /
-                                    salesSummary.totalRevenue) *
-                                100
-                            ).toFixed(1)}
+                            {salesSummary.totalRevenue > 0
+                                ? (
+                                      (displayValue(salesSummary.totalTax) /
+                                          displayValue(
+                                              salesSummary.totalRevenue,
+                                          )) *
+                                      100
+                                  ).toFixed(1)
+                                : "0"}
                             %
                         </div>
                     </div>

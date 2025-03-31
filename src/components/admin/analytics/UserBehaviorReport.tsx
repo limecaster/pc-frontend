@@ -3,12 +3,15 @@
 import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+    faArrowUp,
+    faArrowDown,
     faSpinner,
-    faDownload,
+    faUsers,
+    faUserPlus,
+    faSync,
+    faChartLine,
     faEye,
     faShoppingCart,
-    faUserClock,
-    faChartLine,
 } from "@fortawesome/free-solid-svg-icons";
 import {
     Chart as ChartJS,
@@ -22,13 +25,12 @@ import {
     Legend as ChartLegend,
     Filler,
 } from "chart.js";
-import { Line, Chart } from "react-chartjs-2";
-// Import Chart instead of Bar for mixed chart types
+import { Line, Chart, Bar } from "react-chartjs-2";
 import {
     getUserBehaviorReport,
     getMostViewedProducts,
-    getAbandonedCarts,
     getConversionRates,
+    getAbandonedCarts,
 } from "@/api/analytics";
 import toast from "react-hot-toast";
 
@@ -40,9 +42,9 @@ ChartJS.register(
     LineElement,
     BarElement,
     Title,
-    Filler,
     ChartTooltip,
     ChartLegend,
+    Filler,
 );
 
 interface UserBehaviorReportProps {
@@ -61,7 +63,6 @@ interface BehaviorSummary {
     conversionRate: number;
 }
 
-// Define interfaces for the state arrays
 interface VisitorDataPoint {
     date: string;
     visitors: number;
@@ -69,18 +70,11 @@ interface VisitorDataPoint {
     returningVisitors: number;
 }
 
-interface ViewedProduct {
+interface MostViewedProduct {
     name: string;
     views: number;
     purchases: number;
     conversionRate: number;
-}
-
-interface AbandonedCartData {
-    date: string;
-    totalCarts: number;
-    abandonedCarts: number;
-    rate: number;
 }
 
 interface ConversionRateData {
@@ -90,11 +84,18 @@ interface ConversionRateData {
     rate: number;
 }
 
+interface AbandonedCartData {
+    date: string;
+    totalCarts: number;
+    abandonedCarts: number;
+    rate: number;
+}
+
 const UserBehaviorReport: React.FC<UserBehaviorReportProps> = ({
     dateRange,
 }) => {
     const [isLoading, setIsLoading] = useState(true);
-    const [summary, setSummary] = useState<BehaviorSummary>({
+    const [behaviorSummary, setBehaviorSummary] = useState<BehaviorSummary>({
         totalVisitors: 0,
         newVisitors: 0,
         returningVisitors: 0,
@@ -102,28 +103,28 @@ const UserBehaviorReport: React.FC<UserBehaviorReportProps> = ({
         bounceRate: 0,
         conversionRate: 0,
     });
-    // Add proper typing to state arrays
     const [visitorData, setVisitorData] = useState<VisitorDataPoint[]>([]);
     const [mostViewedProducts, setMostViewedProducts] = useState<
-        ViewedProduct[]
+        MostViewedProduct[]
+    >([]);
+    const [conversionRates, setConversionRates] = useState<
+        ConversionRateData[]
     >([]);
     const [abandonedCarts, setAbandonedCarts] = useState<AbandonedCartData[]>(
         [],
     );
-    const [conversionData, setConversionData] = useState<ConversionRateData[]>(
-        [],
-    );
 
     useEffect(() => {
-        const fetchUserBehaviorData = async () => {
+        const fetchBehaviorData = async () => {
             setIsLoading(true);
             try {
-                // Fetch user behavior summary and time series
+                // Fetch visitor data and summary
                 const behaviorData = await getUserBehaviorReport(
                     dateRange.startDate,
                     dateRange.endDate,
                 );
-                setSummary(behaviorData.summary);
+                console.log("Behavior Data:", behaviorData);
+                setBehaviorSummary(behaviorData.summary);
                 setVisitorData(behaviorData.visitorData);
 
                 // Fetch most viewed products
@@ -133,19 +134,19 @@ const UserBehaviorReport: React.FC<UserBehaviorReportProps> = ({
                 );
                 setMostViewedProducts(productsData);
 
-                // Fetch abandoned carts
-                const cartsData = await getAbandonedCarts(
+                // Fetch conversion rates by page
+                const conversionData = await getConversionRates(
                     dateRange.startDate,
                     dateRange.endDate,
                 );
-                setAbandonedCarts(cartsData);
+                setConversionRates(conversionData);
 
-                // Fetch conversion rates
-                const conversionRatesData = await getConversionRates(
+                // Fetch abandoned cart data
+                const cartData = await getAbandonedCarts(
                     dateRange.startDate,
                     dateRange.endDate,
                 );
-                setConversionData(conversionRatesData);
+                setAbandonedCarts(cartData);
             } catch (error) {
                 console.error("Failed to fetch user behavior data:", error);
                 toast.error("Không thể tải dữ liệu hành vi người dùng");
@@ -154,103 +155,98 @@ const UserBehaviorReport: React.FC<UserBehaviorReportProps> = ({
             }
         };
 
-        fetchUserBehaviorData();
+        fetchBehaviorData();
     }, [dateRange]);
 
-    const exportData = () => {
-        toast.success("Đang xuất báo cáo hành vi người dùng...");
-    };
-
-    const formatTime = (seconds: number) => {
+    // Format time in minutes:seconds
+    const formatTime = (seconds: number): string => {
         const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return `${minutes}m ${remainingSeconds}s`;
+        const remainingSeconds = Math.floor(seconds % 60);
+        return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
     };
 
-    // Prepare chart data
+    // Prepare data for visitors chart
     const visitorChartData = {
-        labels: visitorData.map((item: any) => item.date),
+        labels: visitorData.map((item) => item.date),
         datasets: [
             {
                 label: "Tổng lượt truy cập",
-                data: visitorData.map((item: any) => item.visitors),
+                data: visitorData.map((item) => item.visitors),
                 borderColor: "#3B82F6",
                 backgroundColor: "rgba(59, 130, 246, 0.1)",
                 fill: true,
                 tension: 0.4,
-                borderWidth: 2,
-                pointBackgroundColor: "#3B82F6",
-                pointRadius: 3,
             },
             {
                 label: "Người dùng mới",
-                data: visitorData.map((item: any) => item.newVisitors),
+                data: visitorData.map((item) => item.newVisitors),
                 borderColor: "#10B981",
-                backgroundColor: "transparent",
+                backgroundColor: "rgba(16, 185, 129, 0.1)",
+                fill: true,
                 tension: 0.4,
-                borderWidth: 2,
-                pointBackgroundColor: "#10B981",
-                pointRadius: 3,
             },
             {
                 label: "Người dùng quay lại",
-                data: visitorData.map((item: any) => item.returningVisitors),
+                data: visitorData.map((item) => item.returningVisitors),
                 borderColor: "#F59E0B",
-                backgroundColor: "transparent",
+                backgroundColor: "rgba(245, 158, 11, 0.1)",
+                fill: true,
                 tension: 0.4,
-                borderWidth: 2,
-                pointBackgroundColor: "#F59E0B",
-                pointRadius: 3,
             },
         ],
     };
 
-    // Update abandoned cart data for a mixed chart
-    const abandonedCartData = {
-        labels: abandonedCarts.map((item: any) => item.date),
+    // Prepare data for conversion rates chart
+    const conversionChartData = {
+        labels: conversionRates.map((item) => item.page),
         datasets: [
             {
+                label: "Tỷ lệ chuyển đổi (%)",
+                data: conversionRates.map((item) => item.rate),
+                backgroundColor: "rgba(99, 102, 241, 0.6)",
+                borderColor: "#6366F1",
+                borderWidth: 1,
+            },
+        ],
+    };
+
+    // Prepare data for abandoned carts chart
+    const abandonedCartChartData = {
+        labels: abandonedCarts.map((item) => item.date),
+        datasets: [
+            {
+                type: "line" as const,
+                label: "Tỷ lệ bỏ giỏ hàng (%)",
+                data: abandonedCarts.map((item) => item.rate),
+                borderColor: "#EF4444",
+                backgroundColor: "rgba(239, 68, 68, 0.5)",
+                yAxisID: "y1",
+                borderWidth: 2,
+                tension: 0.4,
+            },
+            {
                 type: "bar" as const,
-                label: "Tổng giỏ hàng",
-                data: abandonedCarts.map((item: any) => item.totalCarts),
+                label: "Giỏ hàng đã tạo",
+                data: abandonedCarts.map((item) => item.totalCarts),
                 backgroundColor: "rgba(59, 130, 246, 0.6)",
                 borderColor: "#3B82F6",
-                order: 2,
+                borderWidth: 1,
+                yAxisID: "y",
             },
             {
                 type: "bar" as const,
                 label: "Giỏ hàng bị bỏ",
-                data: abandonedCarts.map((item: any) => item.abandonedCarts),
+                data: abandonedCarts.map((item) => item.abandonedCarts),
                 backgroundColor: "rgba(239, 68, 68, 0.6)",
                 borderColor: "#EF4444",
-                order: 3,
-            },
-            {
-                type: "line" as const,
-                label: "Tỷ lệ bỏ (%)",
-                data: abandonedCarts.map((item: any) => item.rate),
-                borderColor: "#F59E0B",
-                backgroundColor: "transparent",
-                borderWidth: 2,
-                pointBackgroundColor: "#F59E0B",
-                tension: 0.4,
-                yAxisID: "y1",
-                order: 1,
+                borderWidth: 1,
+                yAxisID: "y",
             },
         ],
     };
 
-    const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: "top" as const,
-            },
-        },
-    };
-
-    const abandonedCartOptions = {
+    // Chart options
+    const visitorChartOptions = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
@@ -258,21 +254,69 @@ const UserBehaviorReport: React.FC<UserBehaviorReportProps> = ({
                 position: "top" as const,
             },
             tooltip: {
+                mode: "index" as const,
+                intersect: false,
+            },
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: "Lượt truy cập",
+                },
+            },
+        },
+        interaction: {
+            mode: "nearest" as const,
+            axis: "x" as const,
+            intersect: false,
+        },
+    };
+
+    const conversionChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false,
+            },
+            tooltip: {
                 callbacks: {
                     label: function (context: any) {
-                        let label = context.dataset.label || "";
-                        let value = context.parsed.y || context.parsed || 0;
-
-                        if (context.dataset.label === "Tỷ lệ bỏ (%)") {
-                            return `${label}: ${value}%`;
-                        }
-                        return `${label}: ${value}`;
+                        return `Tỷ lệ: ${context.parsed.y.toFixed(1)}% (${conversionRates[context.dataIndex].conversions}/${conversionRates[context.dataIndex].visits})`;
                     },
                 },
             },
         },
         scales: {
             y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: "Tỷ lệ chuyển đổi (%)",
+                },
+            },
+        },
+    };
+
+    const abandonedCartChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: "top" as const,
+            },
+            tooltip: {
+                mode: "index" as const,
+                intersect: false,
+            },
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                type: "linear" as const,
+                display: true,
                 position: "left" as const,
                 title: {
                     display: true,
@@ -280,18 +324,18 @@ const UserBehaviorReport: React.FC<UserBehaviorReportProps> = ({
                 },
             },
             y1: {
+                beginAtZero: true,
+                type: "linear" as const,
+                display: true,
                 position: "right" as const,
                 grid: {
                     drawOnChartArea: false,
                 },
+                min: 0,
+                max: 100,
                 title: {
                     display: true,
-                    text: "Tỷ lệ (%)",
-                },
-                ticks: {
-                    callback: function (value: any) {
-                        return value + "%";
-                    },
+                    text: "Tỷ lệ bỏ giỏ hàng (%)",
                 },
             },
         },
@@ -314,188 +358,359 @@ const UserBehaviorReport: React.FC<UserBehaviorReportProps> = ({
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-xl font-bold text-gray-800">
-                    Báo cáo hành vi người dùng
+                    Hành vi người dùng
                 </h2>
-                <button
-                    onClick={exportData}
-                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                >
-                    <FontAwesomeIcon icon={faDownload} className="mr-2" />
-                    Export
-                </button>
             </div>
 
-            {/* Summary cards */}
+            {/* Visitor summary cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
-                    <div className="flex items-center text-blue-600">
-                        <FontAwesomeIcon icon={faUserClock} className="mr-2" />
-                        <div className="text-sm text-gray-500 font-medium">
-                            Lượt truy cập
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <div className="text-sm text-gray-500 font-medium">
+                                Tổng lượt truy cập
+                            </div>
+                            <div className="flex items-end mt-2">
+                                <div className="text-2xl font-bold">
+                                    {behaviorSummary.totalVisitors.toLocaleString(
+                                        "vi-VN",
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <FontAwesomeIcon
+                                icon={faUsers}
+                                className="text-blue-600"
+                            />
                         </div>
                     </div>
-                    <div className="mt-2">
-                        <div className="text-2xl font-bold">
-                            {summary.totalVisitors.toLocaleString()}
-                        </div>
-                        <div className="text-sm text-gray-500 mt-1">
-                            {summary.newVisitors.toLocaleString()} mới /{" "}
-                            {summary.returningVisitors.toLocaleString()} quay
-                            lại
-                        </div>
+                    <div className="mt-3 text-xs text-gray-500">
+                        <span className="font-medium">Phân bổ:</span>{" "}
+                        <span className="text-green-600">
+                            {behaviorSummary.newVisitors.toLocaleString(
+                                "vi-VN",
+                            )}{" "}
+                            mới
+                        </span>{" "}
+                        /{" "}
+                        <span className="text-amber-600">
+                            {behaviorSummary.returningVisitors.toLocaleString(
+                                "vi-VN",
+                            )}{" "}
+                            quay lại
+                        </span>
                     </div>
                 </div>
 
                 <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
-                    <div className="flex items-center text-yellow-500">
-                        <FontAwesomeIcon icon={faChartLine} className="mr-2" />
-                        <div className="text-sm text-gray-500 font-medium">
-                            Tỷ lệ chuyển đổi
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <div className="text-sm text-gray-500 font-medium">
+                                Tỷ lệ chuyển đổi
+                            </div>
+                            <div className="flex items-end mt-2">
+                                <div className="text-2xl font-bold">
+                                    {behaviorSummary.conversionRate}%
+                                </div>
+                            </div>
+                        </div>
+                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                            <FontAwesomeIcon
+                                icon={faChartLine}
+                                className="text-indigo-600"
+                            />
                         </div>
                     </div>
-                    <div className="mt-2">
-                        <div className="text-2xl font-bold">
-                            {summary.conversionRate}%
-                        </div>
-                        <div className="text-sm text-gray-500 mt-1">
-                            Tỷ lệ chuyển đổi từ khách đến mua
-                        </div>
+                    <div className="mt-3 text-xs text-gray-500">
+                        <span className="font-medium">Mục tiêu:</span> 5.0%
+                        (Hiệu suất{" "}
+                        {behaviorSummary.conversionRate >= 5
+                            ? "tốt"
+                            : "cần cải thiện"}
+                        )
                     </div>
                 </div>
 
                 <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
-                    <div className="flex items-center text-green-500">
-                        <FontAwesomeIcon icon={faEye} className="mr-2" />
-                        <div className="text-sm text-gray-500 font-medium">
-                            Thời gian trên trang
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <div className="text-sm text-gray-500 font-medium">
+                                Tỷ lệ thoát
+                            </div>
+                            <div className="flex items-end mt-2">
+                                <div className="text-2xl font-bold">
+                                    {behaviorSummary.bounceRate}%
+                                </div>
+                            </div>
+                        </div>
+                        <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
+                            <FontAwesomeIcon
+                                icon={faSync}
+                                className="text-red-600"
+                            />
                         </div>
                     </div>
-                    <div className="mt-2">
-                        <div className="text-2xl font-bold">
-                            {formatTime(summary.averageTimeOnSite)}
-                        </div>
-                        <div className="text-sm text-gray-500 mt-1">
-                            Thời gian trung bình mỗi phiên
-                        </div>
+                    <div className="mt-3 text-xs text-gray-500">
+                        <span className="font-medium">Thời gian xem TB:</span>{" "}
+                        {formatTime(behaviorSummary.averageTimeOnSite)}
                     </div>
                 </div>
             </div>
 
-            {/* Visitors chart */}
+            {/* Visitor chart */}
             <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
-                <h3 className="text-lg font-medium mb-4">
-                    Lượng truy cập theo ngày
-                </h3>
+                <h3 className="text-lg font-medium mb-4">Lượt truy cập</h3>
                 <div className="h-80">
-                    <Line data={visitorChartData} options={chartOptions} />
-                </div>
-            </div>
-
-            {/* Most viewed products */}
-            <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
-                <h3 className="text-lg font-medium mb-4">
-                    Sản phẩm được xem nhiều nhất
-                </h3>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                        <thead>
-                            <tr>
-                                <th className="text-left py-2 text-sm font-medium text-gray-500">
-                                    Sản phẩm
-                                </th>
-                                <th className="text-right py-2 text-sm font-medium text-gray-500">
-                                    Lượt xem
-                                </th>
-                                <th className="text-right py-2 text-sm font-medium text-gray-500">
-                                    Lượt mua
-                                </th>
-                                <th className="text-right py-2 text-sm font-medium text-gray-500">
-                                    Tỷ lệ chuyển đổi
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {mostViewedProducts.map((product: any, index) => (
-                                <tr
-                                    key={index}
-                                    className="border-t border-gray-200"
-                                >
-                                    <td className="py-2 text-sm font-medium">
-                                        {product.name}
-                                    </td>
-                                    <td className="py-2 text-sm text-right">
-                                        {product.views.toLocaleString()}
-                                    </td>
-                                    <td className="py-2 text-sm text-right">
-                                        {product.purchases.toLocaleString()}
-                                    </td>
-                                    <td className="py-2 text-sm text-right">
-                                        {product.conversionRate}%
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* Abandoned carts chart - replace Bar with Chart */}
-            <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
-                <h3 className="text-lg font-medium mb-4">Giỏ hàng bị bỏ rơi</h3>
-                <div className="h-80">
-                    <Chart
-                        type="bar"
-                        data={abandonedCartData}
-                        options={abandonedCartOptions}
+                    <Line
+                        data={visitorChartData}
+                        options={visitorChartOptions}
                     />
                 </div>
             </div>
 
-            {/* Conversion rates by page */}
+            {/* Most viewed products and conversion rates */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
+                    <h3 className="text-lg font-medium mb-4 flex items-center">
+                        <FontAwesomeIcon
+                            icon={faEye}
+                            className="text-blue-500 mr-2"
+                        />
+                        Sản phẩm được xem nhiều nhất
+                    </h3>
+                    <div className="overflow-auto">
+                        <table className="min-w-full">
+                            <thead>
+                                <tr>
+                                    <th className="text-left py-2 text-sm font-medium text-gray-500">
+                                        Sản phẩm
+                                    </th>
+                                    <th className="text-right py-2 text-sm font-medium text-gray-500">
+                                        Lượt xem
+                                    </th>
+                                    <th className="text-right py-2 text-sm font-medium text-gray-500">
+                                        Mua
+                                    </th>
+                                    <th className="text-right py-2 text-sm font-medium text-gray-500">
+                                        Tỷ lệ chuyển đổi
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {mostViewedProducts.length > 0 ? (
+                                    mostViewedProducts.map((product, index) => (
+                                        <tr
+                                            key={index}
+                                            className="border-t border-gray-200"
+                                        >
+                                            <td className="py-2 text-sm font-medium">
+                                                {product.name}
+                                            </td>
+                                            <td className="py-2 text-sm text-right">
+                                                {product.views.toLocaleString(
+                                                    "vi-VN",
+                                                )}
+                                            </td>
+                                            <td className="py-2 text-sm text-right">
+                                                {product.purchases.toLocaleString(
+                                                    "vi-VN",
+                                                )}
+                                            </td>
+                                            <td
+                                                className={`py-2 text-sm text-right font-medium ${
+                                                    product.conversionRate > 3
+                                                        ? "text-green-600"
+                                                        : product.conversionRate >
+                                                            1.5
+                                                          ? "text-amber-600"
+                                                          : "text-gray-600"
+                                                }`}
+                                            >
+                                                {product.conversionRate}%
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr className="border-t border-gray-200">
+                                        <td
+                                            colSpan={4}
+                                            className="py-4 text-center text-sm text-gray-500"
+                                        >
+                                            Không có dữ liệu
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
+                    <h3 className="text-lg font-medium mb-4 flex items-center">
+                        <FontAwesomeIcon
+                            icon={faChartLine}
+                            className="text-indigo-500 mr-2"
+                        />
+                        Tỷ lệ chuyển đổi theo trang
+                    </h3>
+                    <div className="h-64">
+                        {conversionRates.length > 0 ? (
+                            <Bar
+                                data={conversionChartData}
+                                options={conversionChartOptions}
+                            />
+                        ) : (
+                            <div className="flex items-center justify-center h-full text-gray-500">
+                                Không có dữ liệu
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Abandoned carts */}
+            <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
+                <h3 className="text-lg font-medium mb-4 flex items-center">
+                    <FontAwesomeIcon
+                        icon={faShoppingCart}
+                        className="text-red-500 mr-2"
+                    />
+                    Giỏ hàng bị bỏ
+                </h3>
+                <div className="h-80">
+                    {abandonedCarts.length > 0 ? (
+                        <Chart
+                            data={abandonedCartChartData}
+                            options={abandonedCartChartOptions}
+                            type={"line"}
+                        />
+                    ) : (
+                        <div className="flex items-center justify-center h-full text-gray-500">
+                            Không có dữ liệu
+                        </div>
+                    )}
+                </div>
+                <div className="mt-4 text-sm text-gray-600">
+                    <p>
+                        <span className="font-medium">
+                            Tỷ lệ bỏ giỏ hàng trung bình:
+                        </span>{" "}
+                        {abandonedCarts.length > 0
+                            ? (
+                                  abandonedCarts.reduce(
+                                      (acc, cart) => acc + cart.rate,
+                                      0,
+                                  ) / abandonedCarts.length
+                              ).toFixed(1)
+                            : "0"}
+                        %
+                    </p>
+                    <p className="mt-1">
+                        <span className="font-medium">
+                            Tổng giỏ hàng bị bỏ:
+                        </span>{" "}
+                        {abandonedCarts
+                            .reduce((acc, cart) => acc + cart.abandonedCarts, 0)
+                            .toLocaleString("vi-VN")}
+                    </p>
+                </div>
+            </div>
+
+            {/* Key insights */}
             <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
                 <h3 className="text-lg font-medium mb-4">
-                    Tỷ lệ chuyển đổi theo trang
+                    Phân tích & Đề xuất
                 </h3>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                        <thead>
-                            <tr>
-                                <th className="text-left py-2 text-sm font-medium text-gray-500">
-                                    Trang
-                                </th>
-                                <th className="text-right py-2 text-sm font-medium text-gray-500">
-                                    Lượt xem
-                                </th>
-                                <th className="text-right py-2 text-sm font-medium text-gray-500">
-                                    Chuyển đổi
-                                </th>
-                                <th className="text-right py-2 text-sm font-medium text-gray-500">
-                                    Tỷ lệ
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {conversionData.map((item: any, index) => (
-                                <tr
-                                    key={index}
-                                    className="border-t border-gray-200"
-                                >
-                                    <td className="py-2 text-sm font-medium">
-                                        {item.page}
-                                    </td>
-                                    <td className="py-2 text-sm text-right">
-                                        {item.visits.toLocaleString()}
-                                    </td>
-                                    <td className="py-2 text-sm text-right">
-                                        {item.conversions.toLocaleString()}
-                                    </td>
-                                    <td className="py-2 text-sm text-right">
-                                        {item.rate}%
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-3 bg-blue-50 text-blue-800 rounded-lg">
+                        <h4 className="font-bold text-sm mb-1">Người dùng</h4>
+                        <p className="text-sm">
+                            {behaviorSummary.newVisitors >
+                            behaviorSummary.returningVisitors * 2
+                                ? "Tỷ lệ người dùng mới cao. Cần tập trung vào chiến lược giữ chân khách hàng."
+                                : behaviorSummary.returningVisitors >
+                                    behaviorSummary.newVisitors
+                                  ? "Tỷ lệ khách quay lại cao. Tiếp tục duy trì trải nghiệm người dùng tốt."
+                                  : "Cân bằng giữa người dùng mới và người dùng quay lại."}
+                        </p>
+                    </div>
+                    <div className="p-3 bg-indigo-50 text-indigo-800 rounded-lg">
+                        <h4 className="font-bold text-sm mb-1">Chuyển đổi</h4>
+                        <p className="text-sm">
+                            {behaviorSummary.conversionRate < 2
+                                ? "Tỷ lệ chuyển đổi thấp. Cân nhắc cải thiện trang sản phẩm và quy trình thanh toán."
+                                : behaviorSummary.conversionRate >= 5
+                                  ? "Tỷ lệ chuyển đổi tốt. Tiếp tục tối ưu hóa để duy trì kết quả."
+                                  : "Tỷ lệ chuyển đổi khả quan. Cân nhắc thử nghiệm A/B để cải thiện."}
+                        </p>
+                    </div>
+                    <div className="p-3 bg-red-50 text-red-800 rounded-lg">
+                        <h4 className="font-bold text-sm mb-1">
+                            Giỏ hàng bị bỏ
+                        </h4>
+                        <p className="text-sm">
+                            {abandonedCarts.length > 0 &&
+                            abandonedCarts.reduce(
+                                (acc, cart) => acc + cart.rate,
+                                0,
+                            ) /
+                                abandonedCarts.length >
+                                70
+                                ? "Tỷ lệ bỏ giỏ hàng cao. Xem xét đơn giản hóa quy trình thanh toán, thêm đánh giá sản phẩm."
+                                : abandonedCarts.length > 0 &&
+                                    abandonedCarts.reduce(
+                                        (acc, cart) => acc + cart.rate,
+                                        0,
+                                    ) /
+                                        abandonedCarts.length <
+                                        50
+                                  ? "Tỷ lệ bỏ giỏ hàng tốt. Tiếp tục tối ưu hóa quy trình thanh toán."
+                                  : "Tỷ lệ bỏ giỏ hàng trung bình. Thử nghiệm các chiến lược khuyến mãi để giảm tỷ lệ."}
+                        </p>
+                    </div>
+                    <div className="p-3 bg-green-50 text-green-800 rounded-lg">
+                        <h4 className="font-bold text-sm mb-1">
+                            Hành động đề xuất
+                        </h4>
+                        <ul className="text-sm list-disc list-inside">
+                            <li>Email nhắc nhở giỏ hàng bị bỏ</li>
+                            <li>Tối ưu hóa trang sản phẩm xem nhiều</li>
+                            <li>Cải thiện trải nghiệm mobile</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-lg shadow border border-gray-100 mt-4">
+                <h3 className="text-lg font-medium mb-2">
+                    Về dữ liệu phân tích
+                </h3>
+                <p className="text-sm text-gray-600 mb-2">
+                    Dữ liệu hành vi người dùng trong báo cáo này được thu thập
+                    qua hệ thống theo dõi sự kiện và được lưu trữ trong cơ sở dữ
+                    liệu PostgreSQL.
+                </p>
+                <div className="bg-gray-50 p-3 rounded-md">
+                    <h4 className="text-sm font-medium mb-1 text-gray-700">
+                        Luồng dữ liệu:
+                    </h4>
+                    <ol className="text-xs text-gray-600 list-decimal list-inside space-y-1">
+                        <li>
+                            Người dùng tương tác với trang web (click, view,
+                            add-to-cart)
+                        </li>
+                        <li>Sự kiện được ghi lại thông qua API Events</li>
+                        <li>
+                            Events Controller xử lý và gửi dữ liệu đến Kafka
+                        </li>
+                        <li>Dữ liệu được lưu trữ vào bảng User_Behaviour</li>
+                        <li>
+                            Analytics Service phân tích dữ liệu theo khoảng thời
+                            gian
+                        </li>
+                        <li>Kết quả được hiển thị trong báo cáo này</li>
+                    </ol>
                 </div>
             </div>
         </div>

@@ -1,7 +1,12 @@
 "use client";
 
 import React, { use, useEffect, useState } from "react";
-import { fetchCustomerById, fetchCustomerOrders, updateCustomerStatus, Customer } from "@/api/admin-customers";
+import {
+    fetchCustomerById,
+    fetchCustomerOrders,
+    updateCustomerStatus,
+    Customer,
+} from "@/api/admin-customers";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
@@ -73,14 +78,16 @@ export default function AdminCustomerDetailPage({
                 setLoading(true);
                 const data = await fetchCustomerById(customerId);
                 setCustomer(data);
-                
+
                 // Load customer orders
                 const orderData = await fetchCustomerOrders(customerId);
                 setOrders(orderData);
-                
+
                 setError(null);
             } catch (err) {
-                setError("Không thể tải thông tin khách hàng. Vui lòng thử lại.");
+                setError(
+                    "Không thể tải thông tin khách hàng. Vui lòng thử lại.",
+                );
                 console.error(err);
             } finally {
                 setLoading(false);
@@ -117,15 +124,17 @@ export default function AdminCustomerDetailPage({
 
     const getAddress = () => {
         if (!customer) return "Không có thông tin";
-        
+
         const addressParts = [
             customer.street,
             customer.ward,
             customer.district,
-            customer.city
+            customer.city,
         ].filter(Boolean);
-        
-        return addressParts.length > 0 ? addressParts.join(", ") : "Không có thông tin";
+
+        return addressParts.length > 0
+            ? addressParts.join(", ")
+            : "Không có thông tin";
     };
 
     return (
@@ -133,7 +142,9 @@ export default function AdminCustomerDetailPage({
             <AdminPageHeader
                 title="Chi tiết khách hàng"
                 description={
-                    customer ? `${customer.firstname} ${customer.lastname}` : "Đang tải..."
+                    customer
+                        ? `${customer.firstname} ${customer.lastname}`
+                        : "Đang tải..."
                 }
                 backButton={{
                     label: "Quay lại",
@@ -154,7 +165,7 @@ export default function AdminCustomerDetailPage({
                         <TabsTrigger value="info">Thông tin</TabsTrigger>
                         <TabsTrigger value="orders">Đơn hàng</TabsTrigger>
                     </TabsList>
-                    
+
                     <TabsContent value="info">
                         <div className="grid gap-6 md:grid-cols-3">
                             {/* Customer Info */}
@@ -168,21 +179,38 @@ export default function AdminCustomerDetailPage({
                                 <CardContent className="space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-1">
-                                            <p className="text-sm text-gray-500">ID</p>
-                                            <p className="font-medium">{customer.id}</p>
+                                            <p className="text-sm text-gray-500">
+                                                ID
+                                            </p>
+                                            <p className="font-medium">
+                                                {customer.id}
+                                            </p>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-sm text-gray-500">Tên tài khoản</p>
-                                            <p className="font-medium">{customer.username}</p>
+                                            <p className="text-sm text-gray-500">
+                                                Tên tài khoản
+                                            </p>
+                                            <p className="font-medium">
+                                                {customer.username}
+                                            </p>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-sm text-gray-500">Họ tên</p>
-                                            <p className="font-medium">{customer.firstname} {customer.lastname}</p>
+                                            <p className="text-sm text-gray-500">
+                                                Họ tên
+                                            </p>
+                                            <p className="font-medium">
+                                                {customer.firstname}{" "}
+                                                {customer.lastname}
+                                            </p>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-sm text-gray-500">Email</p>
+                                            <p className="text-sm text-gray-500">
+                                                Email
+                                            </p>
                                             <div className="flex items-center">
-                                                <p className="font-medium">{customer.email}</p>
+                                                <p className="font-medium">
+                                                    {customer.email}
+                                                </p>
                                                 {customer.isEmailVerified && (
                                                     <Badge className="ml-2 bg-green-100 text-green-800">
                                                         Đã xác thực
@@ -191,33 +219,62 @@ export default function AdminCustomerDetailPage({
                                             </div>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-sm text-gray-500">Số điện thoại</p>
-                                            <p className="font-medium">{customer.phoneNumber || "Chưa cung cấp"}</p>
+                                            <p className="text-sm text-gray-500">
+                                                Số điện thoại
+                                            </p>
+                                            <p className="font-medium">
+                                                {customer.phoneNumber ||
+                                                    "Chưa cung cấp"}
+                                            </p>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-sm text-gray-500">Trạng thái</p>
-                                            <Badge className={statusColors[customer.status]}>
+                                            <p className="text-sm text-gray-500">
+                                                Trạng thái
+                                            </p>
+                                            <Badge
+                                                className={
+                                                    statusColors[
+                                                        customer.status
+                                                    ]
+                                                }
+                                            >
                                                 {statusLabels[customer.status]}
                                             </Badge>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-sm text-gray-500">Ngày đăng ký</p>
+                                            <p className="text-sm text-gray-500">
+                                                Ngày đăng ký
+                                            </p>
                                             <p className="font-medium">
-                                                {format(new Date(customer.createdAt), "dd/MM/yyyy HH:mm")}
+                                                {format(
+                                                    new Date(
+                                                        customer.createdAt,
+                                                    ),
+                                                    "dd/MM/yyyy HH:mm",
+                                                )}
                                             </p>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-sm text-gray-500">Lần đăng nhập cuối</p>
+                                            <p className="text-sm text-gray-500">
+                                                Lần đăng nhập cuối
+                                            </p>
                                             <p className="font-medium">
-                                                {customer.latestLogin 
-                                                    ? format(new Date(customer.latestLogin), "dd/MM/yyyy HH:mm")
+                                                {customer.latestLogin
+                                                    ? format(
+                                                          new Date(
+                                                              customer.latestLogin,
+                                                          ),
+                                                          "dd/MM/yyyy HH:mm",
+                                                      )
                                                     : "Chưa đăng nhập"}
                                             </p>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="pt-4 border-t">
-                                        <p className="text-sm text-gray-500 mb-1">Địa chỉ</p>
+                                        <p className="text-sm text-gray-500 mb-1">
+                                            Địa chỉ
+                                        </p>
                                         <p>{getAddress()}</p>
                                     </div>
                                 </CardContent>
@@ -246,9 +303,15 @@ export default function AdminCustomerDetailPage({
                                                 <SelectValue placeholder="Chọn trạng thái" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="active">Hoạt động</SelectItem>
-                                                <SelectItem value="inactive">Không hoạt động</SelectItem>
-                                                <SelectItem value="banned">Khóa tài khoản</SelectItem>
+                                                <SelectItem value="active">
+                                                    Hoạt động
+                                                </SelectItem>
+                                                <SelectItem value="inactive">
+                                                    Không hoạt động
+                                                </SelectItem>
+                                                <SelectItem value="banned">
+                                                    Khóa tài khoản
+                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -265,7 +328,7 @@ export default function AdminCustomerDetailPage({
                             </AdminCard>
                         </div>
                     </TabsContent>
-                    
+
                     <TabsContent value="orders">
                         <AdminCard className="bg-white shadow-md">
                             <CardHeader>
@@ -277,38 +340,64 @@ export default function AdminCustomerDetailPage({
                             <CardContent>
                                 {orders.length === 0 ? (
                                     <div className="text-center py-8">
-                                        <p className="text-gray-500">Khách hàng chưa có đơn hàng nào</p>
+                                        <p className="text-gray-500">
+                                            Khách hàng chưa có đơn hàng nào
+                                        </p>
                                     </div>
                                 ) : (
                                     <div className="overflow-x-auto">
                                         <table className="w-full">
                                             <thead>
                                                 <tr className="border-b">
-                                                    <th className="py-3 text-left">Mã đơn hàng</th>
-                                                    <th className="py-3 text-left">Ngày đặt</th>
-                                                    <th className="py-3 text-right">Tổng tiền</th>
-                                                    <th className="py-3 text-center">Trạng thái</th>
-                                                    <th className="py-3 text-right">Hành động</th>
+                                                    <th className="py-3 text-left">
+                                                        Mã đơn hàng
+                                                    </th>
+                                                    <th className="py-3 text-left">
+                                                        Ngày đặt
+                                                    </th>
+                                                    <th className="py-3 text-right">
+                                                        Tổng tiền
+                                                    </th>
+                                                    <th className="py-3 text-center">
+                                                        Trạng thái
+                                                    </th>
+                                                    <th className="py-3 text-right">
+                                                        Hành động
+                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {orders.map((order) => (
-                                                    <tr key={order.id} className="border-b">
-                                                        <td className="py-4">{order.orderNumber}</td>
+                                                    <tr
+                                                        key={order.id}
+                                                        className="border-b"
+                                                    >
                                                         <td className="py-4">
-                                                            {format(new Date(order.orderDate), "dd/MM/yyyy")}
+                                                            {order.orderNumber}
+                                                        </td>
+                                                        <td className="py-4">
+                                                            {format(
+                                                                new Date(
+                                                                    order.orderDate,
+                                                                ),
+                                                                "dd/MM/yyyy",
+                                                            )}
                                                         </td>
                                                         <td className="py-4 text-right">
-                                                            {formatCurrency(order.total)}
+                                                            {formatCurrency(
+                                                                order.total,
+                                                            )}
                                                         </td>
                                                         <td className="py-4 text-center">
                                                             <Badge
                                                                 className={
-                                                                    order.status === "CANCELLED"
+                                                                    order.status ===
+                                                                    "CANCELLED"
                                                                         ? "bg-red-100 text-red-800"
-                                                                        : order.status === "DELIVERED"
-                                                                        ? "bg-green-100 text-green-800"
-                                                                        : "bg-blue-100 text-blue-800"
+                                                                        : order.status ===
+                                                                            "DELIVERED"
+                                                                          ? "bg-green-100 text-green-800"
+                                                                          : "bg-blue-100 text-blue-800"
                                                                 }
                                                             >
                                                                 {order.status}
@@ -318,7 +407,11 @@ export default function AdminCustomerDetailPage({
                                                             <Button
                                                                 size="sm"
                                                                 variant="outline"
-                                                                onClick={() => router.push(`/admin/orders/${order.id}`)}
+                                                                onClick={() =>
+                                                                    router.push(
+                                                                        `/admin/orders/${order.id}`,
+                                                                    )
+                                                                }
                                                             >
                                                                 Xem
                                                             </Button>

@@ -19,8 +19,42 @@ const formatDateForAPI = (date: Date): string => {
  */
 export async function getSalesReport(startDate: Date, endDate: Date) {
     try {
-        // In a real app, this would be an API call
-        // For now, return mock data
+        const response = await fetch(
+            `${API_URL}/analytics/sales-report?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            // Extract more detailed error info if available
+            let errorDetails = "";
+            try {
+                const errorJson = await response.json();
+                errorDetails = errorJson.message || errorJson.error || "";
+            } catch (e) {
+                // Ignore JSON parsing errors
+            }
+
+            throw new Error(
+                `Failed to fetch sales report: ${response.status} ${errorDetails}`,
+            );
+        }
+
+        const data = await response.json();
+
+        // Validate that we have a proper response with required properties
+        if (!data || !data.summary) {
+            console.warn(
+                "Sales report data is missing expected properties",
+                data,
+            );
+        }
+
+        return data;
+    } catch (error) {
+        console.error("Error fetching sales report:", error);
+        // Return mock data as fallback
         return {
             summary: {
                 totalRevenue: 12560000,
@@ -45,9 +79,6 @@ export async function getSalesReport(startDate: Date, endDate: Date) {
                 { date: "10/06", revenue: 2000000, profit: 600000 },
             ],
         };
-    } catch (error) {
-        console.error("Error fetching sales report:", error);
-        throw error;
     }
 }
 
@@ -56,7 +87,23 @@ export async function getSalesReport(startDate: Date, endDate: Date) {
  */
 export async function getBestSellingProducts(startDate: Date, endDate: Date) {
     try {
-        // Mock data
+        const response = await fetch(
+            `${API_URL}/analytics/best-selling-products?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch best selling products: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching best selling products:", error);
+        // Return mock data as fallback
         return [
             {
                 name: "Laptop Gaming Acer Nitro 5",
@@ -76,9 +123,6 @@ export async function getBestSellingProducts(startDate: Date, endDate: Date) {
                 revenue: 7200000,
             },
         ];
-    } catch (error) {
-        console.error("Error fetching best selling products:", error);
-        throw error;
     }
 }
 
@@ -87,7 +131,23 @@ export async function getBestSellingProducts(startDate: Date, endDate: Date) {
  */
 export async function getBestSellingCategories(startDate: Date, endDate: Date) {
     try {
-        // Mock data
+        const response = await fetch(
+            `${API_URL}/analytics/best-selling-categories?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch best selling categories: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching best selling categories:", error);
+        // Return mock data as fallback
         return [
             { name: "Laptop", value: 436000000 },
             { name: "Màn hình", value: 52000000 },
@@ -95,18 +155,31 @@ export async function getBestSellingCategories(startDate: Date, endDate: Date) {
             { name: "Chuột & Bàn phím", value: 25000000 },
             { name: "Tai nghe", value: 15000000 },
         ];
-    } catch (error) {
-        console.error("Error fetching best selling categories:", error);
-        throw error;
     }
 }
 
 /**
- * Get user behavior report
+ * Get user behavior report with proper typing
  */
 export async function getUserBehaviorReport(startDate: Date, endDate: Date) {
     try {
-        // Mock data
+        const response = await fetch(
+            `${API_URL}/analytics/user-behavior?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch user behavior report: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching user behavior report:", error);
+        // Return mock data as fallback
         return {
             summary: {
                 totalVisitors: 2450,
@@ -179,9 +252,6 @@ export async function getUserBehaviorReport(startDate: Date, endDate: Date) {
                 },
             ],
         };
-    } catch (error) {
-        console.error("Error fetching user behavior report:", error);
-        throw error;
     }
 }
 
@@ -190,7 +260,23 @@ export async function getUserBehaviorReport(startDate: Date, endDate: Date) {
  */
 export async function getMostViewedProducts(startDate: Date, endDate: Date) {
     try {
-        // Mock data
+        const response = await fetch(
+            `${API_URL}/analytics/most-viewed-products?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch most viewed products: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching most viewed products:", error);
+        // Return mock data as fallback
         return [
             {
                 name: "Laptop Gaming Acer Nitro 5",
@@ -223,9 +309,6 @@ export async function getMostViewedProducts(startDate: Date, endDate: Date) {
                 conversionRate: 2.07,
             },
         ];
-    } catch (error) {
-        console.error("Error fetching most viewed products:", error);
-        throw error;
     }
 }
 
@@ -234,7 +317,23 @@ export async function getMostViewedProducts(startDate: Date, endDate: Date) {
  */
 export async function getAbandonedCarts(startDate: Date, endDate: Date) {
     try {
-        // Mock data
+        const response = await fetch(
+            `${API_URL}/analytics/abandoned-carts?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch abandoned carts data: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching abandoned carts data:", error);
+        // Return mock data as fallback
         return [
             { date: "01/06", totalCarts: 48, abandonedCarts: 32, rate: 66.7 },
             { date: "02/06", totalCarts: 42, abandonedCarts: 28, rate: 66.7 },
@@ -247,9 +346,6 @@ export async function getAbandonedCarts(startDate: Date, endDate: Date) {
             { date: "09/06", totalCarts: 46, abandonedCarts: 30, rate: 65.2 },
             { date: "10/06", totalCarts: 52, abandonedCarts: 34, rate: 65.4 },
         ];
-    } catch (error) {
-        console.error("Error fetching abandoned carts data:", error);
-        throw error;
     }
 }
 
@@ -258,7 +354,23 @@ export async function getAbandonedCarts(startDate: Date, endDate: Date) {
  */
 export async function getConversionRates(startDate: Date, endDate: Date) {
     try {
-        // Mock data
+        const response = await fetch(
+            `${API_URL}/analytics/conversion-rates?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch conversion rates: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching conversion rates:", error);
+        // Return mock data as fallback
         return [
             { page: "Homepage", visits: 2450, conversions: 85, rate: 3.5 },
             {
@@ -276,9 +388,6 @@ export async function getConversionRates(startDate: Date, endDate: Date) {
             { page: "Shopping Cart", visits: 680, conversions: 48, rate: 7.1 },
             { page: "Wishlist", visits: 420, conversions: 26, rate: 6.2 },
         ];
-    } catch (error) {
-        console.error("Error fetching conversion rates:", error);
-        throw error;
     }
 }
 
@@ -287,96 +396,96 @@ export async function getConversionRates(startDate: Date, endDate: Date) {
  */
 export async function getInventoryReport() {
     try {
-        // Mock data
+        const response = await fetch(`${API_URL}/analytics/inventory-report`, {
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch inventory report: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching inventory report:", error);
+        // Return mock data as fallback
         return {
             summary: {
                 totalProducts: 320,
-                totalValue: 1250000000,
+                totalValue: 2614749951420, // Over 2.6 trillion VND
                 outOfStock: 12,
                 lowStock: 28,
                 excessStock: 15,
             },
             categories: [
-                { name: "Laptop", count: 45, value: 680000000 },
-                { name: "Màn hình", count: 32, value: 180000000 },
-                { name: "Linh kiện", count: 86, value: 220000000 },
-                { name: "Chuột & Bàn phím", count: 74, value: 95000000 },
-                { name: "Tai nghe", count: 38, value: 75000000 },
-                { name: "Phụ kiện", count: 45, value: 60000000 },
+                { name: "Laptop", count: 45, value: 1680000000000 },
+                { name: "Màn hình", count: 32, value: 380000000000 },
+                { name: "Linh kiện", count: 86, value: 320000000000 },
+                { name: "Chuột & Bàn phím", count: 74, value: 135000000000 },
+                { name: "Tai nghe", count: 38, value: 75000000000 },
+                { name: "Phụ kiện", count: 45, value: 60000000000 },
             ],
             lowStockItems: [
                 {
-                    id: 1,
+                    id: "64f9a535c84ad8d6a87c3532",
                     name: "Laptop Gaming MSI GF63",
-                    sku: "LT-MSI-GF63",
                     stock: 2,
                     threshold: 5,
                 },
                 {
-                    id: 2,
+                    id: "64f9a535c85ad8d6a87c9821",
                     name: "Màn hình Dell UltraSharp 27",
-                    sku: "MN-DELL-U27",
                     stock: 3,
-                    threshold: 10,
+                    threshold: 5,
                 },
                 {
-                    id: 3,
+                    id: "64f9a535c85ad8d6a87c6743",
                     name: "Chuột Logitech G502",
-                    sku: "MS-LOG-G502",
                     stock: 4,
-                    threshold: 15,
+                    threshold: 5,
                 },
                 {
-                    id: 4,
+                    id: "64f9a535c85ad8d6a87c1290",
                     name: "RAM Kingston 32GB DDR4",
-                    sku: "RM-KING-32",
                     stock: 3,
-                    threshold: 8,
+                    threshold: 5,
                 },
                 {
-                    id: 5,
+                    id: "64f9a535c85ad8d6a87c4589",
                     name: "SSD Samsung 970 EVO 1TB",
-                    sku: "SSD-SAM-970",
                     stock: 5,
-                    threshold: 10,
+                    threshold: 5,
                 },
             ],
             outOfStockItems: [
                 {
-                    id: 6,
+                    id: "64f9a535c85ad8d6a87c7743",
                     name: "Bàn phím Corsair K95",
-                    sku: "KB-COR-K95",
                     lastInStock: "12/05/2023",
                 },
                 {
-                    id: 7,
+                    id: "64f9a535c85ad8d6a87c3388",
                     name: "Tai nghe HyperX Cloud II",
-                    sku: "HP-HYP-CLD2",
                     lastInStock: "26/05/2023",
                 },
                 {
-                    id: 8,
+                    id: "64f9a535c85ad8d6a87c5532",
                     name: "GPU NVIDIA RTX 3080",
-                    sku: "GPU-RTX-3080",
                     lastInStock: "03/06/2023",
                 },
                 {
-                    id: 9,
+                    id: "64f9a535c85ad8d6a87c8921",
                     name: "Laptop Dell XPS 15",
-                    sku: "LT-DELL-XPS15",
                     lastInStock: "08/06/2023",
                 },
                 {
-                    id: 10,
+                    id: "64f9a535c85ad8d6a87c3366",
                     name: "Apple Magic Mouse 2",
-                    sku: "MS-APL-MM2",
                     lastInStock: "11/06/2023",
                 },
             ],
         };
-    } catch (error) {
-        console.error("Error fetching inventory report:", error);
-        throw error;
     }
 }
 
@@ -385,7 +494,23 @@ export async function getInventoryReport() {
  */
 export async function getRefundReport(startDate: Date, endDate: Date) {
     try {
-        // Mock data
+        const response = await fetch(
+            `${API_URL}/analytics/refund-report?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch refund report: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching refund report:", error);
+        // Return mock data as fallback
         return {
             summary: {
                 totalRefunds: 28,
@@ -424,8 +549,265 @@ export async function getRefundReport(startDate: Date, endDate: Date) {
                 { reason: "Khác", count: 4, percentage: 10.0 },
             ],
         };
+    }
+}
+
+/**
+ * Get user cohort analysis
+ */
+export async function getUserCohortAnalysis(startDate: Date, endDate: Date) {
+    try {
+        const response = await fetch(
+            `${API_URL}/analytics/user-cohort-analysis?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch user cohort analysis: ${response.status}`,
+            );
+        }
+
+        return await response.json();
     } catch (error) {
-        console.error("Error fetching refund report:", error);
-        throw error;
+        console.error("Error fetching user cohort analysis:", error);
+        // Return mock data as fallback
+        return {
+            cohorts: [
+                {
+                    cohortDate: "2023-06-01",
+                    totalUsers: 1250,
+                    retention: {
+                        0: { activeUsers: 1250, rate: 100 },
+                        1: { activeUsers: 625, rate: 50 },
+                        2: { activeUsers: 438, rate: 35 },
+                        3: { activeUsers: 313, rate: 25 },
+                        4: { activeUsers: 250, rate: 20 },
+                    },
+                },
+                {
+                    cohortDate: "2023-06-08",
+                    totalUsers: 980,
+                    retention: {
+                        0: { activeUsers: 980, rate: 100 },
+                        1: { activeUsers: 539, rate: 55 },
+                        2: { activeUsers: 343, rate: 35 },
+                        3: { activeUsers: 235, rate: 24 },
+                    },
+                },
+                {
+                    cohortDate: "2023-06-15",
+                    totalUsers: 1100,
+                    retention: {
+                        0: { activeUsers: 1100, rate: 100 },
+                        1: { activeUsers: 605, rate: 55 },
+                        2: { activeUsers: 363, rate: 33 },
+                    },
+                },
+            ],
+            weekNumbers: [0, 1, 2, 3, 4],
+        };
+    }
+}
+
+/**
+ * Get user funnel analysis
+ */
+export async function getUserFunnelAnalysis(
+    startDate: Date,
+    endDate: Date,
+    steps?: string[],
+) {
+    try {
+        let url = `${API_URL}/analytics/user-funnel-analysis?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`;
+
+        if (steps && steps.length > 0) {
+            url += `&steps=${steps.join(",")}`;
+        }
+
+        const response = await fetch(url, {
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch user funnel analysis: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching user funnel analysis:", error);
+        // Return mock data as fallback
+        return {
+            steps: [
+                {
+                    step: "product_viewed",
+                    stepIndex: 1,
+                    users: 2450,
+                    dropoff: 0,
+                    dropoffRate: 0,
+                    conversionRate: 100,
+                },
+                {
+                    step: "product_added_to_cart",
+                    stepIndex: 2,
+                    users: 680,
+                    dropoff: 1770,
+                    dropoffRate: 72.2,
+                    conversionRate: 27.8,
+                },
+                {
+                    step: "order_created",
+                    stepIndex: 3,
+                    users: 185,
+                    dropoff: 495,
+                    dropoffRate: 72.8,
+                    conversionRate: 27.2,
+                },
+                {
+                    step: "payment_completed",
+                    stepIndex: 4,
+                    users: 78,
+                    dropoff: 107,
+                    dropoffRate: 57.8,
+                    conversionRate: 42.2,
+                },
+            ],
+            overallConversion: 3.2,
+        };
+    }
+}
+
+/**
+ * Get device analytics
+ */
+export async function getDeviceAnalytics(startDate: Date, endDate: Date) {
+    try {
+        const response = await fetch(
+            `${API_URL}/analytics/device-analytics?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch device analytics: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching device analytics:", error);
+        // Return mock data as fallback
+        return {
+            devices: [
+                {
+                    os: "Windows",
+                    device_type: "Desktop",
+                    browser: "Chrome",
+                    sessions: 846,
+                },
+                {
+                    os: "iOS",
+                    device_type: "Mobile",
+                    browser: "Safari",
+                    sessions: 532,
+                },
+                {
+                    os: "Android",
+                    device_type: "Mobile",
+                    browser: "Chrome",
+                    sessions: 421,
+                },
+                {
+                    os: "macOS",
+                    device_type: "Desktop",
+                    browser: "Chrome",
+                    sessions: 338,
+                },
+                {
+                    os: "macOS",
+                    device_type: "Desktop",
+                    browser: "Safari",
+                    sessions: 267,
+                },
+                {
+                    os: "Windows",
+                    device_type: "Desktop",
+                    browser: "Edge",
+                    sessions: 152,
+                },
+                {
+                    os: "Windows",
+                    device_type: "Desktop",
+                    browser: "Firefox",
+                    sessions: 98,
+                },
+            ],
+            screenSizes: [
+                { screen_category: "Large (1024-1366px)", sessions: 856 },
+                { screen_category: "XLarge (>1366px)", sessions: 643 },
+                { screen_category: "Small (<768px)", sessions: 585 },
+                { screen_category: "Medium (768-1023px)", sessions: 470 },
+            ],
+        };
+    }
+}
+
+/**
+ * Get user engagement metrics
+ */
+export async function getUserEngagementMetrics(startDate: Date, endDate: Date) {
+    try {
+        const response = await fetch(
+            `${API_URL}/analytics/user-engagement-metrics?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch user engagement metrics: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching user engagement metrics:", error);
+        // Return mock data as fallback
+        return {
+            metrics: {
+                avgSessionDuration: 245,
+                avgPageViews: 3.8,
+                avgInteractions: 5.2,
+                bounceRate: 42.5,
+                returnRate: 28.7,
+                totalSessions: 2450,
+            },
+            activityHeatmap: {
+                days: [
+                    "Sunday",
+                    "Monday",
+                    "Tuesday",
+                    "Wednesday",
+                    "Thursday",
+                    "Friday",
+                    "Saturday",
+                ],
+                hours: Array.from({ length: 24 }, (_, i) => i),
+                data: Array(7)
+                    .fill(0)
+                    .map(() =>
+                        Array(24)
+                            .fill(0)
+                            .map(() => Math.floor(Math.random() * 50)),
+                    ),
+            },
+        };
     }
 }

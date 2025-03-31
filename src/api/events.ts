@@ -71,6 +71,14 @@ const getSessionId = () => {
 };
 
 /**
+ * Get or create a debug mode setting
+ */
+const isDebugMode = () => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("debug_events") === "true";
+};
+
+/**
  * Base function to track events
  */
 const trackEvent = async (eventData: any) => {
@@ -104,6 +112,15 @@ const trackEvent = async (eventData: any) => {
             } catch (e) {
                 console.error("Failed to extract user ID from token", e);
             }
+        }
+
+        // Output debug info if in debug mode
+        if (isDebugMode()) {
+            console.group(`Event: ${eventData.eventType}`);
+            console.log("Event data:", completeEventData);
+            console.log("Will be stored in User_Behaviour table");
+            console.log("Timestamp:", new Date().toISOString());
+            console.groupEnd();
         }
 
         // Send event to backend
@@ -805,6 +822,214 @@ function generateSessionId(): string {
     return sessionId;
 }
 
+/**
+ * Add a debug toggle function to the export
+ */
+export const toggleEventDebug = () => {
+    const current = localStorage.getItem("debug_events") === "true";
+    localStorage.setItem("debug_events", (!current).toString());
+    return !current;
+};
+
+/**
+ * Track when a user starts a new session
+ */
+export const trackSessionStart = async () => {
+    try {
+        // Get session ID
+        const sessionId = getSessionId();
+
+        // Check if this session start has already been tracked
+        const sessionStartKey = `session_start_tracked_${sessionId}`;
+        if (
+            typeof window !== "undefined" &&
+            sessionStorage.getItem(sessionStartKey)
+        ) {
+            console.log(
+                "Session start already tracked, skipping duplicate event",
+            );
+            return;
+        }
+
+        // Create the payload
+        const payload: TrackEventPayload = {
+            eventType: "session_start",
+            sessionId,
+            entityId: sessionId,
+            entityType: "session",
+            deviceInfo: {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                screenSize: `${window.screen.width}x${window.screen.height}`,
+                viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+            },
+            pageUrl: window.location.href,
+            referrerUrl: document.referrer || null,
+            eventData: {
+                timestamp: new Date().toISOString(),
+                entryPage: window.location.pathname,
+                referrer: document.referrer || "direct",
+            },
+        };
+
+        // Add customerId if user is logged in
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                const parts = token.split(".");
+                if (parts.length === 3) {
+                    const tokenPayload = JSON.parse(atob(parts[1]));
+                    if (tokenPayload.sub) {
+                        payload.customerId = String(tokenPayload.sub);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to extract user ID from token", e);
+            }
+        }
+
+        // Send the tracking event
+        const response = await fetch(`${API_URL}/events/track`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+            keepalive: true,
+        });
+
+        if (response.ok) {
+            // Mark session start as tracked in sessionStorage
+            if (typeof window !== "undefined") {
+                sessionStorage.setItem(sessionStartKey, "true");
+
+                // Set up session end tracking
+                setupSessionEndTracking(sessionId);
+            }
+        } else {
+            const errorText = await response.text();
+            console.error(
+                `Session start tracking failed: ${response.status}`,
+                errorText,
+            );
+        }
+    } catch (error) {
+        console.error("Failed to track session start:", error);
+    }
+};
+
+/**
+ * Track when a user ends their session
+ */
+export const trackSessionEnd = async () => {
+    try {
+        // Get session ID
+        const sessionId = getSessionId();
+
+        // Calculate session duration
+        let sessionDuration = 0;
+        const sessionStartTime = sessionStorage.getItem("session_start_time");
+        if (sessionStartTime) {
+            sessionDuration = Math.floor(
+                (Date.now() - parseInt(sessionStartTime)) / 1000,
+            );
+        }
+
+        // Create the payload
+        const payload: TrackEventPayload = {
+            eventType: "session_end",
+            sessionId,
+            entityId: sessionId,
+            entityType: "session",
+            deviceInfo: {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                screenSize: `${window.screen.width}x${window.screen.height}`,
+                viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+            },
+            pageUrl: window.location.href,
+            referrerUrl: document.referrer || null,
+            eventData: {
+                timestamp: new Date().toISOString(),
+                exitPage: window.location.pathname,
+                sessionDuration: sessionDuration,
+            },
+        };
+
+        // Add customerId if user is logged in
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                const parts = token.split(".");
+                if (parts.length === 3) {
+                    const tokenPayload = JSON.parse(atob(parts[1]));
+                    if (tokenPayload.sub) {
+                        payload.customerId = String(tokenPayload.sub);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to extract user ID from token", e);
+            }
+        }
+
+        // Use sendBeacon for more reliable delivery during page unload
+        if (navigator.sendBeacon) {
+            const blob = new Blob([JSON.stringify(payload)], {
+                type: "application/json",
+            });
+            navigator.sendBeacon(`${API_URL}/events/track`, blob);
+        } else {
+            // Fallback to fetch with keepalive
+            fetch(`${API_URL}/events/track`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+                keepalive: true,
+            });
+        }
+    } catch (error) {
+        console.error("Failed to track session end:", error);
+    }
+};
+
+/**
+ * Setup session tracking by recording start time and registering end tracking
+ */
+const setupSessionEndTracking = (sessionId: string) => {
+    if (typeof window === "undefined") return;
+
+    // Record session start time if not already set
+    if (!sessionStorage.getItem("session_start_time")) {
+        sessionStorage.setItem("session_start_time", Date.now().toString());
+    }
+
+    // Add event listener for page unload to track session end
+    // Only add it once per session
+    if (!window.__sessionEndListenerAdded) {
+        window.addEventListener("beforeunload", () => {
+            trackSessionEnd();
+        });
+        window.__sessionEndListenerAdded = true;
+    }
+};
+
+/**
+ * Initialize session tracking
+ * This should be called when the application starts
+ */
+export const initSessionTracking = () => {
+    trackSessionStart();
+};
+
+// Add TypeScript declaration for window property
+declare global {
+    interface Window {
+        __sessionEndListenerAdded?: boolean;
+    }
+}
+
 export default {
     trackEvent,
     trackProductClick,
@@ -816,4 +1041,8 @@ export default {
     trackOrderCreated,
     trackPaymentCompleted,
     trackDiscountUsage,
+    trackSessionStart,
+    trackSessionEnd,
+    initSessionTracking,
+    toggleEventDebug,
 };

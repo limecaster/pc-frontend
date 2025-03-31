@@ -17,6 +17,7 @@ import { usePathname, useRouter } from "next/navigation";
 import FaviconManager from "@/components/common/FaviconManager";
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { initSessionTracking } from "@/api/events";
 
 const roboto = Roboto({
     subsets: ["vietnamese"],
@@ -67,6 +68,11 @@ export default function RootLayout({
     const isAdminPage = pathname?.startsWith("/admin");
     const isStaffPage = pathname?.startsWith("/staff");
     const isNotCustomerPage = isAdminPage || isStaffPage;
+
+    useEffect(() => {
+        // Initialize session tracking for all users (guests and authenticated)
+        initSessionTracking();
+    }, []);
 
     return (
         <html lang="vi">

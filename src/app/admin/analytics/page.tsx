@@ -15,38 +15,47 @@ import UserBehaviorReport from "@/components/admin/analytics/UserBehaviorReport"
 import InventoryReport from "@/components/admin/analytics/InventoryReport";
 import RefundReport from "@/components/admin/analytics/RefundReport";
 import DateRangePicker from "@/components/admin/analytics/DateRangePicker";
+import EventMonitor from "@/components/admin/analytics/EventMonitor";
 
 function classNames(...classes: string[]) {
     return classes.filter(Boolean).join(" ");
 }
 
 export default function AnalyticsPage() {
+    // Default date range: last 30 days with proper time values
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // End of today
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 29); // 30 days includes today
+    thirtyDaysAgo.setHours(0, 0, 0, 0); // Start of that day
+
     const [dateRange, setDateRange] = useState<{
         startDate: Date;
         endDate: Date;
     }>({
-        startDate: new Date(new Date().setDate(new Date().getDate() - 30)),
-        endDate: new Date(),
+        startDate: thirtyDaysAgo,
+        endDate: today,
     });
 
     const tabs = [
         {
-            name: "Sales Report",
+            name: "Báo cáo bán hàng",
             icon: faChartLine,
             component: <SalesReport dateRange={dateRange} />,
         },
         {
-            name: "User Behavior",
+            name: "Hành vi người dùng",
             icon: faChartPie,
             component: <UserBehaviorReport dateRange={dateRange} />,
         },
         {
-            name: "Inventory",
+            name: "Kho",
             icon: faBox,
             component: <InventoryReport />,
         },
         {
-            name: "Refunds & Cancellations",
+            name: "Hoàn tiền & Hủy bỏ",
             icon: faExchangeAlt,
             component: <RefundReport dateRange={dateRange} />,
         },
@@ -58,12 +67,8 @@ export default function AnalyticsPage() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">
-                            Analytics & Reports
+                            Báo cáo và phân tích
                         </h1>
-                        <p className="text-sm text-gray-500 mt-1">
-                            Comprehensive reports and analytics for your
-                            business
-                        </p>
                     </div>
                     <div className="mt-4 md:mt-0">
                         <div className="flex items-center bg-white rounded-lg shadow p-2">
@@ -115,6 +120,8 @@ export default function AnalyticsPage() {
                     </Tab.Panels>
                 </Tab.Group>
             </div>
+
+            <EventMonitor />
         </div>
     );
 }

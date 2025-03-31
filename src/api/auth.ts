@@ -1,4 +1,5 @@
 import { API_URL } from "@/config/constants";
+import { trackSessionStart, trackSessionEnd } from "./events";
 
 /**
  * Checks if the token needs to be refreshed and refreshes it if needed
@@ -54,6 +55,9 @@ export const refreshTokenIfNeeded = async (): Promise<void> => {
 export const handleAuthError = (
     message = "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.",
 ): void => {
+    // Track session end when user is logged out due to auth error
+    trackSessionEnd();
+
     // Store the error message in sessionStorage to be picked up by the auth page
     sessionStorage.setItem("auth_error", message);
 
@@ -140,6 +144,9 @@ export async function customerLogin(credentials: {
                     role: "customer", // Ensure the role is set correctly
                 }),
             );
+
+            // Start a new session with the authenticated user
+            trackSessionStart();
         }
 
         return data;
@@ -198,6 +205,9 @@ export async function unifiedLogin(credentials: {
             }
 
             localStorage.setItem("user", JSON.stringify(data.user));
+
+            // Track authentication event in the session
+            trackSessionStart();
         } else {
             console.error("Login response missing token or user data");
             throw new Error("Login response is incomplete");
@@ -211,6 +221,22 @@ export async function unifiedLogin(credentials: {
 }
 
 /**
+ * Log out the user
+ */
+export const logout = (): void => {
+    // Track the end of the session before logging out
+    trackSessionEnd();
+
+    // Clear user data
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+
+    // Redirect to authentication page
+    window.location.href = "/authenticate";
+};
+
+/**
  * Get authentication headers for authenticated API requests
  * @returns Headers object with Authorization token
  */
@@ -221,16 +247,33 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
     // Get the current token
     const token = localStorage.getItem("token");
 
+    // Get session ID if available
+    const sessionId = sessionStorage.getItem("sessionId");
+
     // Return headers object with Authorization if token exists
     if (token) {
-        return {
+        const headers: HeadersInit = {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
         };
+
+        // Add session ID header if available
+        if (sessionId) {
+            headers["X-Session-ID"] = sessionId;
+        }
+
+        return headers;
     }
 
     // Return default headers if no token
-    return {
+    const headers: HeadersInit = {
         "Content-Type": "application/json",
     };
+
+    // Add session ID header if available
+    if (sessionId) {
+        headers["X-Session-ID"] = sessionId;
+    }
+
+    return headers;
 }
