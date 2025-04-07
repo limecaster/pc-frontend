@@ -490,11 +490,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
                 // Navigate to dashboard or success page
                 toast.success("Đơn hàng đã được tạo thành công!");
-                router.push(
-                    result.order?.id
-                        ? `/checkout/success?orderId=${result.order.id}`
-                        : "/dashboard/orders",
-                );
+                router.push("/dashboard/orders");
             } else {
                 // Display specific error from the result if available
                 const errorMsg =

@@ -70,14 +70,14 @@ const CmsContentList: React.FC = () => {
                 // Show more specific error message
                 if (err instanceof Error && err.message.includes("404")) {
                     setError(
-                        "CMS API endpoint not available. Please ensure the backend server is running and the CMS module is properly configured.",
+                        "CMS API endpoint không khả dụng. Vui lòng đảm bảo máy chủ backend đang chạy và module CMS được cấu hình chính xác.",
                     );
                 } else {
-                    setError("Failed to load content. Please try again.");
+                    setError("Không thể tải nội dung. Vui lòng thử lại.");
                 }
                 // Set empty content array to avoid using stale data
                 setContents([]);
-                toast.error("Failed to load CMS content");
+                toast.error("Không thể tải nội dung");
             }
         } finally {
             setLoading(false);
@@ -85,17 +85,17 @@ const CmsContentList: React.FC = () => {
     };
 
     const handleDelete = async (id: number) => {
-        if (window.confirm("Are you sure you want to delete this content?")) {
+        if (window.confirm("Bạn có chắc chắn muốn xóa nội dung này?")) {
             try {
-                toast.loading("Deleting...", { id: "deleteContent" });
+                toast.loading("Đang xóa...", { id: "deleteContent" });
                 await deleteCmsContent(id);
-                toast.success("Content deleted successfully", {
+                toast.success("Nội dung đã được xóa thành công", {
                     id: "deleteContent",
                 });
                 fetchContents(); // Refresh the list
             } catch (error) {
                 console.error("Error deleting content:", error);
-                toast.error("Failed to delete content", {
+                toast.error("Không thể xóa nội dung", {
                     id: "deleteContent",
                 });
             }
@@ -127,7 +127,7 @@ const CmsContentList: React.FC = () => {
                     onClick={fetchContents}
                     className="mt-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-600"
                 >
-                    Try Again
+                    Thử lại
                 </button>
             </div>
         );
@@ -137,13 +137,13 @@ const CmsContentList: React.FC = () => {
         <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center">
                 <h1 className="text-2xl font-semibold mb-4 md:mb-0">
-                    CMS Content Management
+                    Quản lý nội dung CMS
                 </h1>
                 <Link
                     href="/admin/cms/create"
                     className="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-600 inline-block"
                 >
-                    Add New Content
+                    Thêm nội dung mới
                 </Link>
             </div>
 
@@ -219,7 +219,7 @@ const CmsContentList: React.FC = () => {
             {contents.length === 0 ? (
                 <div className="text-center py-8 bg-gray-50 rounded-md">
                     <p className="text-gray-500 mb-4">
-                        No content found with the current filters.
+                        Không tìm thấy nội dung với các bộ lọc hiện tại.
                     </p>
                     <button
                         onClick={() =>
@@ -231,7 +231,7 @@ const CmsContentList: React.FC = () => {
                         }
                         className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
                     >
-                        Clear Filters
+                        Xóa bộ lọc
                     </button>
                 </div>
             ) : (
@@ -252,16 +252,16 @@ const CmsContentList: React.FC = () => {
                                     Section
                                 </th>
                                 <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                                    Title
+                                    Tiêu đề
                                 </th>
                                 <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                                    Status
+                                    Trạng thái
                                 </th>
                                 <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                                    Order
+                                    Thứ tự
                                 </th>
                                 <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                                    Actions
+                                    Hành động
                                 </th>
                             </tr>
                         </thead>
@@ -328,7 +328,7 @@ const CmsContentList: React.FC = () => {
                                                 }
                                                 className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
                                             >
-                                                Edit
+                                                Sửa
                                             </button>
                                             <button
                                                 onClick={() =>
@@ -336,7 +336,7 @@ const CmsContentList: React.FC = () => {
                                                 }
                                                 className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
                                             >
-                                                Delete
+                                                Xóa
                                             </button>
                                         </div>
                                     </td>

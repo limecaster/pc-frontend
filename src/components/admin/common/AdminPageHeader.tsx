@@ -29,7 +29,7 @@ const AdminPageHeader: React.FC<AdminPageHeaderProps> = ({
                         <Button
                             variant="outline"
                             size="sm"
-                            className="flex items-center text-sm"
+                            className="flex items-center text-sm bg-primary text-white hover:bg-primary/80 focus:ring-2 focus:ring-primary/50"
                         >
                             {backButton.icon}
                             {backButton.label}

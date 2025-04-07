@@ -8,10 +8,21 @@ const getAuthHeaders = () => {
         Authorization: token ? `Bearer ${token}` : "",
     };
 };
-
-// Format date for API requests
+// Format date for API requests using local time values,
+// ensuring that the returned string can be parsed by Date()
 const formatDateForAPI = (date: Date): string => {
-    return date.toISOString().split("T")[0];
+    const pad = (n: number): string => (n < 10 ? "0" + n : n.toString());
+
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = pad(date.getSeconds());
+
+    const formatted = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}Z`;
+
+    return formatted;
 };
 
 /**
@@ -764,7 +775,7 @@ export async function getDeviceAnalytics(startDate: Date, endDate: Date) {
 export async function getUserEngagementMetrics(startDate: Date, endDate: Date) {
     try {
         const response = await fetch(
-            `${API_URL}/analytics/user-engagement-metrics?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            `${API_URL}/analytics/user-engagement?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
             {
                 headers: getAuthHeaders(),
             },
@@ -809,5 +820,395 @@ export async function getUserEngagementMetrics(startDate: Date, endDate: Date) {
                     ),
             },
         };
+    }
+}
+
+/**
+ * Get user journey analysis
+ */
+export async function getUserJourneyAnalysis(startDate: Date, endDate: Date) {
+    try {
+        const response = await fetch(
+            `${API_URL}/analytics/user-journey?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch user journey analysis: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching user journey analysis:", error);
+        // Return mock data as fallback
+        return {
+            summary: {
+                totalSessions: 2450,
+                avgJourneyLength: 4.8,
+                avgEventsPerSession: 8.2,
+            },
+            commonPaths: [
+                { path: "Page View → Product View", count: 860 },
+                { path: "Product View → Add to Cart", count: 480 },
+                { path: "Add to Cart → Order Creation", count: 185 },
+                { path: "Product View → Product View", count: 150 },
+                { path: "Order Creation → Payment Complete", count: 78 },
+            ],
+            entryPages: [
+                { page: "Homepage", count: 1260, percentage: 51.4 },
+                { page: "Product", count: 680, percentage: 27.8 },
+                { page: "Category", count: 320, percentage: 13.1 },
+                { page: "Search", count: 190, percentage: 7.8 },
+            ],
+            exitPages: [
+                { page: "Product", count: 980, percentage: 40.0 },
+                { page: "Homepage", count: 560, percentage: 22.9 },
+                { page: "Cart", count: 420, percentage: 17.1 },
+                { page: "Category", count: 340, percentage: 13.9 },
+                { page: "Checkout", count: 150, percentage: 6.1 },
+            ],
+        };
+    }
+}
+
+/**
+ * Get user engagement analytics
+ */
+export async function getUserEngagement(startDate: Date, endDate: Date) {
+    try {
+        const response = await fetch(
+            `${API_URL}/analytics/user-engagement?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch user engagement: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching user engagement:", error);
+        // Return mock data as fallback
+        return {
+            metrics: {
+                avgSessionDuration: 245,
+                avgPageViews: 3.8,
+                avgInteractions: 5.2,
+                bounceRate: 42.5,
+                returnRate: 28.7,
+                totalSessions: 2450,
+            },
+            activityHeatmap: {
+                days: [
+                    "Sunday",
+                    "Monday",
+                    "Tuesday",
+                    "Wednesday",
+                    "Thursday",
+                    "Friday",
+                    "Saturday",
+                ],
+                hours: Array.from({ length: 24 }, (_, i) => i),
+                data: Array(7)
+                    .fill(0)
+                    .map(() =>
+                        Array(24)
+                            .fill(0)
+                            .map(() => Math.floor(Math.random() * 50)),
+                    ),
+            },
+        };
+    }
+}
+
+/**
+ * Get search analytics
+ */
+export async function getSearchAnalytics(startDate: Date, endDate: Date) {
+    try {
+        const response = await fetch(
+            `${API_URL}/analytics/search-analytics?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch search analytics: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching search analytics:", error);
+        // Return mock data as fallback
+        return {
+            summary: {
+                totalSearches: 856,
+                uniqueQueries: 324,
+                zeroResultsRate: 12.4,
+                searchToCartRate: 28.5,
+            },
+            topQueries: [
+                {
+                    query: "laptop gaming",
+                    count: 85,
+                    avgResults: 12,
+                    conversion: "3.5",
+                },
+                {
+                    query: "màn hình 27",
+                    count: 62,
+                    avgResults: 8,
+                    conversion: "4.8",
+                },
+                {
+                    query: "chuột logitech",
+                    count: 58,
+                    avgResults: 15,
+                    conversion: "5.2",
+                },
+                {
+                    query: "ram 16gb",
+                    count: 45,
+                    avgResults: 6,
+                    conversion: "6.7",
+                },
+                {
+                    query: "bàn phím cơ",
+                    count: 42,
+                    avgResults: 18,
+                    conversion: "4.8",
+                },
+            ],
+            zeroResultQueries: [
+                { query: "laptop msi giá rẻ", count: 12 },
+                { query: "màn hình 4k sale", count: 8 },
+                { query: "bàn phím keychron", count: 7 },
+                { query: "chuột gaming không dây", count: 6 },
+                { query: "card đồ họa nvidia 4080", count: 5 },
+            ],
+            searchConversions: [
+                { query: "ram 16gb", searches: 45, conversions: 3, rate: 6.7 },
+                {
+                    query: "chuột logitech",
+                    searches: 58,
+                    conversions: 3,
+                    rate: 5.2,
+                },
+                {
+                    query: "màn hình 27",
+                    searches: 62,
+                    conversions: 3,
+                    rate: 4.8,
+                },
+                {
+                    query: "bàn phím cơ",
+                    searches: 42,
+                    conversions: 2,
+                    rate: 4.8,
+                },
+                {
+                    query: "laptop gaming",
+                    searches: 85,
+                    conversions: 3,
+                    rate: 3.5,
+                },
+            ],
+        };
+    }
+}
+
+/**
+ * Get user interests segmentation
+ */
+export async function getUserInterests(startDate: Date, endDate: Date) {
+    try {
+        const response = await fetch(
+            `${API_URL}/analytics/user-interests?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch user interests: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching user interests:", error);
+        // Return mock data as fallback
+        return {
+            summary: {
+                totalInteractions: 3650,
+                uniqueProducts: 185,
+                uniqueCategories: 8,
+                uniqueUsers: 820,
+            },
+            categoryPopularity: [
+                { category: "Laptop", count: 1250 },
+                { category: "Components", count: 850 },
+                { category: "Monitors", count: 720 },
+                { category: "Peripherals", count: 580 },
+                { category: "Accessories", count: 250 },
+            ],
+            userSegmentation: {
+                segments: [
+                    {
+                        segment: "Laptop Enthusiasts",
+                        userCount: 340,
+                        percentageOfUsers: 41.5,
+                        avgInteractionCount: 4.2,
+                    },
+                    {
+                        segment: "PC Builders",
+                        userCount: 210,
+                        percentageOfUsers: 25.6,
+                        avgInteractionCount: 6.8,
+                    },
+                    {
+                        segment: "Gaming Peripherals",
+                        userCount: 180,
+                        percentageOfUsers: 22.0,
+                        avgInteractionCount: 3.5,
+                    },
+                    {
+                        segment: "Office Equipment",
+                        userCount: 90,
+                        percentageOfUsers: 11.0,
+                        avgInteractionCount: 2.2,
+                    },
+                ],
+            },
+        };
+    }
+}
+
+/**
+ * Get user funnel analysis
+ */
+export async function getUserFunnel(startDate: Date, endDate: Date) {
+    try {
+        const response = await fetch(
+            `${API_URL}/analytics/user-funnel?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch user funnel: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching user funnel:", error);
+        return getUserFunnelAnalysis(startDate, endDate); // Use existing function as fallback
+    }
+}
+
+/**
+ * Get low stock products with pagination and search
+ */
+export async function getLowStockProducts(page = 1, limit = 10, search = "") {
+    try {
+        const response = await fetch(
+            `${API_URL}/analytics/inventory/low-stock?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch low stock products: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching low stock products:", error);
+        // Return minimal fallback data
+        return {
+            items: [],
+            pagination: {
+                page,
+                limit,
+                total: 0,
+                totalPages: 0,
+            },
+        };
+    }
+}
+
+/**
+ * Get out of stock products with pagination and search
+ */
+export async function getOutOfStockProducts(page = 1, limit = 10, search = "") {
+    try {
+        const response = await fetch(
+            `${API_URL}/analytics/inventory/out-of-stock?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch out of stock products: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching out of stock products:", error);
+        // Return minimal fallback data
+        return {
+            items: [],
+            pagination: {
+                page,
+                limit,
+                total: 0,
+                totalPages: 0,
+            },
+        };
+    }
+}
+
+/**
+ * Get product categories for inventory analytics
+ */
+export async function getProductCategories() {
+    try {
+        const response = await fetch(
+            `${API_URL}/analytics/inventory/categories`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch product categories: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching product categories:", error);
+        // Return empty array as fallback
+        return [];
     }
 }

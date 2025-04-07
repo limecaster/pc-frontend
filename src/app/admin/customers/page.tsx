@@ -124,67 +124,50 @@ export default function AdminCustomersPage() {
             {/* Filters */}
             <AdminCard className="mb-6 bg-white shadow-md">
                 <div className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="col-span-1 md:col-span-2">
-                            <form
-                                onSubmit={handleSearch}
-                                className="flex flex-col gap-1"
-                            >
-                                <label className="text-sm font-medium mb-1">
-                                    Tìm kiếm
-                                </label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        placeholder="Tìm theo tên, email, số điện thoại..."
-                                        value={searchInput}
-                                        onChange={(e) =>
-                                            setSearchInput(e.target.value)
-                                        }
-                                        className="w-full"
-                                    />
-                                    <Button
-                                        type="submit"
-                                        size="icon"
-                                        disabled={isSearching}
-                                    >
-                                        {isSearching ? (
-                                            <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white" />
-                                        ) : (
-                                            <BsSearch className="h-4 w-4 text-white" />
-                                        )}
-                                    </Button>
-                                </div>
-                            </form>
-                        </div>
-                        <div>
-                            <Select
-                                value={status || "all"}
-                                onValueChange={handleStatusChange}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Trạng thái" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-white">
-                                    {statusOptions.map((option) => (
-                                        <SelectItem
-                                            key={option.value}
-                                            value={option.value}
-                                        >
-                                            {option.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="md:text-right">
+                    <form
+                        onSubmit={handleSearch}
+                        className="flex flex-col md:flex-row md:items-center gap-4"
+                    >
+                        <div className="flex flex-1 items-center gap-2">
+                            <Input
+                                placeholder="Tìm theo tên, email, số điện thoại..."
+                                value={searchInput}
+                                onChange={(e) => setSearchInput(e.target.value)}
+                            />
                             <Button
-                                variant="outline"
-                                onClick={handleClearFilters}
+                                type="submit"
+                                size="icon"
+                                disabled={isSearching}
                             >
-                                Xóa bộ lọc
+                                {isSearching ? (
+                                    <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white" />
+                                ) : (
+                                    <BsSearch className="h-4 w-4 text-white" />
+                                )}
                             </Button>
                         </div>
-                    </div>
+                        <Select
+                            value={status || "all"}
+                            onValueChange={handleStatusChange}
+                        >
+                            <SelectTrigger className="w-40">
+                                <SelectValue placeholder="Trạng thái" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white">
+                                {statusOptions.map((option) => (
+                                    <SelectItem
+                                        key={option.value}
+                                        value={option.value}
+                                    >
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button variant="outline" onClick={handleClearFilters}>
+                            Xóa bộ lọc
+                        </Button>
+                    </form>
                 </div>
             </AdminCard>
 

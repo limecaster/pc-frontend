@@ -152,11 +152,6 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
         }).format(value);
     };
 
-    const exportData = () => {
-        // Implement export functionality
-        toast.success("Đang xuất báo cáo doanh thu...");
-    };
-
     // Prepare data for Chart.js bar chart - only revenue, no profit
     const revenueData = {
         labels: salesData?.map((item) => item.date) || [],
@@ -269,13 +264,6 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
                 <h2 className="text-xl font-bold text-gray-800">
                     Báo cáo doanh thu
                 </h2>
-                <button
-                    onClick={exportData}
-                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                >
-                    <FontAwesomeIcon icon={faDownload} className="mr-2" />
-                    Export
-                </button>
             </div>
 
             {/* Summary cards - removed profit card */}
@@ -449,7 +437,7 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
             </div>
 
             {/* Taxes breakdown */}
-            <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
+            {/* <div className="bg-white p-4 rounded-lg shadow border border-gray-100">
                 <h3 className="text-lg font-medium mb-4">Chi tiết thuế</h3>
                 <div className="flex justify-between">
                     <div>
@@ -480,7 +468,7 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> */}
         </div>
     );
 };

@@ -1,14 +1,22 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faBoxOpen,
     faExclamationTriangle,
     faSpinner,
     faWarning,
+    faSearch,
+    faChevronLeft,
+    faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
-import { getInventoryReport } from "@/api/analytics";
+import {
+    getInventoryReport,
+    getLowStockProducts,
+    getOutOfStockProducts,
+    getProductCategories,
+} from "@/api/analytics";
 import { Pie } from "react-chartjs-2";
 import toast from "react-hot-toast";
 
@@ -39,6 +47,16 @@ interface OutOfStockItem {
     lastInStock: string;
 }
 
+interface PaginatedResponse<T> {
+    items: T[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+    };
+}
+
 const InventoryReport: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [inventorySummary, setInventorySummary] = useState<InventorySummary>({
@@ -54,6 +72,25 @@ const InventoryReport: React.FC = () => {
         [],
     );
 
+    // New state for pagination and search
+    const [lowStockPage, setLowStockPage] = useState(1);
+    const [lowStockLimit] = useState(5);
+    const [lowStockSearch, setLowStockSearch] = useState("");
+    const [lowStockTotal, setLowStockTotal] = useState(0);
+    const [lowStockTotalPages, setLowStockTotalPages] = useState(0);
+    const [lowStockSearchInput, setLowStockSearchInput] = useState("");
+
+    const [outOfStockPage, setOutOfStockPage] = useState(1);
+    const [outOfStockLimit] = useState(5);
+    const [outOfStockSearch, setOutOfStockSearch] = useState("");
+    const [outOfStockTotal, setOutOfStockTotal] = useState(0);
+    const [outOfStockTotalPages, setOutOfStockTotalPages] = useState(0);
+    const [outOfStockSearchInput, setOutOfStockSearchInput] = useState("");
+
+    const [loadingLowStock, setLoadingLowStock] = useState(false);
+    const [loadingOutOfStock, setLoadingOutOfStock] = useState(false);
+    const [loadingCategories, setLoadingCategories] = useState(false);
+
     const COLORS = [
         "#0088FE",
         "#00C49F",
@@ -61,6 +98,12 @@ const InventoryReport: React.FC = () => {
         "#FF8042",
         "#8884D8",
         "#82CA9D",
+        "#D53E4F",
+        "#FC8D59",
+        "#FEE08B",
+        "#E6F598",
+        "#99D594",
+        "#3288BD",
     ];
 
     useEffect(() => {
@@ -69,9 +112,26 @@ const InventoryReport: React.FC = () => {
             try {
                 const inventoryData = await getInventoryReport();
                 setInventorySummary(inventoryData.summary);
-                setCategories(inventoryData.categories);
-                setLowStockItems(inventoryData.lowStockItems);
-                setOutOfStockItems(inventoryData.outOfStockItems);
+
+                // We'll load full data in separate requests
+                setLowStockItems(inventoryData.lowStockItems); // Preview
+                setOutOfStockItems(inventoryData.outOfStockItems); // Preview
+
+                // Set the total counts for pagination info
+                setLowStockTotal(inventoryData.summary.lowStock);
+                setLowStockTotalPages(
+                    Math.ceil(inventoryData.summary.lowStock / lowStockLimit),
+                );
+
+                setOutOfStockTotal(inventoryData.summary.outOfStock);
+                setOutOfStockTotalPages(
+                    Math.ceil(
+                        inventoryData.summary.outOfStock / outOfStockLimit,
+                    ),
+                );
+
+                // Load categories separately
+                fetchCategoryData();
             } catch (error) {
                 console.error("Failed to fetch inventory data:", error);
                 toast.error("Không thể tải dữ liệu báo cáo tồn kho");
@@ -81,7 +141,107 @@ const InventoryReport: React.FC = () => {
         };
 
         fetchInventoryData();
+    }, [lowStockLimit, outOfStockLimit]);
+
+    // Memoize data fetching functions to prevent unnecessary re-renders
+    const fetchCategoryData = useCallback(async () => {
+        setLoadingCategories(true);
+        try {
+            const categoryData = await getProductCategories();
+            setCategories(categoryData);
+        } catch (error) {
+            console.error("Failed to fetch category data:", error);
+            toast.error("Không thể tải dữ liệu danh mục");
+        } finally {
+            setLoadingCategories(false);
+        }
     }, []);
+
+    const fetchLowStockItems = useCallback(
+        async (page: number, limit: number, search: string) => {
+            setLoadingLowStock(true);
+            try {
+                const response = await getLowStockProducts(page, limit, search);
+                setLowStockItems(response.items);
+                setLowStockTotal(response.pagination.total);
+                setLowStockTotalPages(response.pagination.totalPages);
+            } catch (error) {
+                console.error("Failed to fetch low stock items:", error);
+                toast.error("Không thể tải danh sách sản phẩm sắp hết hàng");
+            } finally {
+                setLoadingLowStock(false);
+            }
+        },
+        [],
+    );
+
+    const fetchOutOfStockItems = useCallback(
+        async (page: number, limit: number, search: string) => {
+            setLoadingOutOfStock(true);
+            try {
+                const response = await getOutOfStockProducts(
+                    page,
+                    limit,
+                    search,
+                );
+                setOutOfStockItems(response.items);
+                setOutOfStockTotal(response.pagination.total);
+                setOutOfStockTotalPages(response.pagination.totalPages);
+            } catch (error) {
+                console.error("Failed to fetch out of stock items:", error);
+                toast.error("Không thể tải danh sách sản phẩm hết hàng");
+            } finally {
+                setLoadingOutOfStock(false);
+            }
+        },
+        [],
+    );
+
+    // Memoize search handlers
+    const handleLowStockSearch = useCallback(
+        (e: React.FormEvent) => {
+            e.preventDefault();
+            setLowStockSearch(lowStockSearchInput);
+            setLowStockPage(1); // Reset to first page on new search
+        },
+        [lowStockSearchInput],
+    );
+
+    const handleOutOfStockSearch = useCallback(
+        (e: React.FormEvent) => {
+            e.preventDefault();
+            setOutOfStockSearch(outOfStockSearchInput);
+            setOutOfStockPage(1); // Reset to first page on new search
+        },
+        [outOfStockSearchInput],
+    );
+
+    // Update reset functions with useCallback
+    const clearLowStockSearch = useCallback(() => {
+        setLowStockSearchInput("");
+        setLowStockSearch("");
+        setLowStockPage(1);
+    }, []);
+
+    const clearOutOfStockSearch = useCallback(() => {
+        setOutOfStockSearchInput("");
+        setOutOfStockSearch("");
+        setOutOfStockPage(1);
+    }, []);
+
+    // Update useEffect hooks to use the memoized functions
+    useEffect(() => {
+        fetchLowStockItems(lowStockPage, lowStockLimit, lowStockSearch);
+    }, [lowStockPage, lowStockLimit, lowStockSearch, fetchLowStockItems]);
+
+    useEffect(() => {
+        fetchOutOfStockItems(outOfStockPage, outOfStockLimit, outOfStockSearch);
+    }, [
+        outOfStockPage,
+        outOfStockLimit,
+        outOfStockSearch,
+        fetchOutOfStockItems,
+    ]);
 
     // Format large currency values
     const formatLargeCurrency = (value: number): string => {
@@ -121,8 +281,10 @@ const InventoryReport: React.FC = () => {
         datasets: [
             {
                 data: categories.map((cat) => cat.value),
-                backgroundColor: COLORS,
-                borderColor: COLORS.map((color) => `${color}DD`),
+                backgroundColor: COLORS.slice(0, categories.length),
+                borderColor: COLORS.slice(0, categories.length).map(
+                    (color) => `${color}DD`,
+                ),
                 borderWidth: 1,
                 hoverOffset: 4,
             },
@@ -156,6 +318,52 @@ const InventoryReport: React.FC = () => {
                 },
             },
         },
+    };
+
+    // Pagination controls component
+    const PaginationControls = ({
+        currentPage,
+        totalPages,
+        onPageChange,
+    }: {
+        currentPage: number;
+        totalPages: number;
+        onPageChange: (page: number) => void;
+    }) => {
+        const handlePageChange = (e: React.MouseEvent, page: number) => {
+            e.preventDefault();
+            onPageChange(page);
+        };
+
+        return (
+            <div className="flex items-center justify-between mt-4">
+                <button
+                    type="button"
+                    className="p-1 rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={(e) => handlePageChange(e, currentPage - 1)}
+                    disabled={currentPage <= 1}
+                >
+                    <FontAwesomeIcon
+                        icon={faChevronLeft}
+                        className="text-gray-700"
+                    />
+                </button>
+                <span className="text-sm text-gray-700">
+                    Trang {currentPage} / {totalPages || 1}
+                </span>
+                <button
+                    type="button"
+                    className="p-1 rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={(e) => handlePageChange(e, currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                >
+                    <FontAwesomeIcon
+                        icon={faChevronRight}
+                        className="text-gray-700"
+                    />
+                </button>
+            </div>
+        );
     };
 
     if (isLoading) {
@@ -279,6 +487,15 @@ const InventoryReport: React.FC = () => {
                     <div className="h-64">
                         {categories.length > 0 ? (
                             <Pie data={categoriesData} options={pieOptions} />
+                        ) : loadingCategories ? (
+                            <div className="flex items-center justify-center h-full">
+                                <FontAwesomeIcon
+                                    icon={faSpinner}
+                                    spin
+                                    size="lg"
+                                    className="text-blue-600"
+                                />
+                            </div>
                         ) : (
                             <div className="flex items-center justify-center h-full text-gray-500">
                                 Không có dữ liệu
@@ -296,6 +513,37 @@ const InventoryReport: React.FC = () => {
                         />
                         Sản phẩm sắp hết hàng
                     </h3>
+
+                    {/* Search form */}
+                    <form onSubmit={handleLowStockSearch} className="mb-4 flex">
+                        <div className="relative flex-grow">
+                            <input
+                                type="text"
+                                placeholder="Tìm kiếm sản phẩm..."
+                                className="w-full p-2 pr-10 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:border-blue-500 focus:ring-blue-500"
+                                value={lowStockSearchInput}
+                                onChange={(e) =>
+                                    setLowStockSearchInput(e.target.value)
+                                }
+                            />
+                            {lowStockSearch && (
+                                <button
+                                    type="button"
+                                    className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                    onClick={clearLowStockSearch}
+                                >
+                                    ✕
+                                </button>
+                            )}
+                        </div>
+                        <button
+                            type="submit"
+                            className="ml-2 p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                        >
+                            <FontAwesomeIcon icon={faSearch} />
+                        </button>
+                    </form>
+
                     <div className="overflow-auto">
                         <table className="min-w-full">
                             <thead>
@@ -315,7 +563,20 @@ const InventoryReport: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {lowStockItems.length > 0 ? (
+                                {loadingLowStock ? (
+                                    <tr>
+                                        <td
+                                            colSpan={4}
+                                            className="py-4 text-center"
+                                        >
+                                            <FontAwesomeIcon
+                                                icon={faSpinner}
+                                                spin
+                                                className="text-blue-600"
+                                            />
+                                        </td>
+                                    </tr>
+                                ) : lowStockItems.length > 0 ? (
                                     lowStockItems.map((item, index) => (
                                         <tr
                                             key={index}
@@ -348,6 +609,15 @@ const InventoryReport: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Pagination for low stock */}
+                    {lowStockTotalPages > 1 && (
+                        <PaginationControls
+                            currentPage={lowStockPage}
+                            totalPages={lowStockTotalPages}
+                            onPageChange={setLowStockPage}
+                        />
+                    )}
                 </div>
             </div>
 
@@ -360,6 +630,37 @@ const InventoryReport: React.FC = () => {
                     />
                     Sản phẩm hết hàng
                 </h3>
+
+                {/* Search form */}
+                <form onSubmit={handleOutOfStockSearch} className="mb-4 flex">
+                    <div className="relative flex-grow">
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm sản phẩm..."
+                            className="w-full p-2 pr-10 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:border-blue-500 focus:ring-blue-500"
+                            value={outOfStockSearchInput}
+                            onChange={(e) =>
+                                setOutOfStockSearchInput(e.target.value)
+                            }
+                        />
+                        {outOfStockSearch && (
+                            <button
+                                type="button"
+                                className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                onClick={clearOutOfStockSearch}
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
+                    <button
+                        type="submit"
+                        className="ml-2 p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                    >
+                        <FontAwesomeIcon icon={faSearch} />
+                    </button>
+                </form>
+
                 <div className="overflow-x-auto">
                     <table className="min-w-full">
                         <thead>
@@ -376,7 +677,20 @@ const InventoryReport: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {outOfStockItems.length > 0 ? (
+                            {loadingOutOfStock ? (
+                                <tr>
+                                    <td
+                                        colSpan={3}
+                                        className="py-4 text-center"
+                                    >
+                                        <FontAwesomeIcon
+                                            icon={faSpinner}
+                                            spin
+                                            className="text-blue-600"
+                                        />
+                                    </td>
+                                </tr>
+                            ) : outOfStockItems.length > 0 ? (
                                 outOfStockItems.map((item, index) => (
                                     <tr
                                         key={index}
@@ -406,6 +720,15 @@ const InventoryReport: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination for out of stock */}
+                {outOfStockTotalPages > 1 && (
+                    <PaginationControls
+                        currentPage={outOfStockPage}
+                        totalPages={outOfStockTotalPages}
+                        onPageChange={setOutOfStockPage}
+                    />
+                )}
             </div>
         </div>
     );

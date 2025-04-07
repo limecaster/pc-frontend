@@ -417,7 +417,7 @@ export default function DiscountsManagement() {
     }
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 bg-gray-50">
+        <div className="p-4 sm:p-6 lg:p-8">
             <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">

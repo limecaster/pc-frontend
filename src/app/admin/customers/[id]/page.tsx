@@ -10,18 +10,7 @@ import {
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
-import {
-    ArrowLeft,
-    User,
-    Mail,
-    Phone,
-    MapPin,
-    Calendar,
-    CheckCircle,
-    XCircle,
-    Clock,
-    Shield,
-} from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import {
     CardContent,
     CardDescription,
@@ -41,6 +30,8 @@ import AdminCard from "@/components/admin/common/AdminCard";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency } from "@/lib/utils";
+import OrderStatusBadge from "@/components/orders/OrderStatusBadge";
+import { mapStatusFromBackend } from "@/api/admin-orders";
 
 const statusColors: Record<string, string> = {
     active: "bg-green-100 text-green-800",
@@ -302,7 +293,7 @@ export default function AdminCustomerDetailPage({
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Chọn trạng thái" />
                                             </SelectTrigger>
-                                            <SelectContent>
+                                            <SelectContent className="bg-white">
                                                 <SelectItem value="active">
                                                     Hoạt động
                                                 </SelectItem>
@@ -318,7 +309,7 @@ export default function AdminCustomerDetailPage({
                                     <Button
                                         onClick={handleStatusChange}
                                         disabled={!selectedStatus || updating}
-                                        className="w-full"
+                                        className="w-full text-white bg-primary hover:bg-blue-600 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
                                     >
                                         {updating
                                             ? "Đang cập nhật..."
@@ -389,19 +380,11 @@ export default function AdminCustomerDetailPage({
                                                             )}
                                                         </td>
                                                         <td className="py-4 text-center">
-                                                            <Badge
-                                                                className={
-                                                                    order.status ===
-                                                                    "CANCELLED"
-                                                                        ? "bg-red-100 text-red-800"
-                                                                        : order.status ===
-                                                                            "DELIVERED"
-                                                                          ? "bg-green-100 text-green-800"
-                                                                          : "bg-blue-100 text-blue-800"
-                                                                }
-                                                            >
-                                                                {order.status}
-                                                            </Badge>
+                                                            <OrderStatusBadge
+                                                                status={mapStatusFromBackend(
+                                                                    order.status,
+                                                                )}
+                                                            />
                                                         </td>
                                                         <td className="py-4 text-right">
                                                             <Button

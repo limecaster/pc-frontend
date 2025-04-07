@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import ProductTable from "@/components/admin/products/ProductTable";
-import { fetchProducts } from "@/api/admin-products"; // Change back to fetchProducts for now
+import { fetchProducts } from "@/api/admin-products";
 import toast from "react-hot-toast";
 
-// Add a proper interface for the product
 interface Product {
     id: string;
     name: string;
@@ -32,22 +31,27 @@ export default function ProductsPage() {
     );
 
     const loadProducts = useCallback(
-        async (page = 1) => {
+        async (
+            page = 1,
+            field = sortField,
+            order = sortOrder,
+            query = searchQuery,
+        ) => {
             try {
                 setLoading(true);
                 const params: Record<string, string> = {
                     page: page.toString(),
                     limit: "10",
-                    sortField: sortField,
-                    sortOrder: sortOrder,
+                    sortField: field,
+                    sortOrder: order,
                 };
 
-                if (searchQuery) {
-                    params.search = searchQuery;
+                if (query) {
+                    params.search = query;
                 }
 
-                // Use fetchProducts instead - we'll modify this function to call the admin endpoint
                 const data = await fetchProducts(params);
+
                 setProducts(data.products || []);
                 setPagination({
                     currentPage: data.currentPage || 1,
@@ -61,12 +65,18 @@ export default function ProductsPage() {
                 setLoading(false);
             }
         },
-        [sortField, sortOrder, searchQuery],
+        [],
     );
 
     useEffect(() => {
-        loadProducts(pagination.currentPage);
-    }, [loadProducts, pagination.currentPage]);
+        loadProducts(pagination.currentPage, sortField, sortOrder, searchQuery);
+    }, [
+        pagination.currentPage,
+        sortField,
+        sortOrder,
+        searchQuery,
+        loadProducts,
+    ]);
 
     const handlePageChange = (page: number) => {
         if (page < 1 || page > pagination.totalPages) return;

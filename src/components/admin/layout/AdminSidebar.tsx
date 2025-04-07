@@ -60,11 +60,6 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
                     icon: faBox,
                 },
                 {
-                    title: "Danh mục",
-                    path: "/admin/products/categories",
-                    icon: faBox,
-                },
-                {
                     title: "Hot Sales", // Add this item
                     path: "/admin/products/hot-sales",
                     icon: faTag,
@@ -97,7 +92,7 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
             icon: faChartLine,
         },
         {
-            title: "Nội dung CMS",
+            title: "Quản lý nội dung",
             path: "/admin/cms",
             icon: faMoneyBill,
         },

@@ -5,7 +5,7 @@ import Head from "next/head";
 import { getFavicon } from "@/api/logo";
 
 // Default favicon as fallback
-const DEFAULT_FAVICON = "/favicon.ico";
+const DEFAULT_FAVICON = "/logo.png";
 
 const FaviconManager = () => {
     const [faviconUrl, setFaviconUrl] = useState<string>(DEFAULT_FAVICON);

@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { Menu } from "@headlessui/react";
+import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
+import toast from "react-hot-toast";
 
 interface DateRange {
     startDate: Date;
@@ -15,6 +16,23 @@ interface Props {
     onChange: (range: DateRange) => void;
 }
 
+// Format date for display
+const formatDateForDisplay = (date: Date): string => {
+    return new Intl.DateTimeFormat("vi-VN", {
+        day: "numeric",
+        month: "numeric",
+        year: "numeric",
+    }).format(date);
+};
+
+// Format date for input element (YYYY-MM-DD)
+function formatDateForInput(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
 const DateRangePicker: React.FC<Props> = ({ value, onChange }) => {
     const [isCustom, setIsCustom] = useState(false);
     const [customRange, setCustomRange] = useState({
@@ -22,53 +40,18 @@ const DateRangePicker: React.FC<Props> = ({ value, onChange }) => {
         endDate: formatDateForInput(value.endDate),
     });
 
-    // Format date for display
-    const formatDateForDisplay = (date: Date): string => {
-        return new Intl.DateTimeFormat("vi-VN", {
-            day: "numeric",
-            month: "numeric",
-            year: "numeric",
-        }).format(date);
-    };
-
-    // Format date for input element (YYYY-MM-DD)
-    function formatDateForInput(date: Date): string {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-    }
-
-    // Parse date with time set to beginning or end of day
-    function parseDate(dateString: string, isEndDate: boolean = false): Date {
-        const date = new Date(dateString);
-
-        // Make sure we have a valid date
-        if (isNaN(date.getTime())) {
-            return new Date();
-        }
-
-        // Set time to beginning or end of day
-        if (isEndDate) {
-            date.setHours(23, 59, 59, 999);
-        } else {
-            date.setHours(0, 0, 0, 0);
-        }
-
-        return date;
-    }
-
     const getDisplayText = (): string => {
         return `${formatDateForDisplay(value.startDate)} - ${formatDateForDisplay(value.endDate)}`;
     };
 
+    // For a custom range, use the exact dates from the input
     const applyCustomRange = () => {
-        const newStartDate = parseDate(customRange.startDate);
-        const newEndDate = parseDate(customRange.endDate, true);
+        const newStartDate = new Date(customRange.startDate);
+        const newEndDate = new Date(customRange.endDate);
 
         // Validate dates
         if (newStartDate > newEndDate) {
-            alert("Ngày bắt đầu không thể sau ngày kết thúc");
+            toast.error("Ngày bắt đầu không thể sau ngày kết thúc");
             return;
         }
 
@@ -84,7 +67,6 @@ const DateRangePicker: React.FC<Props> = ({ value, onChange }) => {
             label: "Hôm nay",
             action: () => {
                 const today = new Date();
-                // Set time to beginning and end of day for consistency
                 const start = new Date(today);
                 start.setHours(0, 0, 0, 0);
                 const end = new Date(today);
@@ -163,12 +145,12 @@ const DateRangePicker: React.FC<Props> = ({ value, onChange }) => {
 
     return (
         <Menu as="div" className="relative inline-block text-left">
-            <Menu.Button className="inline-flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
+            <MenuButton className="inline-flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
                 <span>{getDisplayText()}</span>
                 <FontAwesomeIcon icon={faChevronDown} className="ml-2 mt-1" />
-            </Menu.Button>
+            </MenuButton>
 
-            <Menu.Items className="absolute right-0 mt-2 w-64 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-20">
+            <MenuItems className="absolute right-0 mt-2 w-64 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-20">
                 <div className="p-2">
                     {isCustom ? (
                         <div className="p-2">
@@ -221,7 +203,7 @@ const DateRangePicker: React.FC<Props> = ({ value, onChange }) => {
                         </div>
                     ) : (
                         predefinedRanges.map((range, index) => (
-                            <Menu.Item key={index}>
+                            <MenuItem key={index}>
                                 {({ active }) => (
                                     <button
                                         className={`${
@@ -234,11 +216,11 @@ const DateRangePicker: React.FC<Props> = ({ value, onChange }) => {
                                         {range.label}
                                     </button>
                                 )}
-                            </Menu.Item>
+                            </MenuItem>
                         ))
                     )}
                 </div>
-            </Menu.Items>
+            </MenuItems>
         </Menu>
     );
 };

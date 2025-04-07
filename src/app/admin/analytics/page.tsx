@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Tab } from "@headlessui/react";
+import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faChartLine,
@@ -15,7 +15,6 @@ import UserBehaviorReport from "@/components/admin/analytics/UserBehaviorReport"
 import InventoryReport from "@/components/admin/analytics/InventoryReport";
 import RefundReport from "@/components/admin/analytics/RefundReport";
 import DateRangePicker from "@/components/admin/analytics/DateRangePicker";
-import EventMonitor from "@/components/admin/analytics/EventMonitor";
 
 function classNames(...classes: string[]) {
     return classes.filter(Boolean).join(" ");
@@ -28,7 +27,7 @@ export default function AnalyticsPage() {
 
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(today.getDate() - 29); // 30 days includes today
-    thirtyDaysAgo.setHours(0, 0, 0, 0); // Start of that day
+    thirtyDaysAgo.setHours(23, 59, 59, 999); // End of that day
 
     const [dateRange, setDateRange] = useState<{
         startDate: Date;
@@ -53,11 +52,6 @@ export default function AnalyticsPage() {
             name: "Kho",
             icon: faBox,
             component: <InventoryReport />,
-        },
-        {
-            name: "Hoàn tiền & Hủy bỏ",
-            icon: faExchangeAlt,
-            component: <RefundReport dateRange={dateRange} />,
         },
     ];
 
@@ -86,8 +80,8 @@ export default function AnalyticsPage() {
             </div>
 
             <div className="bg-white rounded-lg shadow-md">
-                <Tab.Group>
-                    <Tab.List className="flex p-1 space-x-1 bg-blue-50 rounded-t-lg">
+                <TabGroup>
+                    <TabList className="flex p-1 space-x-1 bg-blue-50 rounded-t-lg">
                         {tabs.map((tab) => (
                             <Tab
                                 key={tab.name}
@@ -112,16 +106,14 @@ export default function AnalyticsPage() {
                                 </div>
                             </Tab>
                         ))}
-                    </Tab.List>
-                    <Tab.Panels className="p-4">
+                    </TabList>
+                    <TabPanels className="p-4">
                         {tabs.map((tab, idx) => (
-                            <Tab.Panel key={idx}>{tab.component}</Tab.Panel>
+                            <TabPanel key={idx}>{tab.component}</TabPanel>
                         ))}
-                    </Tab.Panels>
-                </Tab.Group>
+                    </TabPanels>
+                </TabGroup>
             </div>
-
-            <EventMonitor />
         </div>
     );
 }

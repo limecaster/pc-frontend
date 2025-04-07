@@ -38,8 +38,6 @@ const CmsContentForm: React.FC<CmsContentFormProps> = ({
         initialValues.imageUrl || null,
     );
 
-    // Define content types, sections and statuses directly from enums
-    // This avoids the server API calls that are causing 500 errors
     const contentTypes = Object.values(ContentType);
     const contentSections = Object.values(ContentSection);
     const contentStatuses = Object.values(ContentStatus);
@@ -94,7 +92,7 @@ const CmsContentForm: React.FC<CmsContentFormProps> = ({
         reader.readAsDataURL(file);
 
         try {
-            toast.loading("Uploading image...", { id: "imageUpload" });
+            toast.loading("Đang tải lên hình ảnh...", { id: "imageUpload" });
             const result = await uploadCmsImage(
                 file,
                 formik.values.contentType?.toLowerCase() || "cms",
@@ -103,15 +101,17 @@ const CmsContentForm: React.FC<CmsContentFormProps> = ({
             if (result.success) {
                 formik.setFieldValue("imageUrl", result.imageUrl);
                 formik.setFieldValue("cloudinaryPublicId", result.publicId);
-                toast.success("Image uploaded successfully!", {
+                toast.success("Hình ảnh đã được tải lên thành công!", {
                     id: "imageUpload",
                 });
             } else {
-                toast.error("Failed to upload image", { id: "imageUpload" });
+                toast.error("Không thể tải lên hình ảnh", {
+                    id: "imageUpload",
+                });
             }
         } catch (error) {
-            console.error("Image upload error:", error);
-            toast.error("Failed to upload image", { id: "imageUpload" });
+            console.error("Lỗi tải lên hình ảnh:", error);
+            toast.error("Không thể tải lên hình ảnh", { id: "imageUpload" });
         }
     };
 
@@ -178,7 +178,7 @@ const CmsContentForm: React.FC<CmsContentFormProps> = ({
                             htmlFor="title"
                             className="block text-sm font-medium text-gray-700 mb-1"
                         >
-                            Title
+                            Tiêu đề
                         </label>
                         <input
                             id="title"
@@ -196,7 +196,7 @@ const CmsContentForm: React.FC<CmsContentFormProps> = ({
                             htmlFor="description"
                             className="block text-sm font-medium text-gray-700 mb-1"
                         >
-                            Description
+                            Mô tả
                         </label>
                         <textarea
                             id="description"
@@ -262,7 +262,7 @@ const CmsContentForm: React.FC<CmsContentFormProps> = ({
                             htmlFor="status"
                             className="block text-sm font-medium text-gray-700 mb-1"
                         >
-                            Status*
+                            Trạng thái*
                         </label>
                         <select
                             id="status"
@@ -290,7 +290,7 @@ const CmsContentForm: React.FC<CmsContentFormProps> = ({
                             htmlFor="displayOrder"
                             className="block text-sm font-medium text-gray-700 mb-1"
                         >
-                            Display Order*
+                            Thứ tự hiển thị*
                         </label>
                         <input
                             id="displayOrder"
@@ -311,7 +311,7 @@ const CmsContentForm: React.FC<CmsContentFormProps> = ({
 
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Image
+                            Hình ảnh
                         </label>
                         <input
                             id="image"
@@ -342,10 +342,10 @@ const CmsContentForm: React.FC<CmsContentFormProps> = ({
                     className="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
                 >
                     {isSubmitting
-                        ? "Submitting..."
+                        ? "Đang gửi..."
                         : isEditing
-                          ? "Update Content"
-                          : "Create Content"}
+                          ? "Cập nhật nội dung"
+                          : "Tạo nội dung"}
                 </button>
             </div>
         </form>

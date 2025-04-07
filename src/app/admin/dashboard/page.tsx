@@ -19,13 +19,14 @@ import {
     fetchOrderStatuses,
     fetchRecentOrders,
 } from "@/api/dashboard";
+// Import the getSalesReport function from analytics API
+import { getSalesReport } from "@/api/analytics";
 import SalesChart from "@/components/admin/charts/SalesChart";
 import ProductsChart from "@/components/admin/charts/ProductsChart";
 import OrderStatusChart from "@/components/admin/charts/OrderStatusChart";
 import StatCard from "@/components/admin/StatCard";
 import ErrorBoundary from "@/components/admin/ErrorBoundary";
 
-// Define interfaces for our data types
 interface DashboardSummary {
     totalSales: number;
     totalOrders: number;
@@ -104,25 +105,76 @@ export default function AdminDashboard() {
     });
     const [recentOrders, setRecentOrders] = useState<Order[]>([]);
 
+    // Add a new state for sales report data
+    const [salesReportData, setSalesReportData] = useState<{
+        summary: {
+            totalRevenue: number;
+            totalProfit: number;
+            totalTax: number;
+            orderCount: number;
+            averageOrderValue: number;
+            revenueChange: number;
+            profitChange: number;
+            orderCountChange: number;
+        };
+        timeSeries: Array<{
+            date: string;
+            revenue: number;
+            profit: number;
+        }>;
+    } | null>(null);
+
+    // Helper function to calculate date ranges based on period
+    const getDateRangeForPeriod = (
+        period: string,
+    ): { startDate: Date; endDate: Date } => {
+        const endDate = new Date();
+        const startDate = new Date();
+
+        if (period === "week") {
+            startDate.setDate(endDate.getDate() - 7);
+        } else if (period === "month") {
+            startDate.setMonth(endDate.getMonth() - 1);
+        } else if (period === "year") {
+            startDate.setFullYear(endDate.getFullYear() - 1);
+        }
+
+        return { startDate, endDate };
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setIsLoading(true);
                 setError(null);
 
+                // Fetch sales report data based on selected period
+                const { startDate, endDate } =
+                    getDateRangeForPeriod(salesPeriod);
+                const salesReport = await getSalesReport(startDate, endDate);
+                setSalesReportData(salesReport);
+
                 // Load data in sequence rather than parallel to avoid overwhelming the server
                 const summaryData = await fetchDashboardSummary();
                 setSummary({
-                    totalSales: summaryData.totalSales || 0,
+                    // Use the revenue data from the sales report if available
+                    totalSales:
+                        salesReport?.summary?.totalRevenue ||
+                        summaryData.totalSales ||
+                        0,
                     totalOrders: summaryData.totalOrders || 0,
                     totalCustomers: summaryData.totalCustomers || 0,
                     totalProducts: summaryData.totalProducts || 0,
-                    salesChange: summaryData.salesChange || "0%",
+                    // Use the revenue change from the sales report if available
+                    salesChange: salesReport?.summary?.revenueChange
+                        ? `${salesReport.summary.revenueChange > 0 ? "+" : ""}${salesReport.summary.revenueChange}%`
+                        : summaryData.salesChange || "0%",
                     ordersChange: summaryData.ordersChange || "0%",
                     customersChange: summaryData.customersChange || "0%",
                     productsChange: summaryData.productsChange || "0%",
                 });
 
+                // We'll still fetch the original sales data as a fallback
                 const salesDataResult = await fetchSalesData(salesPeriod);
                 setSalesData({
                     dates: salesDataResult.dates || [],
@@ -167,6 +219,26 @@ export default function AdminDashboard() {
 
         try {
             setIsLoading(true);
+
+            // Get date range based on selected period
+            const { startDate, endDate } = getDateRangeForPeriod(cleanPeriod);
+
+            // Fetch sales report data
+            const salesReport = await getSalesReport(startDate, endDate);
+            setSalesReportData(salesReport);
+
+            // Update the summary with the new data
+            setSummary((prevSummary) => ({
+                ...prevSummary,
+                totalSales:
+                    salesReport?.summary?.totalRevenue ||
+                    prevSummary.totalSales,
+                salesChange: salesReport?.summary?.revenueChange
+                    ? `${salesReport.summary.revenueChange > 0 ? "+" : ""}${salesReport.summary.revenueChange}%`
+                    : prevSummary.salesChange,
+            }));
+
+            // Also fetch the original sales data as a fallback
             const data = await fetchSalesData(cleanPeriod);
             setSalesData({
                 dates: [...(data.dates || [])],
@@ -185,6 +257,19 @@ export default function AdminDashboard() {
             sales: [4500, 5200, 4800, 5800, 6000, 5600, 7000],
         };
 
+        // Use the sales report time series data if available
+        if (
+            !isLoading &&
+            salesReportData?.timeSeries &&
+            salesReportData.timeSeries.length > 0
+        ) {
+            return {
+                dates: salesReportData.timeSeries.map((item) => item.date),
+                sales: salesReportData.timeSeries.map((item) => item.revenue),
+            };
+        }
+
+        // Fallback to the original data
         if (
             !isLoading &&
             salesData.dates.length > 0 &&

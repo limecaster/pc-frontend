@@ -11,7 +11,7 @@ const CreateCmsContentPage = () => {
     const router = useRouter();
 
     useEffect(() => {
-        document.title = "Admin - Create CMS Content";
+        document.title = "Admin - Tạo nội dung CMS";
     }, []);
 
     const handleSubmit = async (values: Partial<CmsContent>) => {
@@ -23,17 +23,17 @@ const CreateCmsContentPage = () => {
             ) {
                 // Add validation for favicon dimensions if needed
                 if (!values.imageUrl) {
-                    toast.error("Please upload an image for the favicon");
+                    toast.error("Vui lòng tải hình ảnh hoặc logo");
                     return;
                 }
             }
 
             await createCmsContent(values);
-            toast.success("CMS content created successfully!");
+            toast.success("Nội dung CMS đã được tạo thành công!");
             router.push("/admin/cms");
         } catch (error) {
             console.error("Error creating CMS content:", error);
-            toast.error("Failed to create CMS content");
+            toast.error("Không thể tạo nội dung CMS");
             throw error; // Re-throw to let the form component handle it
         }
     };
@@ -43,14 +43,14 @@ const CreateCmsContentPage = () => {
             <AdminBreadcrumb
                 items={[
                     { label: "Dashboard", href: "/admin" },
-                    { label: "CMS Management", href: "/admin/cms" },
-                    { label: "Create Content", href: "/admin/cms/create" },
+                    { label: "Quản lý CMS", href: "/admin/cms" },
+                    { label: "Tạo nội dung", href: "/admin/cms/create" },
                 ]}
             />
 
             <div className="mt-6 bg-white rounded-lg shadow-md p-6">
                 <h1 className="text-2xl font-semibold mb-6">
-                    Create CMS Content
+                    Tạo nội dung CMS
                 </h1>
                 <CmsContentForm onSubmit={handleSubmit} />
             </div>

@@ -42,6 +42,7 @@ export default function OrdersPage() {
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
     useEffect(() => {
+        document.title = "Đơn hàng của tôi | B Store";
         fetchOrders();
     }, [currentPage]);
 

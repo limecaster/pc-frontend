@@ -69,9 +69,16 @@ export default function RootLayout({
     const isStaffPage = pathname?.startsWith("/staff");
     const isNotCustomerPage = isAdminPage || isStaffPage;
 
+    // Initialize session tracking only once when the app mounts
     useEffect(() => {
-        // Initialize session tracking for all users (guests and authenticated)
-        initSessionTracking();
+        // Use setTimeout to ensure this runs after the component is mounted
+        // and not during SSR
+        const timer = setTimeout(() => {
+            // Initialize session tracking for all users (guests and authenticated)
+            initSessionTracking();
+        }, 100);
+
+        return () => clearTimeout(timer);
     }, []);
 
     return (

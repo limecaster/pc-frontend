@@ -1,5 +1,5 @@
 import { API_URL } from "@/config/constants";
-import { trackSessionStart, trackSessionEnd } from "./events";
+import trackEvent, { trackSessionStart, trackSessionEnd } from "./events";
 
 /**
  * Checks if the token needs to be refreshed and refreshes it if needed
@@ -108,6 +108,30 @@ export const validateTokenFormat = (): boolean => {
 };
 
 /**
+ * Track user authentication event
+ * This should be called when a user successfully logs in
+ * @param userId The user's ID
+ * @param userRole The user's role
+ */
+const trackAuthentication = async (userId: string, userRole: string) => {
+    try {
+        await trackEvent.trackEvent({
+            eventType: "user_authenticated",
+            entityId: userId,
+            entityType: "user",
+            eventData: {
+                userId,
+                userRole,
+                timestamp: new Date().toISOString(),
+                authMethod: "password", // or other auth methods if you support them
+            },
+        });
+    } catch (error) {
+        console.error("Failed to track authentication event:", error);
+    }
+};
+
+/**
  * Customer login function
  * @returns Promise with login response
  */
@@ -145,8 +169,8 @@ export async function customerLogin(credentials: {
                 }),
             );
 
-            // Start a new session with the authenticated user
-            trackSessionStart();
+            // Track the authentication event with user ID
+            await trackAuthentication(String(data.user.id), "customer");
         }
 
         return data;
@@ -206,8 +230,8 @@ export async function unifiedLogin(credentials: {
 
             localStorage.setItem("user", JSON.stringify(data.user));
 
-            // Track authentication event in the session
-            trackSessionStart();
+            // Track authentication event with user info
+            await trackAuthentication(String(data.user.id), data.user.role);
         } else {
             console.error("Login response missing token or user data");
             throw new Error("Login response is incomplete");
@@ -224,16 +248,36 @@ export async function unifiedLogin(credentials: {
  * Log out the user
  */
 export const logout = (): void => {
-    // Track the end of the session before logging out
-    trackSessionEnd();
+    try {
+        // Track a user_logout event before ending the session
+        const userData = localStorage.getItem("user");
+        if (userData) {
+            const user = JSON.parse(userData);
+            trackEvent.trackEvent({
+                eventType: "user_logout",
+                entityId: String(user.id),
+                entityType: "user",
+                eventData: {
+                    userId: String(user.id),
+                    userRole: user.role,
+                    timestamp: new Date().toISOString(),
+                },
+            });
+        }
 
-    // Clear user data
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
+        // Now track the session end
+        trackSessionEnd();
+    } catch (error) {
+        console.error("Error during logout tracking:", error);
+    } finally {
+        // Clear user data
+        localStorage.removeItem("token");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("user");
 
-    // Redirect to authentication page
-    window.location.href = "/authenticate";
+        // Redirect to authentication page
+        window.location.href = "/authenticate";
+    }
 };
 
 /**

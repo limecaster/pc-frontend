@@ -290,7 +290,7 @@ export default function AdminOrderDetailPage({
                                     <SelectTrigger>
                                         <SelectValue placeholder="Chọn trạng thái mới" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent className="bg-white">
                                         {getAvailableStatusOptions().map(
                                             (option) => (
                                                 <SelectItem
@@ -307,7 +307,7 @@ export default function AdminOrderDetailPage({
                             <Button
                                 onClick={handleStatusChange}
                                 disabled={!selectedStatus || updating}
-                                className="w-full"
+                                className="w-full text-white"
                             >
                                 {updating
                                     ? "Đang cập nhật..."

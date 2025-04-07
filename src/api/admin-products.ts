@@ -103,7 +103,11 @@ export async function createProduct(productData: ProductData) {
         const response = await fetch(`${API_URL}/products`, {
             method: "POST",
             headers: getAuthHeaders(),
-            body: JSON.stringify(productData),
+            body: JSON.stringify({
+                ...productData,
+                // Ensure we pass specifications for Neo4j syncing
+                specifications: productData.specifications || {},
+            }),
         });
 
         if (!response.ok) {
@@ -127,7 +131,11 @@ export async function updateProduct(id: string, productData: ProductData) {
         const response = await fetch(`${API_URL}/products/${id}`, {
             method: "PUT",
             headers: getAuthHeaders(),
-            body: JSON.stringify(productData),
+            body: JSON.stringify({
+                ...productData,
+                // Ensure we pass specifications for Neo4j syncing
+                specifications: productData.specifications || {},
+            }),
         });
 
         if (!response.ok) {
@@ -346,5 +354,76 @@ export async function getSimpleProductList(
     } catch (error) {
         console.error("Error fetching simple product list:", error);
         throw error;
+    }
+}
+
+/**
+ * Get category-specific specification fields
+ * This will query Neo4j for the specification template based on product category
+ */
+export async function fetchCategorySpecificationTemplate(
+    category: string,
+): Promise<string[]> {
+    try {
+        if (!category) {
+            return [];
+        }
+
+        // This endpoint returns all possible subcategory keys for a given category
+        const response = await fetch(
+            `${API_URL}/products/subcategory-keys/${encodeURIComponent(category)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.keys || [];
+    } catch (error) {
+        console.error(
+            `Error fetching specification template for ${category}:`,
+            error,
+        );
+        return []; // Return empty array on error
+    }
+}
+
+/**
+ * Get specification values for a specific category and subcategory
+ * This can be used for dropdown options for each specification field
+ */
+export async function fetchSubcategoryValues(
+    category: string,
+    subcategory: string,
+): Promise<string[]> {
+    try {
+        if (!category || !subcategory) {
+            return [];
+        }
+
+        const response = await fetch(
+            `${API_URL}/products/subcategory-values/${encodeURIComponent(category)}/${encodeURIComponent(subcategory)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Error: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error(
+            `Error fetching values for ${category}/${subcategory}:`,
+            error,
+        );
+        return []; // Return empty array on error
     }
 }

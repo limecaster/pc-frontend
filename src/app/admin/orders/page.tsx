@@ -167,16 +167,14 @@ export default function AdminOrdersPage() {
             {/* Filters */}
             <AdminCard className="mb-6 bg-white shadow-md">
                 <div className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                         <div className="col-span-1 md:col-span-2">
                             <form
                                 onSubmit={handleSearch}
-                                className="flex flex-col gap-1"
+                                className="flex flex-col md:flex-row md:items-center gap-1"
                             >
-                                <label className="text-sm font-medium mb-1">
-                                    Tìm kiếm
-                                </label>
-                                <div className="flex gap-2">
+                                <label className="text-sm font-medium"></label>
+                                <div className="flex gap-2 w-full">
                                     <Input
                                         placeholder="Tìm theo mã đơn hàng, tên KH, email, SĐT..."
                                         value={searchInput}
@@ -219,7 +217,7 @@ export default function AdminOrdersPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="md:text-right">
+                        <div className="flex justify-end">
                             <Button
                                 variant="outline"
                                 onClick={handleClearFilters}

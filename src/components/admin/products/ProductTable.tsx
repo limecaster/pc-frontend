@@ -97,7 +97,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     <input
                         type="text"
                         placeholder="Tìm kiếm sản phẩm..."
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                         value={searchQuery}
                         onChange={(e) => onSearch(e.target.value)}
                     />
@@ -108,7 +108,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 </div>
                 <Link
                     href="/admin/products/add"
-                    className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="ml-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                     Thêm sản phẩm
                 </Link>
@@ -199,7 +199,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                                     {Number(product.price).toLocaleString()}₫
                                 </td>
                                 <td className="py-3 px-4 text-sm text-gray-500">
-                                    {product.stock_quantity}
+                                    {product.stockQuantity}
                                 </td>
                                 <td className="py-3 px-4 text-sm">
                                     <span
@@ -216,13 +216,6 @@ const ProductTable: React.FC<ProductTableProps> = ({
                                 </td>
                                 <td className="py-3 px-4 text-sm text-gray-500 text-center">
                                     <div className="flex justify-center space-x-2">
-                                        <Link
-                                            href={`/admin/products/${product.id}`}
-                                            className="text-blue-600 hover:text-blue-900"
-                                            title="Xem chi tiết"
-                                        >
-                                            <FontAwesomeIcon icon={faEye} />
-                                        </Link>
                                         <Link
                                             href={`/admin/products/${product.id}/edit`}
                                             className="text-yellow-600 hover:text-yellow-900"
@@ -267,7 +260,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     {Math.min(
                         pagination.currentPage * 10,
                         pagination.totalItems,
-                    )}
+                    )}{" "}
                     trong tổng số {pagination.totalItems} sản phẩm
                 </div>
                 <div className="flex space-x-1">
@@ -303,7 +296,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                                     onClick={() => onPageChange(page)}
                                     className={`px-3 py-1 rounded-md ${
                                         pagination.currentPage === page
-                                            ? "bg-blue-600 text-white"
+                                            ? "bg-primary text-white"
                                             : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
                                     }`}
                                 >

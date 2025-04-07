@@ -3,7 +3,6 @@
 import React, { useEffect } from "react";
 import CmsContentList from "@/components/admin/cms/CmsContentList";
 import AdminBreadcrumb from "@/components/admin/layout/AdminBreadcrumb";
-import ApiStatusChecker from "@/components/admin/cms/ApiStatusChecker";
 
 const CmsManagementPage = () => {
     useEffect(() => {
@@ -20,7 +19,6 @@ const CmsManagementPage = () => {
             />
 
             <div className="mt-4">
-                <ApiStatusChecker />
                 <CmsContentList />
             </div>
         </div>

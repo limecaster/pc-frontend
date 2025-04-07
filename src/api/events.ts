@@ -71,14 +71,6 @@ const getSessionId = () => {
 };
 
 /**
- * Get or create a debug mode setting
- */
-const isDebugMode = () => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("debug_events") === "true";
-};
-
-/**
  * Base function to track events
  */
 const trackEvent = async (eventData: any) => {
@@ -115,13 +107,11 @@ const trackEvent = async (eventData: any) => {
         }
 
         // Output debug info if in debug mode
-        if (isDebugMode()) {
-            console.group(`Event: ${eventData.eventType}`);
-            console.log("Event data:", completeEventData);
-            console.log("Will be stored in User_Behaviour table");
-            console.log("Timestamp:", new Date().toISOString());
-            console.groupEnd();
-        }
+
+        console.group(`Event: ${eventData.eventType}`);
+        console.log("Event data:", completeEventData);
+        console.log("Will be stored in User_Behaviour table");
+        console.log("Timestamp:", new Date().toISOString());
 
         // Send event to backend
         await fetch(`${API_URL}/events/track`, {
@@ -540,13 +530,13 @@ export const trackRemoveFromCart = async (
  */
 export const trackOrderCreated = async (orderId: string, orderData: any) => {
     try {
-        // Build eventData with order information
+        console.log("orderData", orderData);
         const eventDataObj: Record<string, any> = {
             orderId,
             orderTotal: orderData.total || orderData.totalPrice,
             productCount: orderData.items?.length || 0,
             products: orderData.items?.map((item: any) => ({
-                productId: item.productId || item.id,
+                productId: item.product.id || item.id,
                 quantity: item.quantity,
                 price: item.price,
                 name: item.name || item.productName,
@@ -823,33 +813,26 @@ function generateSessionId(): string {
 }
 
 /**
- * Add a debug toggle function to the export
- */
-export const toggleEventDebug = () => {
-    const current = localStorage.getItem("debug_events") === "true";
-    localStorage.setItem("debug_events", (!current).toString());
-    return !current;
-};
-
-/**
  * Track when a user starts a new session
  */
 export const trackSessionStart = async () => {
     try {
-        // Get session ID
+        // Get or create a session ID
         const sessionId = getSessionId();
 
-        // Check if this session start has already been tracked
+        // Check if this is a new session that needs to be tracked
+        const isNewSession = !sessionStorage.getItem("session_initialized");
         const sessionStartKey = `session_start_tracked_${sessionId}`;
-        if (
-            typeof window !== "undefined" &&
-            sessionStorage.getItem(sessionStartKey)
-        ) {
-            console.log(
-                "Session start already tracked, skipping duplicate event",
-            );
+
+        // If we've already successfully tracked this session, skip
+        if (!isNewSession && sessionStorage.getItem(sessionStartKey)) {
+            console.log("Session already tracked, skipping duplicate event");
             return;
         }
+
+        // Set a temporary initialization flag to prevent duplicate tracking attempts
+        // during page navigation before the tracking is confirmed
+        sessionStorage.setItem("session_initialized", "pending");
 
         // Create the payload
         const payload: TrackEventPayload = {
@@ -869,6 +852,7 @@ export const trackSessionStart = async () => {
                 timestamp: new Date().toISOString(),
                 entryPage: window.location.pathname,
                 referrer: document.referrer || "direct",
+                isNewSession: isNewSession,
             },
         };
 
@@ -899,14 +883,24 @@ export const trackSessionStart = async () => {
         });
 
         if (response.ok) {
-            // Mark session start as tracked in sessionStorage
-            if (typeof window !== "undefined") {
-                sessionStorage.setItem(sessionStartKey, "true");
+            // Mark session start as successfully tracked in sessionStorage
+            sessionStorage.setItem(sessionStartKey, "true");
+            sessionStorage.setItem("session_initialized", "complete");
 
-                // Set up session end tracking
-                setupSessionEndTracking(sessionId);
+            // Record session start time if not already set
+            if (!sessionStorage.getItem("session_start_time")) {
+                sessionStorage.setItem(
+                    "session_start_time",
+                    Date.now().toString(),
+                );
             }
+
+            // Set up session end tracking
+            setupSessionEndTracking(sessionId);
         } else {
+            // Clear initialization flag if tracking failed so we can retry
+            sessionStorage.removeItem("session_initialized");
+
             const errorText = await response.text();
             console.error(
                 `Session start tracking failed: ${response.status}`,
@@ -914,6 +908,8 @@ export const trackSessionStart = async () => {
             );
         }
     } catch (error) {
+        // Clear initialization flag if tracking failed so we can retry
+        sessionStorage.removeItem("session_initialized");
         console.error("Failed to track session start:", error);
     }
 };
@@ -1000,11 +996,6 @@ export const trackSessionEnd = async () => {
 const setupSessionEndTracking = (sessionId: string) => {
     if (typeof window === "undefined") return;
 
-    // Record session start time if not already set
-    if (!sessionStorage.getItem("session_start_time")) {
-        sessionStorage.setItem("session_start_time", Date.now().toString());
-    }
-
     // Add event listener for page unload to track session end
     // Only add it once per session
     if (!window.__sessionEndListenerAdded) {
@@ -1020,7 +1011,11 @@ const setupSessionEndTracking = (sessionId: string) => {
  * This should be called when the application starts
  */
 export const initSessionTracking = () => {
+    // Don't wait for the promise to resolve - let it run in the background
     trackSessionStart();
+
+    // Return immediately to allow the application to continue loading
+    return;
 };
 
 // Add TypeScript declaration for window property
@@ -1044,5 +1039,4 @@ export default {
     trackSessionStart,
     trackSessionEnd,
     initSessionTracking,
-    toggleEventDebug,
 };

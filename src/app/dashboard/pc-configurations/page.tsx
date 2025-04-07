@@ -11,7 +11,7 @@ export default function PCConfigurations() {
 
     // Protect this page - only logged in users can see it
     useEffect(() => {
-        document.title = "Cấu hình PC của tôi";
+        document.title = "Cấu hình PC của tôi | B Store";
 
         if (!isLoading && !isAuthenticated) {
             router.push("/login?redirect=/dashboard/pc-configurations");
