@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createStaff, updateStaff, fetchStaffById } from "@/api/admin-staff";
 import toast from "react-hot-toast";
@@ -31,6 +31,7 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(mode === "edit");
+    const hasLoadedData = useRef(false);
 
     const [formData, setFormData] = useState<FormData>({
         username: "",
@@ -47,9 +48,9 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
         city: "",
     });
 
-    // Load staff data for edit mode
     useEffect(() => {
-        if (mode === "edit" && staffId) {
+        if (mode === "edit" && staffId && !hasLoadedData.current) {
+            hasLoadedData.current = true;
             const loadStaffData = async () => {
                 try {
                     setInitialLoading(true);
@@ -82,7 +83,7 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
 
             loadStaffData();
         }
-    }, [staffId, mode]);
+    }, [staffId, mode]); // Dependencies include staffId and mode
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -153,7 +154,6 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                 response = await createStaff(staffData);
                 toast.success("Tạo tài khoản nhân viên thành công");
             } else if (mode === "edit" && staffId) {
-                // Instead of deleting the property, create a new object without password if it's empty
                 const dataToSend = formData.password
                     ? { ...staffData }
                     : {
@@ -173,7 +173,6 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                 toast.success("Cập nhật tài khoản nhân viên thành công");
             }
 
-            // Navigate back to staff list
             router.push("/admin/staff");
         } catch (error) {
             console.error("Error saving staff data:", error);
@@ -230,7 +229,7 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                             onChange={handleChange}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             required={mode === "add"}
-                            disabled={mode === "edit"} // Username can't be changed once created
+                            disabled={mode === "edit"}
                         />
                     </div>
 
@@ -358,7 +357,6 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 mb-2"
                         />
 
-                        {/* Use the new VietnamAddressSelect component */}
                         <VietnamAddressSelect
                             selectedCity={formData.city}
                             selectedDistrict={formData.district}
@@ -377,7 +375,6 @@ const StaffForm: React.FC<StaffFormProps> = ({ staffId, mode }) => {
                 </div>
             </div>
 
-            {/* Submit button */}
             <div className="flex justify-end">
                 <button
                     type="submit"

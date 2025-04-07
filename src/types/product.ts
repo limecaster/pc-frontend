@@ -28,6 +28,7 @@ export interface ProductDetailsDto {
     size?: string;
     stockQuantity?: number;
     slug?: string; // Add the slug property
+    viewedAt?: string; // Add this property for viewed products
 }
 
 /**

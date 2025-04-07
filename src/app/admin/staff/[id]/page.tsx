@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import StaffForm from "@/components/admin/staff/StaffForm";
 import { fetchStaffById } from "@/api/admin-staff";
@@ -11,9 +11,12 @@ export default function EditStaffPage() {
     const staffId = Number(params?.id);
     const [loading, setLoading] = useState(true);
     const [staffExists, setStaffExists] = useState(false);
+    const didFetch = useRef(false);
 
     useEffect(() => {
-        if (!staffId) return;
+        if (!staffId || didFetch.current) return;
+
+        didFetch.current = true;
 
         const checkStaff = async () => {
             try {

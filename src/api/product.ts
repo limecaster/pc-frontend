@@ -630,3 +630,59 @@ export async function batchLoadProductsWithDiscounts(
         return [];
     }
 }
+
+interface PaginatedResponse<T> {
+    products: T[];
+    total: number;
+    pages: number;
+}
+
+export const getViewedProducts = async (
+    page: number = 1,
+): Promise<PaginatedResponse<ProductDetailsDto>> => {
+    const response = await fetch(`${API_URL}/viewed-products?page=${page}`, {
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to get viewed products: ${response.status}`);
+    }
+
+    return await response.json();
+};
+
+/**
+ * Clear all viewed products for the current user
+ * @returns Promise with success status
+ */
+export async function clearViewedProducts(): Promise<{
+    success: boolean;
+    message: string;
+}> {
+    try {
+        const response = await fetch(`${API_URL}/viewed-products`, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to clear viewed products: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error: any) {
+        console.error("Error clearing viewed products:", error);
+        return {
+            success: false,
+            message: error.message || "Unknown error occurred",
+        };
+    }
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
     fetchAllStaff,
@@ -63,20 +63,24 @@ export default function StaffPage() {
         }
     }, []);
 
+    // Uh, this is to make sure the initial load only happens once
+    const initialLoad = useRef(false);
     useEffect(() => {
-        loadStaff(pagination.currentPage);
+        if (!initialLoad.current) {
+            loadStaff(pagination.currentPage);
+            initialLoad.current = true;
+        }
     }, [loadStaff, pagination.currentPage]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        // For now, we'll just filter the staff list client-side
-        // In a real app, you'd send this to the backend
         loadStaff(1);
     };
 
     const handlePageChange = (page: number) => {
         if (page < 1 || page > pagination.totalPages) return;
         setPagination((prev) => ({ ...prev, currentPage: page }));
+        loadStaff(page);
     };
 
     const handleDeleteStaff = async (id: number) => {

@@ -651,7 +651,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                         <button
                             type="button"
                             onClick={addSpecification}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                             <FontAwesomeIcon icon={faPlus} />
                         </button>
@@ -702,7 +702,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-300"
+                    className="px-6 py-2 bg-primary text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-300"
                 >
                     {loading ? (
                         "Đang xử lý..."

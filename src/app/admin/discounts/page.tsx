@@ -6,7 +6,6 @@ import { Button, Modal } from "flowbite-react";
 import { HiPlus } from "react-icons/hi";
 import { toast } from "react-hot-toast";
 
-// API imports
 import {
     fetchDiscounts,
     fetchDiscountStatistics,
@@ -430,7 +429,7 @@ export default function DiscountsManagement() {
                 <div className="mt-4 sm:mt-0">
                     <Button
                         onClick={handleCreateDiscount}
-                        className="bg-blue-700"
+                        className="bg-primary hover:bg-blue-700 text-white"
                     >
                         <HiPlus className="mr-2 h-5 w-5" />
                         Tạo mã giảm giá mới
