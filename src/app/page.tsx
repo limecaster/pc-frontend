@@ -13,8 +13,33 @@ import PromotionSection from "@/components/home/PromotionSection";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import BrandShowcase from "@/components/home/BrandShowcase";
 import HotSalesSection from "@/components/home/HotSalesSection";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function HomePage() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const { login, isAuthenticated } = useAuth();
+
+    useEffect(() => {
+        const token = searchParams.get("token");
+        const userData = searchParams.get("user");
+
+        if (token && userData && !isAuthenticated) {
+            try {
+                const user = JSON.parse(decodeURIComponent(userData));
+                login(token, user);
+
+                // Remove token and user from URL without refreshing the page
+                const newUrl = window.location.pathname;
+                window.history.replaceState({}, "", newUrl);
+            } catch (error) {
+                console.error("Error processing login:", error);
+                router.push("/authenticate?error=Failed to process login");
+            }
+        }
+    }, [searchParams, login, router, isAuthenticated]);
+
     useEffect(() => {
         document.title = "B Store - Trang chủ";
     }, []);

@@ -122,8 +122,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
                 }
 
                 // Reset password with OTP
-                await resetPassword(email, otpCode, newPassword);
-                onSubmit(email, otpCode, newPassword);
+                await onSubmit(email, otpCode, newPassword);
             }
         } catch (error) {
             // Error handling by auth context

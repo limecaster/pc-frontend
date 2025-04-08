@@ -44,7 +44,7 @@ const ViewedProductsPage: React.FC = () => {
             setTotalProducts(response.total);
             setError(null);
         } catch (err) {
-            setError("Failed to load viewed products");
+            setError("Không thể tải sản phẩm đã xem");
             console.error("Error fetching viewed products:", err);
         } finally {
             setLoading(false);
@@ -61,7 +61,7 @@ const ViewedProductsPage: React.FC = () => {
                 setError(result.message);
             }
         } catch (err) {
-            setError("Failed to clear viewed products");
+            setError("Không thể xóa sản phẩm đã xem");
             console.error("Error clearing viewed products:", err);
         }
     };

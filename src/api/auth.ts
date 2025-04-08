@@ -13,9 +13,7 @@ export const refreshTokenIfNeeded = async (): Promise<void> => {
         return;
     }
 
-    // Check if token needs refresh (optional: use jwt-decode to check expiry)
     try {
-        // Simple check - we'll just attempt to refresh if we have both tokens
         const response = await fetch(`${API_URL}/auth/refresh`, {
             method: "POST",
             headers: {
@@ -29,7 +27,6 @@ export const refreshTokenIfNeeded = async (): Promise<void> => {
             if (data.accessToken) {
                 localStorage.setItem("token", data.accessToken);
 
-                // Save new refresh token if provided
                 if (data.refreshToken) {
                     localStorage.setItem("refreshToken", data.refreshToken);
                 }
@@ -85,7 +82,6 @@ export const fetchWithAuth = async (
 ): Promise<Response> => {
     const response = await fetch(url, options);
 
-    // If we get a 401 Unauthorized, handle the auth error
     if (response.status === 401) {
         handleAuthError();
     }
@@ -123,7 +119,7 @@ const trackAuthentication = async (userId: string, userRole: string) => {
                 userId,
                 userRole,
                 timestamp: new Date().toISOString(),
-                authMethod: "password", // or other auth methods if you support them
+                authMethod: "password",
             },
         });
     } catch (error) {
@@ -155,7 +151,6 @@ export async function customerLogin(credentials: {
 
         const data = await response.json();
 
-        // Store token and user data in localStorage if successful
         if (data.access_token && data.user) {
             localStorage.setItem("token", data.access_token);
             if (data.refresh_token) {
@@ -220,7 +215,6 @@ export async function unifiedLogin(credentials: {
 
         const data = await response.json();
 
-        // Store token and user data in localStorage if successful
         if (data.access_token && data.user) {
             localStorage.setItem("token", data.access_token);
 
@@ -230,7 +224,6 @@ export async function unifiedLogin(credentials: {
 
             localStorage.setItem("user", JSON.stringify(data.user));
 
-            // Track authentication event with user info
             await trackAuthentication(String(data.user.id), data.user.role);
         } else {
             console.error("Login response missing token or user data");
@@ -288,10 +281,8 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
     // First check if token needs refreshing
     await refreshTokenIfNeeded();
 
-    // Get the current token
     const token = localStorage.getItem("token");
 
-    // Get session ID if available
     const sessionId = sessionStorage.getItem("sessionId");
 
     // Return headers object with Authorization if token exists
@@ -301,7 +292,6 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
             "Content-Type": "application/json",
         };
 
-        // Add session ID header if available
         if (sessionId) {
             headers["X-Session-ID"] = sessionId;
         }
@@ -309,15 +299,26 @@ export async function getAuthHeaders(): Promise<HeadersInit> {
         return headers;
     }
 
-    // Return default headers if no token
     const headers: HeadersInit = {
         "Content-Type": "application/json",
     };
 
-    // Add session ID header if available
     if (sessionId) {
         headers["X-Session-ID"] = sessionId;
     }
 
     return headers;
+}
+
+export async function googleLogin() {
+    try {
+        // Get current URL for redirect after login
+        const redirectUrl = window.location.origin + "/auth/callback";
+
+        // Redirect to backend Google OAuth endpoint with redirect parameter
+        window.location.href = `${API_URL}/auth/google/callback?redirect=${encodeURIComponent(redirectUrl)}`;
+    } catch (error) {
+        console.error("Google login error:", error);
+        throw error;
+    }
 }

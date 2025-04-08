@@ -329,6 +329,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
             if (!response.ok) {
                 const errorData = await response.json();
+                // If the error is a NotFoundException, throw it directly
+                if (errorData.statusCode === 404) {
+                    throw new Error(errorData.message);
+                }
                 throw new Error(
                     errorData.message ||
                         `Password reset failed: ${response.status}`,

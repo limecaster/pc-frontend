@@ -16,7 +16,6 @@ type AuthScreen = "login" | "register" | "forgotPassword" | "verification";
 
 const AuthenticateContent: React.FC = () => {
     useEffect(() => {
-        // Set the page title
         document.title = "Đăng nhập hoặc Đăng ký";
     }, []);
     const [activeTab, setActiveTab] = useState<"login" | "register">("login");
@@ -31,6 +30,9 @@ const AuthenticateContent: React.FC = () => {
         isAuthenticated,
         checkUserRole,
         resendVerificationOtp,
+        forgotPassword,
+        verifyResetOtp,
+        resetPassword,
     } = useAuth();
     const router = useRouter();
 
@@ -96,7 +98,6 @@ const AuthenticateContent: React.FC = () => {
             setError(null);
             setIsSubmitting(true);
 
-            // Call the register function from auth context
             await register(
                 email,
                 password,
@@ -105,10 +106,8 @@ const AuthenticateContent: React.FC = () => {
                 fullName.split(" ").slice(1).join(" ") || "", // lastname (rest of fullName)
             );
 
-            // Save the email for verification screen
             setRegistrationEmail(email);
 
-            // Show verification screen
             setCurrentScreen("verification");
         } catch (err: any) {
             console.error("Registration error:", err);
@@ -140,7 +139,6 @@ const AuthenticateContent: React.FC = () => {
         }
     };
 
-    // Add a method to handle verification resend
     const handleResendVerification = async () => {
         if (!registrationEmail) {
             setError("Không thể gửi lại mã xác thực. Email không hợp lệ.");
@@ -163,9 +161,35 @@ const AuthenticateContent: React.FC = () => {
         otpCode?: string,
         newPassword?: string,
     ) => {
-        // This would be called when the forgot password flow is completed
-        // We can redirect back to login
-        setCurrentScreen("login");
+        try {
+            setError(null);
+            setIsSubmitting(true);
+
+            if (!otpCode && !newPassword) {
+                // First step: Request password reset
+                await forgotPassword(email);
+                toast.success("Mã xác thực đã được gửi đến email của bạn");
+            } else if (otpCode && !newPassword) {
+                // Second step: Verify OTP
+                const isValid = await verifyResetOtp(email, otpCode);
+                if (isValid) {
+                    toast.success("Mã xác thực hợp lệ");
+                }
+            } else if (otpCode && newPassword) {
+                // Final step: Reset password
+                // Only call resetPassword once with both OTP and new password
+                await resetPassword(email, otpCode, newPassword);
+                toast.success("Đặt lại mật khẩu thành công");
+                // Redirect to login page immediately after successful password reset
+                router.push("/");
+                return;
+            }
+        } catch (err: any) {
+            console.error("Forgot password error:", err);
+            setError(err.message || "Có lỗi xảy ra. Vui lòng thử lại.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleNavigateToForgotPassword = () => {
