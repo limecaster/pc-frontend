@@ -53,7 +53,6 @@ interface SalesSummary {
     orderCountChange: number;
 }
 
-// Define interfaces for the state arrays
 interface SalesDataPoint {
     date: string;
     revenue: number;
@@ -80,7 +79,7 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
         revenueChange: 0,
         orderCountChange: 0,
     });
-    // Add proper typing to state arrays
+
     const [salesData, setSalesData] = useState<SalesDataPoint[]>([]);
     const [bestSellingProducts, setBestSellingProducts] = useState<
         BestSellingProduct[]
@@ -136,7 +135,7 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
     }, [dateRange]);
 
     const formatCurrency = (value: number) => {
-        // Handle undefined, NaN, or non-numeric values
+
         if (value === undefined || value === null || isNaN(value)) {
             return new Intl.NumberFormat("vi-VN", {
                 style: "currency",
@@ -236,7 +235,7 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
         },
     };
 
-    // When displaying values from the API, ensure we're handling possible string values
+
     const displayValue = (value: number | string): number => {
         if (typeof value === "string") {
             return parseFloat(value) || 0;

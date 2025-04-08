@@ -209,14 +209,14 @@ const Header = () => {
                         )}
                     </div>
 
-                    {/* Notifications */}
+                    {/* Notifications
                     <Link href="/notifications" className="hidden md:block">
                         <FontAwesomeIcon
                             icon={faBell}
                             className="text-white hover:text-gray-300 transition-colors"
                             size="lg"
                         />
-                    </Link>
+                    </Link> */}
 
                     {/* Shopping Cart */}
                     <Link href="/cart" className="flex items-center gap-1">

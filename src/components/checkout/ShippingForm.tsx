@@ -3,8 +3,7 @@ import VietnamAddressSelect from "@/components/common/VietnamAddressSelect";
 
 export interface CheckoutFormData {
     fullName: string;
-    houseNumber: string;
-    streetName: string;
+    address: string;
     province: string;
     district: string;
     ward: string;
@@ -58,38 +57,19 @@ const ShippingForm: React.FC<ShippingFormProps> = ({
                     />
                 </div>
 
-                {/* House Number */}
+                {/* Address */}
                 <div>
                     <label
-                        htmlFor="houseNumber"
+                        htmlFor="address"
                         className="block text-sm font-medium text-gray-700"
                     >
-                        Số nhà
+                        Địa chỉ
                     </label>
                     <input
                         type="text"
-                        id="houseNumber"
-                        name="houseNumber"
-                        value={formData.houseNumber}
-                        onChange={onChange}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
-                        required
-                    />
-                </div>
-
-                {/* Street Name */}
-                <div>
-                    <label
-                        htmlFor="streetName"
-                        className="block text-sm font-medium text-gray-700"
-                    >
-                        Tên đường
-                    </label>
-                    <input
-                        type="text"
-                        id="streetName"
-                        name="streetName"
-                        value={formData.streetName}
+                        id="address"
+                        name="address"
+                        value={formData.address}
                         onChange={onChange}
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary"
                         required

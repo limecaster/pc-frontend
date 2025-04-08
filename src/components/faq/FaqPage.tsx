@@ -1,33 +1,35 @@
 "use client";
 
 import { useState } from "react";
+import axios from "axios";
+import { toast } from "react-hot-toast";
 
 // FAQ data
 export const faqItems = [
     {
         id: 1,
-        question: "Bạn cung cấp những dịch vụ gì?",
-        answer: "Chúng tôi cung cấp một loạt các dịch vụ máy tính bao gồm sửa chữa phần cứng, cài đặt phần mềm, thiết lập mạng và tư vấn CNTT.",
+        question: "Bạn chuyên cung cấp những dịch vụ nào?",
+        answer: "Chúng tôi phục vụ đa dạng các dịch vụ về máy tính như sửa chữa phần cứng, cài đặt phần mềm, cấu hình mạng và tư vấn về công nghệ thông tin.",
     },
     {
         id: 2,
-        question: "Một sửa chữa điển hình mất bao lâu?",
-        answer: "Hầu hết các sửa chữa được hoàn thành trong vòng 1-3 ngày làm việc, tùy thuộc vào độ phức tạp của vấn đề và tính khả dụng của các bộ phận.",
+        question: "Thời gian sửa chữa trung bình mất bao lâu?",
+        answer: "Hầu hết các dịch vụ được hoàn thành trong khoảng 1-3 ngày làm việc, tùy vào độ phức tạp và tình trạng của thiết bị.",
     },
     {
         id: 3,
-        question: "Bạn có cung cấp hỗ trợ tại chỗ không?",
-        answer: "Có, chúng tôi cung cấp hỗ trợ tại chỗ cho các doanh nghiệp và khách hàng dân cư trong bán kính 25 dặm.",
+        question: "Liệu có hỗ trợ sửa chữa tại chỗ không?",
+        answer: "Có, chúng tôi cung cấp dịch vụ sửa chữa tại chỗ cho khách hàng cá nhân và doanh nghiệp trong bán kính 25 dặm.",
     },
     {
         id: 4,
-        question: "Bạn chấp nhận những phương thức thanh toán nào?",
-        answer: "Chúng tôi chấp nhận tất cả các thẻ tín dụng lớn, PayPal, chuyển khoản ngân hàng và tiền mặt cho các dịch vụ tại cửa hàng.",
+        question: "Các hình thức thanh toán có những lựa chọn nào?",
+        answer: "Bạn có thể thanh toán bằng thẻ tín dụng, PayPal, chuyển khoản ngân hàng hoặc trực tiếp tại cửa hàng bằng tiền mặt.",
     },
     {
         id: 5,
-        question: "Bạn có cung cấp bảo hành cho sửa chữa không?",
-        answer: "Có, tất cả các sửa chữa của chúng tôi đi kèm với bảo hành 90 ngày cho cả phụ tùng và nhân công.",
+        question: "Có bảo hành cho các dịch vụ sửa chữa không?",
+        answer: "Có, tất cả các dịch vụ sửa chữa đều được bảo hành trong vòng 90 ngày với đầy đủ điều kiện áp dụng.",
     },
 ];
 
@@ -41,6 +43,7 @@ const FaqPage = () => {
     });
 
     const [formSubmitted, setFormSubmitted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const toggleAccordion = (id: number) => {
         setOpenItem(openItem === id ? null : id);
@@ -56,24 +59,35 @@ const FaqPage = () => {
         }));
     };
 
-    const handleContactSubmit = (e: React.FormEvent) => {
+    const handleContactSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Implement your email sending logic here
-        console.log("Form submitted:", contactForm);
+        setIsSubmitting(true);
 
-        // Reset form and show success message
-        setContactForm({
-            name: "",
-            email: "",
-            subject: "",
-            message: "",
-        });
-        setFormSubmitted(true);
+        try {
+            await axios.post(
+                `${process.env.NEXT_PUBLIC_API_URL}/faq`,
+                contactForm,
+            );
+            toast.success("Câu hỏi của bạn đã được gửi thành công!");
 
-        // Hide success message after 5 seconds
-        setTimeout(() => {
-            setFormSubmitted(false);
-        }, 5000);
+            // Reset form and show success message
+            setContactForm({
+                name: "",
+                email: "",
+                subject: "",
+                message: "",
+            });
+            setFormSubmitted(true);
+
+            // Hide success message after 5 seconds
+            setTimeout(() => {
+                setFormSubmitted(false);
+            }, 5000);
+        } catch (error) {
+            toast.error("Không thể gửi câu hỏi. Vui lòng thử lại sau.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (

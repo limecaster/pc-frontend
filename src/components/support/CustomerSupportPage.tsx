@@ -59,14 +59,14 @@ const CustomerSupportPage = () => {
                         {supportFeatures.map((feature) => (
                             <Link href={feature.url} key={feature.id}>
                                 <div className="bg-white rounded-lg shadow-md p-6 h-full hover:shadow-lg transition-shadow flex flex-col items-center text-center">
-                                    <div className="w-16 h-16 mb-4 relative">
+                                    {/* <div className="w-16 h-16 mb-4 relative">
                                         <Image
                                             src={feature.icon}
                                             alt={feature.title}
                                             fill
                                             className="object-contain"
                                         />
-                                    </div>
+                                    </div> */}
                                     <h3 className="text-xl font-semibold text-gray-800 mb-2">
                                         {feature.title}
                                     </h3>

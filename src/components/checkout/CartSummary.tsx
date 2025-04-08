@@ -10,7 +10,7 @@ export interface Product {
     price: number;
     quantity: number;
     imageUrl: string;
-    originalPrice?: number; // Add originalPrice to Product interface
+    originalPrice?: number;
 }
 
 export interface Discount {

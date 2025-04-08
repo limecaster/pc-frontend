@@ -9,6 +9,7 @@ import {
     ChartBarIcon,
     Cog6ToothIcon,
     ArrowLeftOnRectangleIcon,
+    QuestionMarkCircleIcon,
 } from "@heroicons/react/24/outline";
 import { useStaffSidebar } from "@/contexts/StaffSidebarContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,24 +21,14 @@ const StaffSidebar: React.FC = () => {
 
     const menuItems = [
         {
-            title: "Tổng quan",
-            icon: <ChartBarIcon className="h-5 w-5" />,
-            path: "/staff",
-        },
-        {
             title: "Đơn hàng",
             icon: <ShoppingBagIcon className="h-5 w-5" />,
             path: "/staff/orders",
         },
         {
-            title: "Khách hàng",
-            icon: <UsersIcon className="h-5 w-5" />,
-            path: "/staff/customers",
-        },
-        {
-            title: "Cài đặt",
-            icon: <Cog6ToothIcon className="h-5 w-5" />,
-            path: "/staff/settings",
+            title: "Câu hỏi FAQ",
+            icon: <QuestionMarkCircleIcon className="h-5 w-5" />,
+            path: "/staff/faq",
         },
     ];
 

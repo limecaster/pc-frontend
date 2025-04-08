@@ -15,84 +15,116 @@ export default function OrderDetailsPage() {
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const abortControllerRef = React.useRef<AbortController | null>(null);
 
     useEffect(() => {
         document.title = "Chi tiết đơn hàng";
         const fetchOrderDetails = async () => {
+            // Cancel any existing request
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+
+            // Create new abort controller for this request
+            abortControllerRef.current = new AbortController();
+            const { signal } = abortControllerRef.current;
+
             setLoading(true);
             setError(null);
             try {
                 const response = await getStaffOrderDetails(orderId);
 
-                // Improve response structure handling
-                if (response && response.success) {
-                    if (response.order) {
-                        // Transform any necessary fields here
-                        const orderData = {
-                            ...response.order,
-                            // If status is missing, set a default value
-                            status: response.order.status || "pending_approval",
-                            // If order items is undefined, set empty array
-                            items: response.order.items || [],
-                            // If dates are strings, convert to Date objects
-                            orderDate: response.order.orderDate
-                                ? new Date(response.order.orderDate)
-                                : new Date(),
-                            createdAt: response.order.createdAt
-                                ? new Date(response.order.createdAt)
-                                : undefined,
-                            updatedAt: response.order.updatedAt
-                                ? new Date(response.order.updatedAt)
-                                : undefined,
-                            // Ensure customer data is normalized
-                            customer: response.order.customer || {
-                                id: response.order.customerId,
-                                // Use customerName directly rather than non-existent guestName
-                                firstname: response.order.customerName
-                                    ? response.order.customerName
-                                          .split(" ")
-                                          .slice(-1)
-                                          .join(" ")
-                                    : "",
-                                lastname: response.order.customerName
-                                    ? response.order.customerName
-                                          .split(" ")
-                                          .slice(0, -1)
-                                          .join(" ")
-                                    : "",
-                                // Use customerEmail directly rather than guestEmail/email
-                                email: response.order.customerEmail || "",
-                                // Use customerPhone directly rather than guestPhone/phone
-                                phoneNumber: response.order.customerPhone || "",
-                            },
-                        };
+                // Only update state if the request wasn't aborted
+                if (!signal.aborted) {
+                    // Improve response structure handling
+                    if (response && response.success) {
+                        if (response.order) {
+                            // Transform any necessary fields here
+                            const orderData = {
+                                ...response.order,
+                                // If status is missing, set a default value
+                                status:
+                                    response.order.status || "pending_approval",
+                                // If order items is undefined, set empty array
+                                items: response.order.items || [],
+                                // If dates are strings, convert to Date objects
+                                orderDate: response.order.orderDate
+                                    ? new Date(response.order.orderDate)
+                                    : new Date(),
+                                createdAt: response.order.createdAt
+                                    ? new Date(response.order.createdAt)
+                                    : undefined,
+                                updatedAt: response.order.updatedAt
+                                    ? new Date(response.order.updatedAt)
+                                    : undefined,
+                                // Ensure customer data is normalized
+                                customer: response.order.customer || {
+                                    id: response.order.customerId,
+                                    // Use customerName directly rather than non-existent guestName
+                                    firstname: response.order.customerName
+                                        ? response.order.customerName
+                                              .split(" ")
+                                              .slice(-1)
+                                              .join(" ")
+                                        : "",
+                                    lastname: response.order.customerName
+                                        ? response.order.customerName
+                                              .split(" ")
+                                              .slice(0, -1)
+                                              .join(" ")
+                                        : "",
+                                    // Use customerEmail directly rather than guestEmail/email
+                                    email: response.order.customerEmail || "",
+                                    // Use customerPhone directly rather than guestPhone/phone
+                                    phoneNumber:
+                                        response.order.customerPhone || "",
+                                },
+                            };
 
-                        setOrder(orderData);
-                        console.log("Order data loaded:", orderData);
+                            setOrder(orderData);
+                            console.log("Order data loaded:", orderData);
+                        } else {
+                            console.error(
+                                "Missing order property in response:",
+                                response,
+                            );
+                            setError(
+                                "Response missing expected order data structure",
+                            );
+                        }
                     } else {
-                        console.error(
-                            "Missing order property in response:",
-                            response,
-                        );
+                        console.error("API error response:", response);
                         setError(
-                            "Response missing expected order data structure",
+                            response?.message || "Error fetching order data",
                         );
                     }
-                } else {
-                    console.error("API error response:", response);
-                    setError(response?.message || "Error fetching order data");
                 }
             } catch (err) {
-                console.error("Exception while fetching order details:", err);
-                setError("Đã xảy ra lỗi khi tải thông tin đơn hàng");
+                // Only update state if the error wasn't from aborting
+                if (!signal.aborted) {
+                    console.error(
+                        "Exception while fetching order details:",
+                        err,
+                    );
+                    setError("Đã xảy ra lỗi khi tải thông tin đơn hàng");
+                }
             } finally {
-                setLoading(false);
+                if (!signal.aborted) {
+                    setLoading(false);
+                }
             }
         };
 
         if (orderId) {
             fetchOrderDetails();
         }
+
+        // Cleanup function
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
     }, [orderId]);
 
     const handleGoBack = () => {

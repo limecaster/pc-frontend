@@ -23,6 +23,7 @@ interface User {
     role: "admin" | "staff" | "customer";
     firstName?: string;
     lastName?: string;
+    googleId?: string;
 }
 
 interface AuthContextType {
@@ -32,6 +33,7 @@ interface AuthContextType {
     login: (token: string, userData: any) => void;
     logout: (reason?: string) => void;
     checkUserRole: () => string | null;
+    isGoogleUser: () => boolean;
     // Add missing methods for registration and password reset
     register: (
         email: string,
@@ -400,6 +402,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     };
 
+    const isGoogleUser = (): boolean => {
+        return !!user?.googleId;
+    };
+
     return (
         <AuthContext.Provider
             value={{
@@ -409,6 +415,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 login,
                 logout,
                 checkUserRole,
+                isGoogleUser,
                 register,
                 forgotPassword,
                 verifyEmail,

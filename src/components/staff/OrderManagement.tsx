@@ -33,10 +33,10 @@ interface Order {
     customerId: string;
     customer?: {
         id: string;
-        firstName?: string;
-        lastName?: string;
+        firstname?: string;
+        lastname?: string;
         email?: string;
-        phoneNumber?: string;
+        phonenumber?: string;
     };
     guestEmail?: string;
     orderDate: string;
@@ -89,7 +89,6 @@ const OrderManagement: React.FC = () => {
             if (response && response.success) {
                 toast.success("Cập nhật trạng thái đơn hàng thành công");
 
-                // Update the local state
                 setOrders((prev) =>
                     prev.map((order) =>
                         order.id === orderId
@@ -199,7 +198,7 @@ const OrderManagement: React.FC = () => {
                                         </Table.Cell>
                                         <Table.Cell>
                                             {order.customer
-                                                ? `${order.customer.firstName || ""} ${order.customer.lastName || ""}`
+                                                ? `${order.customer.firstname || ""} ${order.customer.lastname || ""}`
                                                 : order.guestEmail ||
                                                   `Khách hàng #${order.customerId}`}
                                         </Table.Cell>

@@ -12,7 +12,6 @@ import { toast } from "react-hot-toast";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
 
-// Import custom components
 import PartsSelectionGrid from "./PartsSelectionGrid";
 import PartSelectionModal from "./PartSelectionModal";
 import ConfigurationSummary from "./ConfigurationSummary";

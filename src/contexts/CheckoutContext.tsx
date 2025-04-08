@@ -31,15 +31,14 @@ interface CheckoutContextProps {
     error: string | null;
     orderData: any;
     createCheckoutOrder: (
-        orderData: any, // First parameter is the full order data
+        orderData: any,
         shippingInfo: {
-            // Second parameter is shipping info
             fullName: string;
             email: string;
             phone: string;
             address: string;
         },
-        notes?: string, // Third parameter is optional notes
+        notes?: string,
     ) => Promise<any>;
     checkOrderPaymentStatus: (orderId: string) => Promise<any>;
     initiateOrderPayment: (orderId: string) => Promise<any>;
@@ -74,21 +73,15 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({
             const isAuthenticated = !!localStorage.getItem("token");
 
             if (!orderData.orderItems) {
-                console.error(
-                    "Order items are missing in the order data",
-                    orderData,
-                );
                 throw new Error(
                     "Dữ liệu đơn hàng không hợp lệ. Vui lòng thử lại.",
                 );
             }
 
-            // Map the order items from the received structure
             const orderItems = orderData.orderItems.map((item: any) => ({
                 productId: item.productId || item.id,
                 quantity: item.quantity,
                 price: item.price,
-                // Pass along the discount information - only include if values exist
                 ...(item.originalPrice && {
                     originalPrice: item.originalPrice,
                 }),
@@ -100,30 +93,16 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({
                 ...(item.discountId && { discountId: item.discountId }),
             }));
 
-            // Use the total from the incoming order data
             const subtotal = orderData.subtotal || 0;
             const finalTotal = orderData.total || subtotal;
 
-            // Create payload with correct field names matching the database entity fields
             const payload = {
-                // Customer information with correct field names
-                // customerName: shippingInfo.fullName, // Use customerName instead of fullName
-                // customerPhone: shippingInfo.phone, // Use customerPhone instead of phone
-                // email is not directly on the Order entity - may be in customer relationship
                 deliveryAddress: shippingInfo.address,
-
-                // Order items
                 items: orderItems,
-
-                // Financial information
                 total: finalTotal,
                 subtotal: subtotal,
                 paymentMethod: "PayOS",
-
-                // Optional fields
                 notes: notes || "",
-
-                // Discount information - only include if values exist
                 ...(orderData.discountAmount > 0 && {
                     discountAmount: orderData.discountAmount,
                 }),
@@ -135,30 +114,18 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({
                 }),
             };
 
-            console.log(
-                "Sending order payload:",
-                JSON.stringify(payload, null, 2),
-            );
-
             let result;
 
             if (isAuthenticated) {
-                // Authenticated user checkout
                 result = await createOrder(payload);
             } else {
-                // Guest checkout
                 result = await createGuestOrder(payload);
             }
 
             if (result.success) {
                 setOrderData(result.order);
-                toast.success("Đơn hàng đã được tạo thành công!");
-
-                // Clear cart from localStorage after successful order
                 localStorage.removeItem("cart");
-                // Also clear applied discounts
                 localStorage.removeItem("appliedDiscounts");
-
                 return result;
             } else {
                 throw new Error(
@@ -167,14 +134,7 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({
                 );
             }
         } catch (err) {
-            console.error("Error creating order:", err);
-
-            // Log more details for debugging
             if (err instanceof Error) {
-                console.error("Error details:", err.message);
-
-                // If the error contains information about request validation issues,
-                // try to extract a more user-friendly message
                 const errorMsg = err.message;
                 if (
                     errorMsg.includes("validation failed") ||
@@ -190,7 +150,6 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({
                     };
                 }
             }
-
             const errorMessage =
                 (err as Error).message || "Không thể tạo đơn hàng.";
             setError(errorMessage);
@@ -208,7 +167,6 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({
             const result = await checkPaymentStatus(orderId);
             return result;
         } catch (err) {
-            console.error("Error checking payment status:", err);
             const errorMessage =
                 (err as Error).message ||
                 "Không thể kiểm tra trạng thái thanh toán.";
@@ -231,7 +189,6 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({
             }
             return result;
         } catch (err) {
-            console.error("Error initiating payment:", err);
             const errorMessage =
                 (err as Error).message || "Không thể khởi tạo thanh toán.";
             setError(errorMessage);
