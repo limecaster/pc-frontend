@@ -1,50 +1,64 @@
 import { API_URL } from "@/config/constants";
-import { fetchAllProducts } from "./product";
 
 // Helper to include auth token in requests
-const getAuthHeaders = (includeContentType = true) => {
+const getAuthHeaders = () => {
     const token = localStorage.getItem("token");
     return {
-        ...(includeContentType && { "Content-Type": "application/json" }),
+        "Content-Type": "application/json",
         Authorization: token ? `Bearer ${token}` : "",
     };
 };
 
-// Define types for the API
-interface ProductData {
+export interface Product {
+    id: number;
     name: string;
     description: string;
     price: number;
-    stock_quantity: number;
-    status: string;
-    category: string;
-    images: string[];
-    specifications: Record<string, string>;
-    thumbnail: string;
-    [key: string]: string | string[] | number | Record<string, string>;
+    stock: number;
+    imageUrl: string | null;
+    categoryId: number;
+    category?: {
+        id: number;
+        name: string;
+    };
+    status: "active" | "inactive";
+    createdAt: string;
+    updatedAt: string;
 }
 
 /**
- * Fetch products with pagination, filtering and sorting
- * For admin dashboard - fetches all products including inactive ones
+ * Fetch all products with pagination and filtering
  */
-export async function fetchProducts(params: Record<string, any> = {}) {
+export async function fetchAllProducts({
+    page = 1,
+    limit = 10,
+    search = "",
+    categoryId = "",
+    status = "",
+    sortBy = "createdAt",
+    sortOrder = "DESC",
+}: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    categoryId?: string | number;
+    status?: string;
+    sortBy?: string;
+    sortOrder?: "ASC" | "DESC";
+} = {}) {
     try {
-        const page = params["page"] || 1;
-        const limit = params["limit"] || 10;
-        const sortBy = params["sortField"] || "createdAt";
-        const sortOrder = params["sortOrder"]?.toUpperCase() || "DESC";
+        const params = new URLSearchParams();
+        params.append("page", page.toString());
+        params.append("limit", limit.toString());
+        params.append("sortBy", sortBy);
+        params.append("sortOrder", sortOrder);
 
-        // Use the admin endpoint that shows all products including inactive ones
-        const queryString = new URLSearchParams({
-            page: page.toString(),
-            limit: limit.toString(),
-            sortBy,
-            sortOrder,
-        }).toString();
+        if (status) params.append("status", status);
+        if (search) params.append("search", search);
+        if (categoryId) params.append("categoryId", categoryId.toString());
 
         const response = await fetch(
-            `${API_URL}/products/admin/all?${queryString}`,
+            `${API_URL}/products/admin/all?${params.toString()}`,
             {
                 headers: getAuthHeaders(),
             },
@@ -59,35 +73,32 @@ export async function fetchProducts(params: Record<string, any> = {}) {
 
         return {
             products: data.products || [],
-            currentPage: data.page || 1,
-            totalPages: data.pages || 1,
-            totalItems: data.total || 0,
+            total: data.total || 0,
+            pages: data.pages || 1,
+            currentPage: data.currentPage || page,
         };
     } catch (error) {
-        console.error("Error fetching products:", error);
+        console.error("Error fetching all products:", error);
         throw error;
     }
 }
 
 /**
- * Fetch a single product by ID for admin editing
+ * Fetch product by ID
  */
 export async function fetchProductById(id: string) {
     try {
-        // Use the admin-specific endpoint that returns all product data regardless of status
         const response = await fetch(`${API_URL}/products/admin/${id}`, {
             headers: getAuthHeaders(),
         });
 
         if (!response.ok) {
-            if (response.status === 404) {
-                throw new Error(`Product with ID ${id} not found`);
-            }
             const errorData = await response.json();
             throw new Error(errorData.message || `Error: ${response.status}`);
         }
 
-        return await response.json();
+        const data = await response.json();
+        return data.product;
     } catch (error) {
         console.error(`Error fetching product ${id}:`, error);
         throw error;
@@ -97,17 +108,14 @@ export async function fetchProductById(id: string) {
 /**
  * Create a new product
  */
-export async function createProduct(productData: ProductData) {
+export async function createProduct(
+    productData: Omit<Product, "id" | "createdAt" | "updatedAt">,
+) {
     try {
-        // Update endpoint from /admin/products to /products
-        const response = await fetch(`${API_URL}/products`, {
+        const response = await fetch(`${API_URL}/products/admin`, {
             method: "POST",
             headers: getAuthHeaders(),
-            body: JSON.stringify({
-                ...productData,
-                // Ensure we pass specifications for Neo4j syncing
-                specifications: productData.specifications || {},
-            }),
+            body: JSON.stringify(productData),
         });
 
         if (!response.ok) {
@@ -115,7 +123,8 @@ export async function createProduct(productData: ProductData) {
             throw new Error(errorData.message || `Error: ${response.status}`);
         }
 
-        return await response.json();
+        const data = await response.json();
+        return data.product;
     } catch (error) {
         console.error("Error creating product:", error);
         throw error;
@@ -125,17 +134,12 @@ export async function createProduct(productData: ProductData) {
 /**
  * Update an existing product
  */
-export async function updateProduct(id: string, productData: ProductData) {
+export async function updateProduct(id: string, productData: Partial<Product>) {
     try {
-        // Update endpoint from /admin/products to /products
-        const response = await fetch(`${API_URL}/products/${id}`, {
-            method: "PUT",
+        const response = await fetch(`${API_URL}/products/admin/${id}`, {
+            method: "PATCH",
             headers: getAuthHeaders(),
-            body: JSON.stringify({
-                ...productData,
-                // Ensure we pass specifications for Neo4j syncing
-                specifications: productData.specifications || {},
-            }),
+            body: JSON.stringify(productData),
         });
 
         if (!response.ok) {
@@ -143,7 +147,8 @@ export async function updateProduct(id: string, productData: ProductData) {
             throw new Error(errorData.message || `Error: ${response.status}`);
         }
 
-        return await response.json();
+        const data = await response.json();
+        return data.product;
     } catch (error) {
         console.error(`Error updating product ${id}:`, error);
         throw error;
@@ -155,8 +160,7 @@ export async function updateProduct(id: string, productData: ProductData) {
  */
 export async function deleteProduct(id: string) {
     try {
-        // Update endpoint from /admin/products to /products
-        const response = await fetch(`${API_URL}/products/${id}`, {
+        const response = await fetch(`${API_URL}/products/admin/${id}`, {
             method: "DELETE",
             headers: getAuthHeaders(),
         });
@@ -166,9 +170,36 @@ export async function deleteProduct(id: string) {
             throw new Error(errorData.message || `Error: ${response.status}`);
         }
 
-        return await response.json();
+        return { success: true };
     } catch (error) {
         console.error(`Error deleting product ${id}:`, error);
+        throw error;
+    }
+}
+
+/**
+ * Update product status (activate/deactivate)
+ */
+export async function updateProductStatus(
+    id: string,
+    status: "active" | "inactive",
+) {
+    try {
+        const response = await fetch(`${API_URL}/products/admin/${id}/status`, {
+            method: "PATCH",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ status }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.product;
+    } catch (error) {
+        console.error(`Error updating product ${id} status:`, error);
         throw error;
     }
 }

@@ -3,7 +3,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// Import assets
 import house from "@/assets/icon/others/House.svg";
 import caretRight from "@/assets/icon/others/CaretRight.svg";
 
@@ -36,6 +35,7 @@ const pathNameMap: { [key: string]: string } = {
     about: "Về chúng tôi",
     "hot-sales": "Khuyến mãi",
     success: "Thành công",
+    recommendations: "Sản phẩm gợi ý",
 };
 
 const Breadcrumb: React.FC = () => {
@@ -44,7 +44,6 @@ const Breadcrumb: React.FC = () => {
         .split("/")
         .filter((segment) => segment !== "");
     const isHome = pathSegments.length === 0;
-    // Create breadcrumb items with paths
     const breadcrumbItems = pathSegments.map((segment, index) => {
         const path = "/" + pathSegments.slice(0, index + 1).join("/");
         const name = pathNameMap[segment] || segment;

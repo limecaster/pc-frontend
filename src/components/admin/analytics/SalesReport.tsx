@@ -135,7 +135,6 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
     }, [dateRange]);
 
     const formatCurrency = (value: number) => {
-
         if (value === undefined || value === null || isNaN(value)) {
             return new Intl.NumberFormat("vi-VN", {
                 style: "currency",
@@ -234,7 +233,6 @@ const SalesReport: React.FC<SalesReportProps> = ({ dateRange }) => {
             },
         },
     };
-
 
     const displayValue = (value: number | string): number => {
         if (typeof value === "string") {

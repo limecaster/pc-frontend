@@ -349,16 +349,20 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
 
             // Prepare data for submission
             const productData = {
-                ...formData,
+                name: formData.name,
+                description: formData.description,
                 price: parseFloat(formData.price),
-                stock_quantity: parseInt(formData.stock_quantity),
-                // Make sure images are included in submission
-                images: formData.images,
-                // Make sure thumbnail is included
-                thumbnail:
+                stock: parseInt(formData.stock_quantity),
+                status: formData.status as "active" | "inactive",
+                categoryId: parseInt(formData.category),
+                category: {
+                    id: parseInt(formData.category),
+                    name: formData.category,
+                },
+                imageUrl:
                     formData.thumbnail ||
                     (formData.images.length > 0 ? formData.images[0] : ""),
-                // Ensure specifications are included for Neo4j syncing
+                images: formData.images,
                 specifications: formData.specifications || {},
             };
 

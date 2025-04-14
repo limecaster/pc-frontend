@@ -11,6 +11,7 @@ import {
     faBell,
     faSignOutAlt,
     faUserCircle,
+    faThumbsUp,
 } from "@fortawesome/free-solid-svg-icons";
 import SearchBar from "@/components/ui/SearchBar";
 import { getLogo } from "@/api/logo";
@@ -156,6 +157,19 @@ const Header = () => {
                                                 className="mr-2"
                                             />
                                             Thông tin tài khoản
+                                        </Link>
+                                        <Link
+                                            href="/recommendations"
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                            onClick={() =>
+                                                setShowUserMenu(false)
+                                            }
+                                        >
+                                            <FontAwesomeIcon
+                                                icon={faThumbsUp}
+                                                className="mr-2"
+                                            />
+                                            Sản phẩm gợi ý
                                         </Link>
                                         <Link
                                             href="/dashboard/orders"

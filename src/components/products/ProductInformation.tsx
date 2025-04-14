@@ -136,11 +136,9 @@ const ProductInformation: React.FC<ProductInformationProps> = ({
                             <h3 className="text-xl font-semibold mb-4">
                                 Mô tả sản phẩm
                             </h3>
-                            <div
-                                dangerouslySetInnerHTML={{
-                                    __html: description,
-                                }}
-                            />
+                            <div>
+                                {description ? description : "Không có mô tả"}
+                            </div>
                             {additionalInfo && (
                                 <div className="mt-6">
                                     <h4 className="text-lg font-medium mb-2">

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import ProductTable from "@/components/admin/products/ProductTable";
-import { fetchProducts } from "@/api/admin-products";
+import { fetchAllProducts } from "@/api/admin-products";
 import toast from "react-hot-toast";
 
 interface Product {
@@ -42,21 +42,21 @@ export default function ProductsPage() {
                 const params: Record<string, string> = {
                     page: page.toString(),
                     limit: "10",
-                    sortField: field,
-                    sortOrder: order,
+                    sortBy: field,
+                    sortOrder: order.toUpperCase() as "ASC" | "DESC",
                 };
 
                 if (query) {
                     params.search = query;
                 }
 
-                const data = await fetchProducts(params);
+                const data = await fetchAllProducts(params);
 
                 setProducts(data.products || []);
                 setPagination({
                     currentPage: data.currentPage || 1,
-                    totalPages: data.totalPages || 1,
-                    totalItems: data.totalItems || 0,
+                    totalPages: data.pages || 1,
+                    totalItems: data.total || 0,
                 });
             } catch (error) {
                 console.error("Error loading products:", error);
@@ -65,7 +65,7 @@ export default function ProductsPage() {
                 setLoading(false);
             }
         },
-        [],
+        [sortField, sortOrder, searchQuery],
     );
 
     useEffect(() => {

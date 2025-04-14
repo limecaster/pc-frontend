@@ -7,11 +7,15 @@ import { HeartIcon, HeartFilledIcon } from "@radix-ui/react-icons";
 import Cart from "@/assets/icon/shop/Cart.svg";
 import ProductInformation from "@/components/products/ProductInformation";
 import { toast } from "react-hot-toast";
-import { ProductDetails } from "@/types/ProductDetails";
+
 import { useWishlist } from "@/contexts/WishlistContext";
-import { fetchProductById } from "@/api/productDetail";
+import { fetchProductById } from "@/api/recommend-products";
 import { addToCartAndSync } from "@/api/cart";
 import { trackProductView } from "@/api/events";
+import { fetchRecommendedProducts } from "@/api/recommend-products";
+import ProductGrid from "@/components/products/product/ProductGrid";
+import ProductCarousel from "@/components/products/product/ProductCarousel";
+import { ProductDetailsDto } from "@/types/product";
 
 const ProductDetailPage = () => {
     useEffect(() => {
@@ -24,7 +28,7 @@ const ProductDetailPage = () => {
             : params.slug
         : "";
 
-    const [product, setProduct] = useState<ProductDetails | null>(null);
+    const [product, setProduct] = useState<ProductDetailsDto | null>(null);
     const [loading, setLoading] = useState(true);
     const [quantity, setQuantity] = useState(1);
     const [mainImage, setMainImage] = useState("");
@@ -32,6 +36,10 @@ const ProductDetailPage = () => {
     const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
     const [isWishlist, setIsWishlist] = useState(false);
     const router = useRouter();
+    const [recommendedProducts, setRecommendedProducts] = useState<
+        ProductDetailsDto[]
+    >([]);
+    const [loadingRecommendations, setLoadingRecommendations] = useState(true);
 
     useEffect(() => {
         const loadProduct = async () => {
@@ -54,6 +62,9 @@ const ProductDetailPage = () => {
                         rating: productData.rating,
                         reviewCount: productData.reviewCount,
                     });
+
+                    // Load recommended products based on this product
+                    loadRecommendedProducts(id, productData.category);
                 }
 
                 setLoading(false);
@@ -81,6 +92,26 @@ const ProductDetailPage = () => {
             setIsWishlist(isInWishlist(slug as string));
         }
     }, [slug, isInWishlist]);
+
+    // Function to load recommended products
+    const loadRecommendedProducts = async (
+        productId: string,
+        category?: string,
+    ) => {
+        setLoadingRecommendations(true);
+        try {
+            const recommendations = await fetchRecommendedProducts(
+                productId,
+                category,
+                10,
+            );
+            setRecommendedProducts(recommendations);
+        } catch (error) {
+            console.error("Error loading recommended products:", error);
+        } finally {
+            setLoadingRecommendations(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -485,7 +516,7 @@ const ProductDetailPage = () => {
                             </div>
 
                             {/* Share */}
-                            <div className="flex items-center gap-3">
+                            {/* <div className="flex items-center gap-3">
                                 <span className="text-sm text-gray-700">
                                     Chia sẻ sản phẩm:
                                 </span>
@@ -543,7 +574,7 @@ const ProductDetailPage = () => {
                                         </svg>
                                     </button>
                                 </div>
-                            </div>
+                            </div> */}
                         </div>
 
                         {/* Policies */}
@@ -585,19 +616,38 @@ const ProductDetailPage = () => {
                 {/* Product Information Section */}
                 <div className="container mx-auto my-6 px-4">
                     <ProductInformation
-                        description={product.description}
+                        description={product.description || ""}
                         additionalInfo={product.additionalInfo}
                         specifications={product.specifications}
                         productId={product.id}
                     />
                 </div>
 
-                {/* Related Products Section could go here */}
-                <div className="container mx-auto mt-8 mb-12 px-4 bg-white py-6"></div>
-                <h2 className="text-xl font-bold mb-6 text-gray-800">
-                    Sản phẩm tương tự
-                </h2>
-                {/* You could place a simplified version of the ProductGrid component here */}
+                {/* Related Products Section */}
+                <div className="container mx-auto mt-8 mb-12 px-4 bg-white py-6">
+                    <h2 className="text-xl font-bold mb-6 text-gray-800">
+                        Sản phẩm tương tự
+                    </h2>
+                    {loadingRecommendations ? (
+                        <div className="flex justify-center items-center h-64">
+                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+                        </div>
+                    ) : recommendedProducts.length > 0 ? (
+                        <ProductCarousel
+                            products={
+                                recommendedProducts as ProductDetailsDto[]
+                            }
+                            isLoading={false}
+                            slidesToShow={5}
+                        />
+                    ) : (
+                        <div className="text-center py-10">
+                            <p className="text-gray-500">
+                                Không tìm thấy sản phẩm tương tự
+                            </p>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

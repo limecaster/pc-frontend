@@ -121,6 +121,14 @@ const productCategories: CategoryType[] = [
             },
         ],
     },
+    {
+        title: "Sản phẩm gợi ý",
+        items: [
+            { name: "Dành cho bạn", href: "/recommendations" },
+            { name: "Xem gần đây", href: "/recommendations?tab=recent" },
+            { name: "Xu hướng", href: "/recommendations?tab=trending" },
+        ],
+    },
 ];
 
 const Navigation: React.FC = () => {

@@ -69,11 +69,11 @@ const HotSalesManager = () => {
     const handleRemoveProduct = async (productId: string) => {
         try {
             await removeFromHotSales(productId);
-            toast.success("Product removed from hot sales");
+            toast.success("Đã xóa sản phẩm khỏi danh sách");
             fetchHotSalesProducts();
         } catch (error) {
             console.error("Error removing product:", error);
-            toast.error("Failed to remove product");
+            toast.error("Không thể xóa sản phẩm");
         }
     };
 
@@ -103,10 +103,10 @@ const HotSalesManager = () => {
                 updateHotSalesOrder(product.id, idx),
             );
             await Promise.all(updates);
-            toast.success("Display order updated");
+            toast.success("Đã cập nhật thứ tự hiển thị");
         } catch (error) {
             console.error("Error updating display order:", error);
-            toast.error("Failed to update display order");
+            toast.error("Không thể cập nhật thứ tự hiển thị");
             fetchHotSalesProducts(); // Revert to original order
         }
     };
@@ -133,13 +133,10 @@ const HotSalesManager = () => {
                 // Fetch additional product details for each product in the search results
                 const enhancedProducts = await Promise.all(
                     products.map(async (product) => {
-                        // You can make additional API calls here to get more product details if needed
-                        // For example: const details = await getProductDetails(product.id);
-                        // For now, we'll just return the basic info
+                        // TODO: Add more fields as needed
                         return {
                             id: product.id,
                             name: product.name,
-                            // Add more fields as needed - these would come from your detailed product API
                         } as SearchProductResult;
                     }),
                 );
@@ -155,7 +152,7 @@ const HotSalesManager = () => {
                 setTotalSearchResults(total);
             } catch (error) {
                 console.error("Error searching products:", error);
-                toast.error("Failed to search products");
+                toast.error("Không thể tìm kiếm sản phẩm");
             } finally {
                 setSearchLoading(false);
             }
@@ -194,26 +191,26 @@ const HotSalesManager = () => {
     const handleAddToHotSales = async (productId: string) => {
         try {
             await addToHotSales(productId, products.length);
-            toast.success("Product added to hot sales");
+            toast.success("Đã thêm sản phẩm vào danh sách");
             setShowProductSearch(false);
             setSearchQuery("");
             fetchHotSalesProducts();
         } catch (error) {
             console.error("Error adding product:", error);
-            toast.error("Failed to add product");
+            toast.error("Không thể thêm sản phẩm");
         }
     };
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-semibold">Hot Sales Products</h2>
+                <h2 className="text-2xl font-semibold">Sản phẩm Hot Sales</h2>
                 <button
                     onClick={handleShowProductSearch}
                     className="bg-primary text-white px-4 py-2 rounded-md flex items-center gap-2 hover:bg-blue-600"
                 >
                     <FontAwesomeIcon icon={faPlus} />
-                    Add Product
+                    Thêm sản phẩm
                 </button>
             </div>
 
@@ -221,7 +218,7 @@ const HotSalesManager = () => {
                 <div className="mb-6 p-4 border border-gray-200 rounded-lg">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="font-medium">
-                            Add Product to Hot Sales
+                            Thêm sản phẩm vào danh sách
                         </h3>
                         <button
                             onClick={handleCloseProductSearch}
@@ -237,7 +234,7 @@ const HotSalesManager = () => {
                             type="text"
                             value={searchQuery}
                             onChange={handleSearchChange}
-                            placeholder="Search for products by name..."
+                            placeholder="Tìm kiếm sản phẩm theo tên..."
                             className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -334,10 +331,13 @@ const HotSalesManager = () => {
                                                     icon={faSpinner}
                                                     className="animate-spin mr-2"
                                                 />
-                                                Loading...
+                                                Đang tải...
                                             </>
                                         ) : (
-                                            `Load more (${totalSearchResults - searchResults.length} remaining)`
+                                            `Tải thêm (${
+                                                totalSearchResults -
+                                                searchResults.length
+                                            } sản phẩm còn lại)`
                                         )}
                                     </button>
                                 </div>
@@ -351,14 +351,15 @@ const HotSalesManager = () => {
                                         icon={faSpinner}
                                         className="text-primary animate-spin text-xl mb-2"
                                     />
-                                    <p>Searching products...</p>
+                                    <p>Đang tìm kiếm sản phẩm...</p>
                                 </div>
                             ) : searchQuery ? (
                                 <p>
-                                    No products found matching "{searchQuery}"
+                                    Không tìm thấy sản phẩm phù hợp với tên "
+                                    {searchQuery}"
                                 </p>
                             ) : (
-                                <p>Start typing to search for products</p>
+                                <p>Bắt đầu gõ để tìm kiếm sản phẩm</p>
                             )}
                         </div>
                     )}
@@ -375,19 +376,19 @@ const HotSalesManager = () => {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
-                                    Order
+                                    Thứ tự
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Product
+                                    Sản phẩm
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Price
+                                    Giá
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Discount
+                                    Giảm giá
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Actions
+                                    Hành động
                                 </th>
                             </tr>
                         </thead>
@@ -474,7 +475,7 @@ const HotSalesManager = () => {
                                             </span>
                                         ) : (
                                             <span className="text-gray-500 text-sm">
-                                                No discount
+                                                Không có giảm giá
                                             </span>
                                         )}
                                     </td>
@@ -496,13 +497,13 @@ const HotSalesManager = () => {
             ) : (
                 <div className="text-center py-8 bg-gray-50 rounded-lg">
                     <p className="text-gray-500 mb-4">
-                        No hot sales products found.
+                        Không có sản phẩm nào trong danh sách
                     </p>
                     <button
                         onClick={handleShowProductSearch}
                         className="bg-primary text-white px-4 py-2 rounded-md"
                     >
-                        Add Your First Hot Sale Product
+                        Thêm sản phẩm đầu tiên
                     </button>
                 </div>
             )}

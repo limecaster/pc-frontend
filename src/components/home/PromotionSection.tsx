@@ -9,6 +9,7 @@ const PromotionSection: React.FC = () => {
                 src="/images/promotion-banner-4.webp"
                 alt="Khuyến mãi đặc biệt"
                 fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 className="object-cover"
             />
             <div className="absolute inset-0 flex flex-col justify-end p-8 bg-gradient-to-t from-black/80 via-black/50 to-transparent">

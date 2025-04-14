@@ -149,30 +149,6 @@ const Footer: React.FC = () => {
                         >
                             Liên hệ hỗ trợ
                         </Link>
-                        <Link
-                            href="/privacy"
-                            className="text-white hover:text-gray-200 transition-colors"
-                        >
-                            Chính sách bảo mật
-                        </Link>
-                        <Link
-                            href="/terms"
-                            className="text-white hover:text-gray-200 transition-colors"
-                        >
-                            Điều khoản sử dụng
-                        </Link>
-                        <Link
-                            href="/shipping"
-                            className="text-white hover:text-gray-200 transition-colors"
-                        >
-                            Chính sách vận chuyển
-                        </Link>
-                        <Link
-                            href="/warranty"
-                            className="text-white hover:text-gray-200 transition-colors"
-                        >
-                            Bảo hành & Đổi trả
-                        </Link>
                     </nav>
                 </div>
             </div>

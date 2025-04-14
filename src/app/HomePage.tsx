@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Slider from "react-slick";
@@ -8,6 +8,7 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { CustomArrowProps } from "react-slick";
 import ProductGrid from "@/components/products/product/ProductGrid";
+import ProductCarousel from "@/components/products/product/ProductCarousel";
 import HeroSection from "@/components/home/HeroSection";
 import PromotionSection from "@/components/home/PromotionSection";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
@@ -15,6 +16,8 @@ import BrandShowcase from "@/components/home/BrandShowcase";
 import HotSalesSection from "@/components/home/HotSalesSection";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { fetchAdvancedRecommendations } from "@/api/recommend-products";
+import { ProductDetailsDto } from "@/types/product";
 
 export default function HomePageContent() {
     const router = useRouter();
@@ -51,32 +54,23 @@ export default function HomePageContent() {
 
             {/* Featured PC Builds Section */}
 
-            {/* Hot Sales Section - Add this section */}
+            {/* Hot Sales Section */}
             <HotSalesSection />
 
-            {/* Second row: Hot Sale Products */}
-            <section className="container mx-auto px-4 py-12 bg-gradient-to-r from-rose-50 to-rose-100 rounded-3xl my-6">
-                <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-                    <div className="mb-4 md:mb-0">
-                        <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                            Hot Sale
-                        </h2>
-                        <p className="text-gray-600">
-                            Sản phẩm giảm giá hot nhất hiện nay
-                        </p>
-                    </div>
-                    <Link
-                        href="/products/hot-sale"
-                        className="bg-rose-500 hover:bg-rose-600 text-white px-6 py-3 rounded-lg inline-block font-medium transition-colors"
-                    >
-                        Xem tất cả
-                    </Link>
+            {/* Recommended Products Section */}
+            <section className="container mx-auto px-4 py-8 bg-white rounded-3xl my-6">
+                <div className="text-center mb-8">
+                    <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                        Sản phẩm gợi ý
+                    </h2>
+                    <p className="text-gray-600">
+                        Dành riêng cho bạn dựa trên sở thích và lịch sử xem
+                    </p>
                 </div>
-
-                <ProductGrid />
+                <RecommendedProductsCarousel />
             </section>
 
-            {/* Brand Showcase - Replace the static section with our new component */}
+            {/* Brand Showcase */}
             <BrandShowcase />
 
             {/* Third row: Product Categories */}
@@ -177,8 +171,8 @@ export default function HomePageContent() {
                             Thanh toán trực tuyến
                         </h3>
                         <p className="text-gray-600">
-                            Hỗ trợ thanh toán trực tuyến bằng cách quét mã QR
-                            hoặc chuyển khoản ngân hàng
+                            Hỗ trợ thanh toán trực tuyến bằng quét mã QR hoặc
+                            chuyển khoản ngân hàng
                         </p>
                     </div>
 
@@ -228,7 +222,7 @@ export default function HomePageContent() {
                                     </p>
                                 </div>
                                 <Link
-                                    href="/products/new"
+                                    href="/products?sortBy=newest"
                                     className="text-primary hover:underline font-medium"
                                 >
                                     Xem tất cả
@@ -268,7 +262,6 @@ export default function HomePageContent() {
     );
 }
 
-// New Category Carousel component
 function CategoryCarousel() {
     const getCategoryName = (categoryId: string): string => {
         const categoryMap: Record<string, string> = {
@@ -392,6 +385,7 @@ function CategoryCarousel() {
                                         fill
                                         className="object-cover"
                                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                        priority
                                     />
                                 </div>
                                 <div className="p-4 text-center">
@@ -405,5 +399,63 @@ function CategoryCarousel() {
                 ))}
             </Slider>
         </div>
+    );
+}
+
+function RecommendedProductsCarousel() {
+    const [products, setProducts] = useState<ProductDetailsDto[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchRecommendations = async () => {
+            try {
+                // Get advanced recommendations
+                const recommendedProducts = await fetchAdvancedRecommendations(
+                    undefined, // no category filter
+                    10, // limit
+                );
+
+                if (recommendedProducts && recommendedProducts.length > 0) {
+                    setProducts(recommendedProducts);
+                    setLoading(false);
+                    return;
+                }
+
+                // If no recommendations were returned, fall back to regular product recommendations
+                const response = await fetch("/api/products/hot-sales");
+                if (response.ok) {
+                    const data = await response.json();
+                    setProducts(data.products || []);
+                }
+            } catch (error) {
+                console.error("Error fetching recommendations:", error);
+                // Fallback to hot sales products
+                try {
+                    const response = await fetch("/api/products/hot-sales");
+                    if (response.ok) {
+                        const data = await response.json();
+                        setProducts(data.products || []);
+                    }
+                } catch (fallbackError) {
+                    console.error(
+                        "Error with fallback to hot sales:",
+                        fallbackError,
+                    );
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchRecommendations();
+    }, []);
+
+    return (
+        <ProductCarousel
+            products={products}
+            isLoading={loading}
+            slidesToShow={5}
+            viewAllLink="/recommendations"
+        />
     );
 }
