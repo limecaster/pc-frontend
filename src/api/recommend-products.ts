@@ -114,7 +114,24 @@ export const fetchAdvancedRecommendations = async (
     limit: number = 10,
 ): Promise<ProductDetailsDto[]> => {
     try {
-        const sessionId = localStorage.getItem("sessionId");
+        // Get sessionId from sessionStorage (where it's supposed to be based on events.ts)
+        let sessionId = sessionStorage.getItem("sessionId");
+
+        // Fallback to localStorage in case it was stored there
+        if (!sessionId) {
+            sessionId = localStorage.getItem("sessionId");
+        }
+
+        // If no sessionId found, generate a random one for this request
+        if (!sessionId) {
+            sessionId =
+                Math.random().toString(36).substring(2, 15) +
+                Math.random().toString(36).substring(2, 15);
+
+            // Store in sessionStorage for consistency with events.ts
+            sessionStorage.setItem("sessionId", sessionId);
+        }
+
         let customerId = undefined;
 
         const token = localStorage.getItem("token");
@@ -127,29 +144,50 @@ export const fetchAdvancedRecommendations = async (
             } catch (error) {}
         }
 
+        // Build URL parameters
         const params = new URLSearchParams();
+
         if (category) {
             params.append("category", category);
         }
+
         if (customerId) {
             params.append("customerId", customerId.toString());
         }
+
         if (sessionId) {
             params.append("sessionId", sessionId);
         }
+
         if (limit) {
             params.append("limit", limit.toString());
         }
 
+        // Add cache-busting parameter
+        params.append("_nocache", Date.now().toString());
+
         const url = `/api/products/recommendations?${params.toString()}`;
-        const response = await fetch(url);
+
+        const response = await fetch(url, {
+            cache: "no-store",
+            headers: {
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                Pragma: "no-cache",
+                Expires: "0",
+                "x-request-time": Date.now().toString(),
+            },
+        });
+
         if (!response.ok) {
             throw new Error("Failed to fetch advanced recommendations");
         }
+
         const data = await response.json();
+
         if (!data.success || !data.products || data.products.length === 0) {
             return [];
         }
+
         return data.products;
     } catch (error) {
         return [];
@@ -171,11 +209,68 @@ export const fetchCategoryRecommendations = async (
             return [];
         }
 
-        const url = `/api/products/category-recommendations/${encodeURIComponent(
-            category,
-        )}?limit=${limit}`;
-        const response = await fetch(url);
+        // Get sessionId from sessionStorage (where it's supposed to be based on events.ts)
+        let sessionId = sessionStorage.getItem("sessionId");
+
+        // Fallback to localStorage in case it was stored there
+        if (!sessionId) {
+            sessionId = localStorage.getItem("sessionId");
+        }
+
+        // If no sessionId found, generate a random one for this request
+        if (!sessionId) {
+            sessionId =
+                Math.random().toString(36).substring(2, 15) +
+                Math.random().toString(36).substring(2, 15);
+
+            // Store in sessionStorage for consistency with events.ts
+            sessionStorage.setItem("sessionId", sessionId);
+        }
+
+        let customerId = undefined;
+
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                const payload = JSON.parse(atob(token.split(".")[1]));
+                if (payload.sub) {
+                    customerId = payload.sub;
+                }
+            } catch (error) {}
+        }
+
+        const params = new URLSearchParams();
+        params.append("category", category);
+
+        if (customerId) {
+            params.append("customerId", customerId.toString());
+        }
+        if (sessionId) {
+            params.append("sessionId", sessionId);
+        }
+        if (limit) {
+            params.append("limit", limit.toString());
+        }
+
+        // Add timestamp to prevent caching
+        params.append("_nocache", Date.now().toString());
+
+        const url = `/api/products/category-recommendations?${params.toString()}`;
+
+        const response = await fetch(url, {
+            cache: "no-store",
+            headers: {
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                Pragma: "no-cache",
+                Expires: "0",
+                "x-request-time": Date.now().toString(),
+            },
+        });
+
         if (!response.ok) {
+            console.error(
+                `Failed to fetch ${category} recommendations: ${response.status}`,
+            );
             throw new Error(
                 `Failed to fetch ${category} recommendations: ${response.status}`,
             );
@@ -186,6 +281,10 @@ export const fetchCategoryRecommendations = async (
         }
         return data.products;
     } catch (error) {
+        console.error(
+            `Error fetching category recommendations for ${category}:`,
+            error,
+        );
         return [];
     }
 };
@@ -199,7 +298,24 @@ export const fetchPreferredCategories = async (
     limit: number = 5,
 ): Promise<string[]> => {
     try {
-        const sessionId = localStorage.getItem("sessionId");
+        // Get sessionId from sessionStorage (where it's supposed to be based on events.ts)
+        let sessionId = sessionStorage.getItem("sessionId");
+
+        // Fallback to localStorage in case it was stored there
+        if (!sessionId) {
+            sessionId = localStorage.getItem("sessionId");
+        }
+
+        // If no sessionId found, generate a random one for this request
+        if (!sessionId) {
+            sessionId =
+                Math.random().toString(36).substring(2, 15) +
+                Math.random().toString(36).substring(2, 15);
+
+            // Store in sessionStorage for consistency with events.ts
+            sessionStorage.setItem("sessionId", sessionId);
+        }
+
         let customerId = undefined;
 
         const token = localStorage.getItem("token");
@@ -223,12 +339,25 @@ export const fetchPreferredCategories = async (
             params.append("limit", limit.toString());
         }
 
-        const url = `${API_URL}/products/preferred-categories?${params.toString()}`;
-        const response = await fetch(url);
+        // Use Next.js API route for server-side communication
+        const url = `/api/products/preferred-categories?${params.toString()}`;
+        const response = await fetch(url, {
+            // Added cache: 'no-store' to prevent caching
+            cache: "no-store",
+            headers: {
+                // Add random timestamp to prevent caching by CDN/browsers
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                Pragma: "no-cache",
+                Expires: "0",
+                "x-request-time": Date.now().toString(),
+            },
+        });
+
         if (!response.ok) {
             throw new Error("Failed to fetch preferred categories");
         }
         const data = await response.json();
+
         if (!data.categories || !Array.isArray(data.categories)) {
             return ["CPU", "GraphicsCard", "Motherboard"];
         }

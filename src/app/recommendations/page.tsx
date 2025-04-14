@@ -62,7 +62,21 @@ export default function RecommendationsPage() {
         CategoryData[]
     >([]);
     const [loading, setLoading] = useState(true);
+    const [sessionId, setSessionId] = useState<string | null>(null);
     const { user } = useAuth();
+
+    // Get and store the current sessionId for display purposes
+    useEffect(() => {
+        // First check sessionStorage (primary location)
+        let currentSessionId = sessionStorage.getItem("sessionId");
+
+        // Fallback to localStorage if not found
+        if (!currentSessionId) {
+            currentSessionId = localStorage.getItem("sessionId");
+        }
+
+        setSessionId(currentSessionId);
+    }, []);
 
     useEffect(() => {
         document.title = "B Store - Sản phẩm được đề xuất cho bạn";
@@ -70,6 +84,9 @@ export default function RecommendationsPage() {
         const fetchRecommendationProducts = async () => {
             setLoading(true);
             try {
+                // Force refresh of sessionId to ensure accurate recommendations
+                const currentSessionId = sessionStorage.getItem("sessionId");
+
                 const personalData = await fetchAdvancedRecommendations(
                     undefined,
                     10,
@@ -182,7 +199,7 @@ export default function RecommendationsPage() {
         };
 
         fetchRecommendationProducts();
-    }, [user?.id]);
+    }, [user?.id, sessionId]); // Add sessionId as a dependency
 
     return (
         <div className="min-h-screen bg-gray-100 pb-12">
@@ -190,10 +207,26 @@ export default function RecommendationsPage() {
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
                     Sản phẩm được đề xuất cho bạn
                 </h1>
-                <p className="text-gray-600 mb-8">
+                <p className="text-gray-600 mb-2">
                     Dựa trên lịch sử duyệt và mua sắm của bạn, chúng tôi đã chọn
                     ra những sản phẩm phù hợp nhất
                 </p>
+
+                {/* Show user context information */}
+                <div className="mb-6 text-sm text-gray-500">
+                    {user ? (
+                        <p>
+                            Đề xuất cá nhân hóa cho:{" "}
+                            <span className="font-medium text-primary">
+                                {user.firstName || user.lastName
+                                    ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+                                    : user.username}
+                            </span>
+                        </p>
+                    ) : (
+                        <p>Đề xuất dựa trên phiên làm việc hiện tại của bạn</p>
+                    )}
+                </div>
 
                 <Tabs defaultValue="personal" className="w-full">
                     <TabsList className="mb-8">

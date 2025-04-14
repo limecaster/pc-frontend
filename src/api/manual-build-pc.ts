@@ -12,9 +12,6 @@ interface CompatiblePartsResponse {
     totalItems?: number;
 }
 
-/**
- * Fetches compatible parts for a specific category in manual PC building
- */
 export async function getCompatibleParts(
     targetLabel: string,
     selectedParts: SelectedPart[],
@@ -30,7 +27,6 @@ export async function getCompatibleParts(
         queryParams.append("page", page.toString());
         queryParams.append("limit", limit.toString());
 
-        // Add search term and sort option if provided
         if (searchTerm) {
             queryParams.append("search", searchTerm);
         }
@@ -67,10 +63,6 @@ export async function getCompatibleParts(
     }
 }
 
-/**
- * Fetches all compatible parts for a specific category in manual PC building
- * (for client-side pagination)
- */
 export async function getAllCompatibleParts(
     targetLabel: string,
     selectedParts: SelectedPart[],
@@ -82,9 +74,8 @@ export async function getAllCompatibleParts(
         queryParams.append("targetLabel", targetLabel);
         queryParams.append("selectedParts", JSON.stringify(selectedParts));
         queryParams.append("page", "1");
-        queryParams.append("limit", "1000"); // Set a high limit to get all items
+        queryParams.append("limit", "1000");
 
-        // Add search term and sort option if provided
         if (searchTerm) {
             queryParams.append("search", searchTerm);
         }

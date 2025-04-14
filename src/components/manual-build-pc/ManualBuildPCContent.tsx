@@ -11,6 +11,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "react-hot-toast";
 import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
+import {
+    trackManualBuildAddToCart,
+    trackManualBuildExportExcel,
+} from "@/api/events";
 
 import PartsSelectionGrid from "./PartsSelectionGrid";
 import PartSelectionModal from "./PartSelectionModal";
@@ -54,22 +58,17 @@ const ManualBuildPCContent: React.FC = () => {
     const [configPurpose, setConfigPurpose] = useState("");
     const [isLoadingConfig, setIsLoadingConfig] = useState(false);
 
-    // New state variables for client-side pagination
     const [allCompatibleParts, setAllCompatibleParts] = useState<any[]>([]);
     const [filteredParts, setFilteredParts] = useState<any[]>([]);
 
-    // Add state to track if we're editing an existing configuration
     const isEditMode = Boolean(configId);
 
-    // Load configuration if configId is provided
     useEffect(() => {
         if (configId) {
             setIsLoadingConfig(true);
             getConfiguration(configId)
                 .then((config) => {
                     if (config && config.products) {
-                        // Post-process any InternalHardDrive components
-                        // Explicitly type as Record<string, any> to allow string indexing
                         const processedProducts: Record<string, any> = {
                             ...config.products,
                         };
@@ -89,7 +88,6 @@ const ManualBuildPCContent: React.FC = () => {
                                         storageType: storageType,
                                     };
 
-                                    // Delete with explicit indexing - this is now properly typed
                                     delete processedProducts[
                                         "InternalHardDrive"
                                     ];
@@ -112,7 +110,6 @@ const ManualBuildPCContent: React.FC = () => {
         }
     }, [configId]);
 
-    // Load initial products from query params or configuration
     useEffect(() => {
         try {
             if (selectedProductsQuery) {
@@ -120,7 +117,6 @@ const ManualBuildPCContent: React.FC = () => {
                     selectedProductsQuery as string,
                 );
 
-                // Validate basic structure of products
                 if (
                     typeof parsedProducts !== "object" ||
                     parsedProducts === null
@@ -129,7 +125,6 @@ const ManualBuildPCContent: React.FC = () => {
                     return;
                 }
 
-                // Post-process to ensure correct component properties
                 const processedProducts = Object.entries(parsedProducts).reduce(
                     (result, [componentType, product]: [string, any]) => {
                         // Skip invalid products
@@ -161,7 +156,7 @@ const ManualBuildPCContent: React.FC = () => {
                             // All other component types
                             result[componentType] = {
                                 ...product,
-                                // Ensure the component has the type in its properties
+
                                 componentType:
                                     product.componentType || componentType,
                             };
@@ -179,14 +174,12 @@ const ManualBuildPCContent: React.FC = () => {
         }
     }, [selectedProductsQuery]);
 
-    // Calculate totals when selected products change
     useEffect(() => {
         calculateTotalPrice();
         calculateTotalWattage();
         setIsCompatible(true);
     }, [selectedProducts]);
 
-    // Part selection handlers
     const handleSelectClick = async (
         category: string,
         page: number = 1,
@@ -203,12 +196,10 @@ const ManualBuildPCContent: React.FC = () => {
         setLoading(true);
         setShowPopup(true);
 
-        // Update state with any new values passed
         if (newSearchTerm !== undefined) setSearchTerm(newSearchTerm);
         if (newSortOption !== undefined) setSortOption(newSortOption);
 
         try {
-            // Fetch ALL compatible parts in one request
             const response = await getAllCompatibleParts(
                 category,
                 selectedParts,
@@ -216,10 +207,8 @@ const ManualBuildPCContent: React.FC = () => {
                 newSortOption !== undefined ? newSortOption : sortOption,
             );
 
-            // Store all parts for client-side pagination
             setAllCompatibleParts(response.items);
 
-            // Apply pagination, sorting, and filtering client-side
             applyPaginationAndFilters(
                 response.items,
                 page,
@@ -227,7 +216,6 @@ const ManualBuildPCContent: React.FC = () => {
                 newSortOption !== undefined ? newSortOption : sortOption,
             );
 
-            // Set this to false as we'll handle pagination on the client side
             setLoading(false);
         } catch (error) {
             console.error("Error fetching compatible parts:", error);
@@ -239,14 +227,12 @@ const ManualBuildPCContent: React.FC = () => {
         }
     };
 
-    // Function to apply pagination, search, and sort filters
     const applyPaginationAndFilters = (
         items: any[] = allCompatibleParts,
         page: number = currentPage,
         searchFilter: string = searchTerm,
         sort: "name" | "price-asc" | "price-desc" = sortOption,
     ) => {
-        // Apply search filter if needed
         let filtered = items;
         if (searchFilter) {
             filtered = items.filter((item) =>
@@ -254,7 +240,6 @@ const ManualBuildPCContent: React.FC = () => {
             );
         }
 
-        // Apply sorting
         if (sort) {
             filtered = [...filtered].sort((a, b) => {
                 if (sort === "name") {
@@ -272,10 +257,8 @@ const ManualBuildPCContent: React.FC = () => {
             });
         }
 
-        // Store filtered results for pagination
         setFilteredParts(filtered);
 
-        // Calculate pagination
         const totalFilteredItems = filtered.length;
         const totalPageCount = Math.max(
             1,
@@ -283,13 +266,10 @@ const ManualBuildPCContent: React.FC = () => {
         );
         setTotalPages(totalPageCount);
 
-        // Ensure page is within bounds
         const safePage = Math.min(Math.max(1, page), totalPageCount);
 
-        // Always update the current page state
         setCurrentPage(safePage);
 
-        // Get items for current page
         const startIndex = (safePage - 1) * itemsPerPage;
         const endIndex = Math.min(
             startIndex + itemsPerPage,
@@ -298,11 +278,9 @@ const ManualBuildPCContent: React.FC = () => {
         setPopupItems(filtered.slice(startIndex, endIndex));
     };
 
-    // Modified page change handler for client-side pagination
     const handlePageChange = (page: number) => {
-        // Immediately update current page for UI responsiveness
         setCurrentPage(page);
-        // Then apply pagination
+
         applyPaginationAndFilters(
             allCompatibleParts,
             page,
@@ -321,14 +299,12 @@ const ManualBuildPCContent: React.FC = () => {
 
     const handleRemovePart = (category: string) => {
         setSelectedProducts((prev) => {
-            // Explicitly type as Record<string, any> to allow string indexing
             const newSelectedProducts: Record<string, any> = { ...prev };
             delete newSelectedProducts[category];
             return newSelectedProducts;
         });
     };
 
-    // Calculation methods
     const calculateTotalPrice = () => {
         const price = Object.values(selectedProducts).reduce((sum, product) => {
             return sum + (parseFloat(product.price) || 0);
@@ -380,7 +356,6 @@ const ManualBuildPCContent: React.FC = () => {
         setTotalWattage(totalWattage);
     };
 
-    // Action handlers
     const handleSaveToExcel = async () => {
         const data = Object.values(selectedProducts).map((product) => ({
             name: product.name,
@@ -398,6 +373,20 @@ const ManualBuildPCContent: React.FC = () => {
 
         data.forEach((item) => {
             worksheet.addRow(item);
+        });
+
+        // Track the export to excel event
+        trackManualBuildExportExcel({
+            totalPrice,
+            totalWattage,
+            components: Object.entries(selectedProducts).map(
+                ([key, product]) => ({
+                    type: key,
+                    id: product.id || "",
+                    name: product.name || "",
+                    price: product.price || 0,
+                }),
+            ),
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
@@ -419,7 +408,6 @@ const ManualBuildPCContent: React.FC = () => {
             return;
         }
 
-        // Pre-populate the config name if in edit mode
         if (isEditMode && configName && !showSaveModal) {
             handleSaveConfigurationConfirm();
             return;
@@ -435,45 +423,38 @@ const ManualBuildPCContent: React.FC = () => {
         }
 
         try {
-            // Standardize component types before saving
             const normalizedProducts = Object.entries(selectedProducts).reduce(
                 (result, [type, product]) => {
                     // Standardize component type
                     const standardType = standardizeComponentType(type);
 
-                    // Ensure price is a number
                     let price = 0;
                     if (product.price !== undefined && product.price !== null) {
-                        // Convert to number if it's a string
                         price =
                             typeof product.price === "string"
                                 ? parseFloat(product.price.replace(/,/g, ""))
                                 : Number(product.price);
 
-                        // If conversion resulted in NaN, default to 0
                         if (isNaN(price)) price = 0;
                     }
 
-                    // Store original type in details
                     const productWithDetails = {
                         ...product,
-                        price: price, // Ensure price is a number
+                        price: price,
                         details: {
                             ...(product.details || {}),
                             originalComponentType: type,
                         },
                     };
 
-                    // Use the original type as the key for proper mapping
                     return {
                         ...result,
-                        [type]: productWithDetails, // Keep original type as key
+                        [type]: productWithDetails,
                     };
                 },
                 {},
             );
 
-            // Create config data object without id initially
             const configData: any = {
                 name: configName,
                 purpose: configPurpose,
@@ -482,11 +463,23 @@ const ManualBuildPCContent: React.FC = () => {
                 wattage: totalWattage,
             };
 
-            // Only add id for updates with valid configId
             if (configId && configId.trim() !== "") {
-                // Make sure configId is a string
                 configData.id = configId;
             }
+
+            // Track the add to cart event
+            trackManualBuildAddToCart({
+                totalPrice,
+                totalWattage,
+                components: Object.entries(selectedProducts).map(
+                    ([key, product]) => ({
+                        type: key,
+                        id: product.id || "",
+                        name: product.name || "",
+                        price: product.price || 0,
+                    }),
+                ),
+            });
 
             const saved = await saveConfiguration(configData);
 
@@ -509,15 +502,12 @@ const ManualBuildPCContent: React.FC = () => {
         }
     };
 
-    // Update these handlers to pass the new values directly to handleSelectClick
     const handleSearchChange = (term: string) => {
-        // Update state and re-apply filters
         setSearchTerm(term);
         applyPaginationAndFilters(allCompatibleParts, 1, term, sortOption);
     };
 
     const handleSortChange = (option: "name" | "price-asc" | "price-desc") => {
-        // Update state and re-apply filters
         setSortOption(option);
         applyPaginationAndFilters(
             allCompatibleParts,
@@ -569,8 +559,8 @@ const ManualBuildPCContent: React.FC = () => {
                 totalPages={totalPages}
                 handleItemSelect={handleItemSelect}
                 handlePageChange={handlePageChange}
-                onSearchChange={handleSearchChange} // Add this line to connect the search handler
-                onSortChange={handleSortChange} // Add this line to connect the sort handler
+                onSearchChange={handleSearchChange}
+                onSortChange={handleSortChange}
             />
 
             {/* Save configuration modal */}
@@ -592,7 +582,7 @@ const ManualBuildPCContent: React.FC = () => {
                 isCompatible={isCompatible}
                 onSaveConfiguration={handleSaveConfiguration}
                 onExportExcel={handleSaveToExcel}
-                isEditMode={isEditMode} // Pass the edit mode flag
+                isEditMode={isEditMode}
             />
         </div>
     );

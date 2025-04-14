@@ -1,5 +1,10 @@
 import { API_URL } from "@/config/constants";
-import trackEvent, { trackSessionStart, trackSessionEnd } from "./events";
+import {
+    trackSessionStart,
+    trackSessionEnd,
+    trackAuthentication,
+    trackLogout,
+} from "./events";
 
 /**
  * Checks if the token needs to be refreshed and refreshes it if needed
@@ -109,19 +114,9 @@ export const validateTokenFormat = (): boolean => {
  * @param userId The user's ID
  * @param userRole The user's role
  */
-const trackAuthentication = async (userId: string, userRole: string) => {
+const trackUserAuthentication = async (userId: string, userRole: string) => {
     try {
-        await trackEvent.trackEvent({
-            eventType: "user_authenticated",
-            entityId: userId,
-            entityType: "user",
-            eventData: {
-                userId,
-                userRole,
-                timestamp: new Date().toISOString(),
-                authMethod: "password",
-            },
-        });
+        await trackAuthentication(userId, userRole);
     } catch (error) {
         console.error("Failed to track authentication event:", error);
     }
@@ -165,7 +160,7 @@ export async function customerLogin(credentials: {
             );
 
             // Track the authentication event with user ID
-            await trackAuthentication(String(data.user.id), "customer");
+            await trackUserAuthentication(String(data.user.id), "customer");
         }
 
         return data;
@@ -224,7 +219,7 @@ export async function unifiedLogin(credentials: {
 
             localStorage.setItem("user", JSON.stringify(data.user));
 
-            await trackAuthentication(String(data.user.id), data.user.role);
+            await trackUserAuthentication(String(data.user.id), data.user.role);
         } else {
             console.error("Login response missing token or user data");
             throw new Error("Login response is incomplete");
@@ -246,16 +241,7 @@ export const logout = (): void => {
         const userData = localStorage.getItem("user");
         if (userData) {
             const user = JSON.parse(userData);
-            trackEvent.trackEvent({
-                eventType: "user_logout",
-                entityId: String(user.id),
-                entityType: "user",
-                eventData: {
-                    userId: String(user.id),
-                    userRole: user.role,
-                    timestamp: new Date().toISOString(),
-                },
-            });
+            trackLogout(String(user.id), user.role);
         }
 
         // Now track the session end

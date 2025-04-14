@@ -3,7 +3,6 @@ import { API_URL } from "@/config/constants";
 
 export async function GET(request: NextRequest) {
     try {
-        // Create URL for NestJS backend
         const url = `${API_URL}/products/hot-sales`;
 
         console.log(`Calling NestJS hot-sales API: ${url}`);

@@ -2,7 +2,6 @@ import React from "react";
 import { ManualBuildPCItemCard } from "./ManualBuildPCItemCard";
 import { ProductCard } from "./ProductCard";
 
-// Import Heroicons for PC components
 import {
     ComputerDesktopIcon,
     ServerIcon,
@@ -13,9 +12,8 @@ import {
     BoltIcon,
     CubeIcon,
     ArrowPathIcon,
-    // Replace missing icons with available alternatives
-    RectangleGroupIcon, // for Keyboard
-    CursorArrowRaysIcon, // for Mouse
+    RectangleGroupIcon,
+    CursorArrowRaysIcon,
     SignalIcon,
     ServerStackIcon,
     BeakerIcon,
@@ -27,18 +25,17 @@ interface PartsSelectionGridProps {
     onRemovePart: (category: string) => void;
 }
 
-// Updated component categories to match exact keys used in the system
 export const itemData = [
     {
-        label: "CPU", // English key
-        vietnameseLabel: "CPU", // Vietnamese key - same for CPU
-        originalKey: "CPU", // This is the key used in selectedProducts
+        label: "CPU",
+        vietnameseLabel: "CPU",
+        originalKey: "CPU",
         imageSrc: <CpuChipIcon className="w-12 h-12 text-gray-600" />,
     },
     {
         label: "Motherboard",
         vietnameseLabel: "Bo mạch chủ",
-        originalKey: "Bo mạch chủ", // Use Vietnamese key in selectedProducts
+        originalKey: "Bo mạch chủ",
         imageSrc: <ServerIcon className="w-12 h-12 text-gray-600" />,
     },
     {
@@ -130,12 +127,9 @@ const PartsSelectionGrid: React.FC<PartsSelectionGridProps> = ({
         <div className="grid grid-cols-1 gap-4">
             {itemData.map(
                 ({ label, imageSrc, vietnameseLabel, originalKey }) => {
-                    // Check for component using both the original key and the label (for backwards compatibility)
                     const selectedItem =
                         selectedProducts[originalKey] ||
                         selectedProducts[label];
-
-                    // Removed conditional rendering - show all component cards
 
                     return !selectedItem ? (
                         <ManualBuildPCItemCard

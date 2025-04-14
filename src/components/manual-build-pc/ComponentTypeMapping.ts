@@ -82,14 +82,12 @@ export function organizeComponentsInOrder(
 ): Record<string, any> {
     const result: Record<string, any> = {};
 
-    // Add components in the specified order
     COMPONENT_ORDER.forEach((type) => {
         if (components[type]) {
             result[type] = components[type];
         }
     });
 
-    // Add any remaining components not in the order list
     Object.entries(components).forEach(([type, component]) => {
         if (!result[type]) {
             result[type] = component;

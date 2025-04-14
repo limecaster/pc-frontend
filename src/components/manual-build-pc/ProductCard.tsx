@@ -5,7 +5,6 @@ import { ProductInfo } from "./ProductInfo";
 import { PriceDisplay } from "../ui/PriceDisplay";
 import type { ProductCardProps } from "./types";
 
-// Update the PriceDisplay component to properly format discount information
 export function ProductCard({
     imageUrl,
     productName,
@@ -21,12 +20,10 @@ export function ProductCard({
     return (
         <div className="flex flex-col md:flex-row items-center justify-between p-4 bg-white rounded-md w-full max-w-full">
             <ProductInfo
-                category={
-                    category || ""
-                } /* Provide empty string as default when category is undefined */
+                category={category || ""}
                 imageUrl={imageUrl || "/images/image-placeholder.webp"}
                 productName={productName}
-                productUrl={productUrl} // Now optional in ProductInfo
+                productUrl={productUrl}
             />
             <div className="flex items-center gap-4 mt-4 md:mt-0 ml-auto">
                 <PriceDisplay

@@ -11,7 +11,7 @@ interface ConfigurationSummaryProps {
     isCompatible: boolean;
     onSaveConfiguration: () => void;
     onExportExcel: () => void;
-    isEditMode?: boolean; // Add this prop to identify edit mode
+    isEditMode?: boolean;
 }
 
 const ConfigurationSummary: React.FC<ConfigurationSummaryProps> = ({
@@ -43,10 +43,8 @@ const ConfigurationSummary: React.FC<ConfigurationSummaryProps> = ({
         try {
             setIsAddingToCart(true);
 
-            // Ensure we're using standardized component types for tracking
             const normalizedProducts = Object.entries(selectedProducts).reduce(
                 (result, [type, product]) => {
-                    // Standardize the component type before using it
                     const standardType = standardizeComponentType(type);
                     return {
                         ...result,
@@ -59,13 +57,11 @@ const ConfigurationSummary: React.FC<ConfigurationSummaryProps> = ({
                 {} as Record<string, any>,
             );
 
-            // Add each product to cart one by one
             for (const product of Object.values(normalizedProducts) as any[]) {
                 if (!product.id) continue;
                 await addToCartAndSync(product.id, 1);
             }
 
-            // Update cart item count (similar to product page)
             const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
             const newCount = cartItems.reduce(
                 (sum: number, item: any) => sum + item.quantity,
@@ -83,7 +79,6 @@ const ConfigurationSummary: React.FC<ConfigurationSummaryProps> = ({
         }
     };
 
-    // Add to cart and then go to checkout
     const handleBuyNow = async () => {
         if (Object.keys(selectedProducts).length === 0) {
             toast.error("Vui lòng chọn ít nhất một linh kiện!");
@@ -98,7 +93,6 @@ const ConfigurationSummary: React.FC<ConfigurationSummaryProps> = ({
         try {
             setIsAddingToCart(true);
 
-            // Add each product to cart
             for (const product of Object.values(selectedProducts) as any[]) {
                 if (!product.id) continue;
                 await addToCartAndSync(product.id, 1);
@@ -108,7 +102,6 @@ const ConfigurationSummary: React.FC<ConfigurationSummaryProps> = ({
                 duration: 1500,
             });
 
-            // Navigate to checkout after a short delay
             setTimeout(() => {
                 router.push("/checkout");
             }, 500);

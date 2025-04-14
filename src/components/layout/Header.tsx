@@ -96,14 +96,13 @@ const Header = () => {
     return (
         <header className="bg-primary shadow-md">
             <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-                {/* Logo - Updated to use CMS logo */}
+                {/* Logo */}
                 <Link href={logoLink} className="flex items-center gap-2">
                     <Image
                         src={logoUrl}
                         alt="B Store Logo"
                         width={40}
-                        height={40}
-                        style={{ height: "auto" }}
+                        height={25}
                     />
                     <span className="text-xl font-bold text-white">
                         B Store

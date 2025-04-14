@@ -56,12 +56,63 @@ interface ProductViewPayload {
     eventData: Record<string, any>;
 }
 
+interface AuthEventPayload {
+    eventType: string;
+    sessionId: string;
+    userId: string;
+    userRole: string;
+    deviceInfo: {
+        userAgent: string;
+        language: string;
+        screenSize: string;
+        viewportSize: string;
+    };
+    pageUrl: string;
+    referrerUrl: string | null;
+    eventData: Record<string, any>;
+}
+
+// Add a new interface for PC build tracking payloads
+interface PCBuildTrackingPayload {
+    eventType: string;
+    sessionId: string;
+    entityId: string;
+    entityType: string;
+    customerId?: string;
+    deviceInfo: {
+        userAgent: string;
+        language: string;
+        screenSize: string;
+        viewportSize: string;
+    };
+    pageUrl: string;
+    referrerUrl: string | null;
+    eventData: Record<string, any>;
+}
+
 const getSessionId = () => {
+    // Check current authentication status
+    const isAuthenticated = localStorage.getItem("token") !== null;
+
+    // Get the last stored authentication status
+    const wasAuthenticated =
+        sessionStorage.getItem("wasAuthenticated") === "true";
+
+    // Generate a new session ID if auth state changed or if none exists
     let sessionId = sessionStorage.getItem("sessionId");
-    if (!sessionId) {
+    if (!sessionId || isAuthenticated !== wasAuthenticated) {
         sessionId = uuidv4();
         sessionStorage.setItem("sessionId", sessionId);
+        sessionStorage.setItem(
+            "wasAuthenticated",
+            isAuthenticated ? "true" : "false",
+        );
+
+        // Reset session start time when creating a new session
+        sessionStorage.removeItem("session_start_time");
+        sessionStorage.removeItem("session_initialized");
     }
+
     return sessionId;
 };
 
@@ -94,8 +145,6 @@ const trackEvent = async (eventData: any) => {
                 console.error("Failed to extract user ID from token", e);
             }
         }
-        console.group(`Event: ${eventData.eventType}`);
-        console.groupEnd();
         await fetch(`${API_URL}/events/track`, {
             method: "POST",
             headers: {
@@ -813,6 +862,358 @@ declare global {
     }
 }
 
+export const trackAuthentication = async (
+    userId: string,
+    userRole: string,
+    eventType: string = "user_authenticated",
+) => {
+    try {
+        const sessionId = getSessionId();
+        const payload: AuthEventPayload = {
+            eventType,
+            sessionId,
+            userId,
+            userRole,
+            deviceInfo: {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                screenSize: `${window.screen.width}x${window.screen.height}`,
+                viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+            },
+            pageUrl: window.location.href,
+            referrerUrl: document.referrer || null,
+            eventData: {
+                timestamp: new Date().toISOString(),
+                authMethod: "password",
+            },
+        };
+
+        console.debug(
+            "Sending authentication event payload:",
+            JSON.stringify(payload),
+        );
+        const response = await fetch(`${API_URL}/events/auth-event`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+            keepalive: true,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+                `Authentication event tracking failed: ${response.status}`,
+                errorText,
+            );
+        }
+    } catch (error) {
+        console.error("Failed to track authentication event:", error);
+    }
+};
+
+export const trackLogout = async (userId: string, userRole: string) => {
+    await trackAuthentication(userId, userRole, "user_logout");
+};
+
+// Auto Build PC Events
+export const trackAutoBuildRequest = async (userInput: string) => {
+    try {
+        const sessionId = getSessionId();
+        const payload: PCBuildTrackingPayload = {
+            eventType: "auto_build_pc_request",
+            sessionId,
+            entityId: "auto_build_pc",
+            entityType: "feature",
+            deviceInfo: {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                screenSize: `${window.screen.width}x${window.screen.height}`,
+                viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+            },
+            pageUrl: window.location.href,
+            referrerUrl: document.referrer || null,
+            eventData: {
+                timestamp: new Date().toISOString(),
+                userInput,
+            },
+        };
+
+        // Add customer ID if available
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                const parts = token.split(".");
+                if (parts.length === 3) {
+                    const tokenPayload = JSON.parse(atob(parts[1]));
+                    if (tokenPayload.sub) {
+                        payload.customerId = String(tokenPayload.sub);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to extract user ID from token", e);
+            }
+        }
+
+        const response = await fetch(`${API_URL}/events/track`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            keepalive: true,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+                `Auto build tracking failed: ${response.status}`,
+                errorText,
+            );
+        }
+    } catch (error) {
+        console.error("Failed to track auto build request:", error);
+    }
+};
+
+export const trackAutoBuildAddToCart = async (configDetails: any) => {
+    try {
+        const sessionId = getSessionId();
+        const payload: PCBuildTrackingPayload = {
+            eventType: "auto_build_pc_add_to_cart",
+            sessionId,
+            entityId: "auto_build_pc",
+            entityType: "feature",
+            deviceInfo: {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                screenSize: `${window.screen.width}x${window.screen.height}`,
+                viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+            },
+            pageUrl: window.location.href,
+            referrerUrl: document.referrer || null,
+            eventData: {
+                timestamp: new Date().toISOString(),
+                totalPrice: configDetails.totalPrice || 0,
+                components: configDetails.components || [],
+                configIndex: configDetails.configIndex,
+                benchmarkScore: configDetails.benchmarkScore,
+            },
+        };
+
+        // Add customer ID if available
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                const parts = token.split(".");
+                if (parts.length === 3) {
+                    const tokenPayload = JSON.parse(atob(parts[1]));
+                    if (tokenPayload.sub) {
+                        payload.customerId = String(tokenPayload.sub);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to extract user ID from token", e);
+            }
+        }
+
+        const response = await fetch(`${API_URL}/events/track`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            keepalive: true,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+                `Auto build add to cart tracking failed: ${response.status}`,
+                errorText,
+            );
+        }
+    } catch (error) {
+        console.error("Failed to track auto build add to cart:", error);
+    }
+};
+
+export const trackAutoBuildCustomize = async (configDetails: any) => {
+    try {
+        const sessionId = getSessionId();
+        const payload: PCBuildTrackingPayload = {
+            eventType: "auto_build_pc_customize",
+            sessionId,
+            entityId: "auto_build_pc",
+            entityType: "feature",
+            deviceInfo: {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                screenSize: `${window.screen.width}x${window.screen.height}`,
+                viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+            },
+            pageUrl: window.location.href,
+            referrerUrl: document.referrer || null,
+            eventData: {
+                timestamp: new Date().toISOString(),
+                totalPrice: configDetails.totalPrice || 0,
+                components: configDetails.components || [],
+                configIndex: configDetails.configIndex,
+                benchmarkScore: configDetails.benchmarkScore,
+            },
+        };
+
+        // Add customer ID if available
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                const parts = token.split(".");
+                if (parts.length === 3) {
+                    const tokenPayload = JSON.parse(atob(parts[1]));
+                    if (tokenPayload.sub) {
+                        payload.customerId = String(tokenPayload.sub);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to extract user ID from token", e);
+            }
+        }
+
+        const response = await fetch(`${API_URL}/events/track`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            keepalive: true,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+                `Auto build customize tracking failed: ${response.status}`,
+                errorText,
+            );
+        }
+    } catch (error) {
+        console.error("Failed to track auto build customize:", error);
+    }
+};
+
+// Manual Build PC Events
+export const trackManualBuildAddToCart = async (configDetails: any) => {
+    try {
+        const sessionId = getSessionId();
+        const payload: PCBuildTrackingPayload = {
+            eventType: "manual_build_pc_add_to_cart",
+            sessionId,
+            entityId: "manual_build_pc",
+            entityType: "feature",
+            deviceInfo: {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                screenSize: `${window.screen.width}x${window.screen.height}`,
+                viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+            },
+            pageUrl: window.location.href,
+            referrerUrl: document.referrer || null,
+            eventData: {
+                timestamp: new Date().toISOString(),
+                totalPrice: configDetails.totalPrice || 0,
+                components: configDetails.components || [],
+                totalWattage: configDetails.totalWattage,
+            },
+        };
+
+        // Add customer ID if available
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                const parts = token.split(".");
+                if (parts.length === 3) {
+                    const tokenPayload = JSON.parse(atob(parts[1]));
+                    if (tokenPayload.sub) {
+                        payload.customerId = String(tokenPayload.sub);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to extract user ID from token", e);
+            }
+        }
+
+        const response = await fetch(`${API_URL}/events/track`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            keepalive: true,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+                `Manual build add to cart tracking failed: ${response.status}`,
+                errorText,
+            );
+        }
+    } catch (error) {
+        console.error("Failed to track manual build add to cart:", error);
+    }
+};
+
+export const trackManualBuildExportExcel = async (configDetails: any) => {
+    try {
+        const sessionId = getSessionId();
+        const payload: PCBuildTrackingPayload = {
+            eventType: "manual_build_pc_export_excel",
+            sessionId,
+            entityId: "manual_build_pc",
+            entityType: "feature",
+            deviceInfo: {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                screenSize: `${window.screen.width}x${window.screen.height}`,
+                viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+            },
+            pageUrl: window.location.href,
+            referrerUrl: document.referrer || null,
+            eventData: {
+                timestamp: new Date().toISOString(),
+                totalPrice: configDetails.totalPrice || 0,
+                components: configDetails.components || [],
+                totalWattage: configDetails.totalWattage,
+            },
+        };
+
+        // Add customer ID if available
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                const parts = token.split(".");
+                if (parts.length === 3) {
+                    const tokenPayload = JSON.parse(atob(parts[1]));
+                    if (tokenPayload.sub) {
+                        payload.customerId = String(tokenPayload.sub);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to extract user ID from token", e);
+            }
+        }
+
+        const response = await fetch(`${API_URL}/events/track`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            keepalive: true,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+                `Manual build export excel tracking failed: ${response.status}`,
+                errorText,
+            );
+        }
+    } catch (error) {
+        console.error("Failed to track manual build export to excel:", error);
+    }
+};
+
 export default {
     trackEvent,
     trackProductClick,
@@ -827,4 +1228,12 @@ export default {
     trackSessionStart,
     trackSessionEnd,
     initSessionTracking,
+    trackAuthentication,
+    trackLogout,
+    // Add new tracking functions to default export
+    trackAutoBuildRequest,
+    trackAutoBuildAddToCart,
+    trackAutoBuildCustomize,
+    trackManualBuildAddToCart,
+    trackManualBuildExportExcel,
 };

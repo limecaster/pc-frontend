@@ -1,9 +1,5 @@
 import { API_URL } from "@/config/constants";
 import { getAuthHeaders } from "./auth";
-
-/**
- * Interface for a PC configuration product
- */
 export interface PCConfigurationProduct {
     componentType: string; // Component type (CPU, RAM, etc.)
     productId: string;
@@ -13,14 +9,11 @@ export interface PCConfigurationProduct {
     details?: any;
 }
 
-/**
- * Interface for the PC configuration data
- */
 export interface PCConfiguration {
     id?: string;
     name: string;
     purpose: string;
-    products: PCConfigurationProduct[]; // Now an array of products
+    products: PCConfigurationProduct[];
     totalPrice: number;
     wattage?: number;
     createdAt?: string;
@@ -64,9 +57,8 @@ export const COMPONENT_TYPE_MAPPING: Record<string, string> = {
  * Standardize component type to a consistent format
  */
 export function standardizeComponentType(type: string): string {
-    if (!type) return ""; // Handle null/undefined
+    if (!type) return "";
 
-    // Special case for SSD/HDD - for consistency with backend
     if (type === "SSD" || type === "HDD") {
         return "InternalHardDrive";
     }
@@ -91,10 +83,8 @@ export function formatProductsForApi(
 ): PCConfigurationProduct[] {
     if (!productsObj) return [];
 
-    // First create the array with possible nulls, then filter out nulls
     const productsArray = Object.entries(productsObj).map(
         ([componentType, product]) => {
-            // Skip invalid products
             if (!product || !product.id) {
                 console.warn(
                     `Skipping invalid product for component type: ${componentType}`,
@@ -121,7 +111,6 @@ export function formatProductsForApi(
             details.originalType = componentType;
             details.originalComponentType = componentType;
 
-            // Ensure price is a number - add detailed logging
             let price = 0;
             if (product.price !== undefined && product.price !== null) {
                 // Convert to number if it's a string
@@ -143,14 +132,13 @@ export function formatProductsForApi(
             }
 
             return {
-                componentType: standardType, // Use standardized type name
+                componentType: standardType,
                 productId: product.id,
-                category: product.category || standardType, // Use standardized type as fallback
+                category: product.category || standardType,
                 name: product.name || "",
-                price: price, // Now ensures it's a number
+                price: price,
                 details: {
                     ...details,
-                    // Include other common properties that might be useful
                     brand: product.brand,
                     model: product.model,
                     tdp: product.tdp,
@@ -160,7 +148,6 @@ export function formatProductsForApi(
         },
     );
 
-    // Fix the type predicate by using a type guard function instead
     return productsArray.filter(
         (item): item is PCConfigurationProduct => item !== null,
     );
@@ -200,11 +187,9 @@ export function formatProductsForFrontend(
     ];
 
     productsArray.forEach((product) => {
-        // Get the original component type if available
         let componentKey =
             product.details?.originalComponentType || product.componentType;
 
-        // Map to Vietnamese key if it's in English
         if (COMPONENT_TYPE_MAPPING[componentKey]) {
             componentKey = COMPONENT_TYPE_MAPPING[componentKey];
         }
@@ -219,7 +204,6 @@ export function formatProductsForFrontend(
             componentKey = isSSD ? "SSD" : "HDD";
         }
 
-        // Verify the key is in the expected list
         if (!expectedManualBuildKeys.includes(componentKey)) {
             console.warn(
                 `Component key ${componentKey} is not in the expected list: ${expectedManualBuildKeys.join(", ")}`,
@@ -254,10 +238,8 @@ export async function saveConfiguration(
             throw new Error("Authentication required");
         }
 
-        // Get headers for authentication
         const headers = await getAuthHeaders();
 
-        // Determine if this is an update (strict check - only true for valid id strings)
         const isUpdate =
             typeof config.id === "string" && config.id.trim() !== "";
         const method = isUpdate ? "PUT" : "POST";
@@ -265,11 +247,9 @@ export async function saveConfiguration(
             ? `${API_URL}/pc-configurations/${config.id}`
             : `${API_URL}/pc-configurations`;
 
-        // Create a copy of the config
         const requestData = { ...config };
-        delete requestData.id; // Remove ID from body for both POST and PUT requests
+        delete requestData.id;
 
-        // Convert products object to array format if it's an object
         if (requestData.products && !Array.isArray(requestData.products)) {
             requestData.products = formatProductsForApi(requestData.products);
         }
@@ -304,7 +284,6 @@ export async function saveConfiguration(
 
         const savedConfig = await response.json();
 
-        // Convert products array back to object format for frontend use
         if (savedConfig.products && Array.isArray(savedConfig.products)) {
             savedConfig.products = formatProductsForFrontend(
                 savedConfig.products,
@@ -336,7 +315,6 @@ export async function getAllConfigurations(): Promise<PCConfiguration[]> {
 
         const configurations = await response.json();
 
-        // Convert products array to object format for each configuration
         return configurations.map((config: any) => ({
             ...config,
             products: config.products
@@ -374,7 +352,6 @@ export async function getConfiguration(
 
         const config = await response.json();
 
-        // Convert products array to object format
         if (config.products && Array.isArray(config.products)) {
             config.products = formatProductsForFrontend(config.products);
         }

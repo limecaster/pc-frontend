@@ -14,7 +14,12 @@ import {
 } from "@/api/pc-configuration";
 import { useAuth } from "@/contexts/AuthContext";
 import { isStorageComponentSSD } from "@/utils/pcConfigurationMapper";
-// Import Heroicons components
+import {
+    trackAutoBuildRequest,
+    trackAutoBuildAddToCart,
+    trackAutoBuildCustomize,
+} from "@/api/events";
+
 import {
     ComputerDesktopIcon,
     ArrowDownTrayIcon,
@@ -65,8 +70,7 @@ const AutoBuildPCContent: React.FC = () => {
 
     const handleBuildClick = async () => {
         setLoading(true);
-        setPcConfigs([]); // Clear old configs
-        // setSuggestions([]); // Clear old suggestions
+        setPcConfigs([]);
 
         try {
             if (!input) {
@@ -74,7 +78,9 @@ const AutoBuildPCContent: React.FC = () => {
                 setInput(input);
             }
 
-            // Use the new API function instead of direct fetch
+            // Track auto build request event
+            await trackAutoBuildRequest(input);
+
             await getAutoBuildSuggestions(input);
 
             // Updated: extract items from the first object of each category array
@@ -118,10 +124,8 @@ const AutoBuildPCContent: React.FC = () => {
 
     const handleCustomizeSelectedConfig = (config: PCConfiguration) => {
         try {
-            // Create a component mapping using exact keys from the provided list
             const manualBuildProducts: Record<string, any> = {};
 
-            // This mapping uses exactly the keys that appear in the user's list
             const componentMapping: Record<string, string> = {
                 CPU: "CPU",
                 CPUCooler: "Quạt tản nhiệt",
@@ -135,7 +139,6 @@ const AutoBuildPCContent: React.FC = () => {
             // Process standard components
             Object.entries(componentMapping).forEach(([autoKey, manualKey]) => {
                 if (config[autoKey as keyof PCConfiguration]) {
-                    // Ensure we have a valid component with id and price
                     manualBuildProducts[manualKey] = {
                         ...config[autoKey as keyof PCConfiguration],
                         id:
@@ -151,7 +154,6 @@ const AutoBuildPCContent: React.FC = () => {
                 }
             });
 
-            // Handle storage components - always map to SSD for now as that's in the expected list
             if (config.InternalHardDrive) {
                 const storage = config.InternalHardDrive;
                 const isSSD = isStorageComponentSSD(storage);
@@ -169,7 +171,6 @@ const AutoBuildPCContent: React.FC = () => {
                         storageType: storageKey,
                     },
                 };
-                console.log(`Mapped InternalHardDrive to ${storageKey}`);
             }
 
             // Add explicitly defined SSD and HDD if they exist
@@ -193,6 +194,26 @@ const AutoBuildPCContent: React.FC = () => {
                 };
             }
 
+            // Track the customize event
+            trackAutoBuildCustomize({
+                totalPrice: Object.values(config).reduce(
+                    (acc: number, part: any) => acc + (part.price || 0),
+                    0,
+                ),
+                components: Object.entries(config).map(([key, part]) => ({
+                    type: key,
+                    id: part?.id || part?.partId || "",
+                    name: part?.name || "",
+                    price: part?.price || 0,
+                })),
+                configIndex: pcConfigs.indexOf(config),
+                benchmarkScore: Object.values(config).reduce(
+                    (acc: number, part: any) =>
+                        acc + (part.benchmarkScore || 0),
+                    0,
+                ),
+            });
+
             router.push(
                 `/manual-build-pc?selectedProducts=${encodeURIComponent(
                     JSON.stringify(manualBuildProducts),
@@ -204,7 +225,6 @@ const AutoBuildPCContent: React.FC = () => {
                 "Đã xảy ra lỗi khi chuyển đổi cấu hình. Vui lòng thử lại!",
             );
 
-            // Fallback to a simpler mapping if the full mapping fails
             const basicProducts: Record<string, any> = {};
             if (config.CPU) basicProducts["CPU"] = config.CPU;
             if (config.RAM) basicProducts["RAM"] = config.RAM;
@@ -219,13 +239,11 @@ const AutoBuildPCContent: React.FC = () => {
         }
     };
 
-    // New handler for saving a configuration directly
     const handleSaveConfiguration = async (
         config: PCConfiguration,
         index: number,
     ) => {
         try {
-            // Check if user is authenticated
             if (!isAuthenticated) {
                 toast.error("Vui lòng đăng nhập để lưu cấu hình!");
                 router.push(
@@ -236,10 +254,8 @@ const AutoBuildPCContent: React.FC = () => {
 
             setIsSaving(index);
 
-            // Create a properly formatted configuration by performing the same transformations as in handleCustomizeSelectedConfig
             const transformedConfig: Record<string, any> = {};
 
-            // Process standard components
             Object.entries(config).forEach(([componentType, component]) => {
                 if (!component) return;
 
@@ -259,7 +275,6 @@ const AutoBuildPCContent: React.FC = () => {
                 };
             });
 
-            // Handle storage components - properly classify as SSD or HDD
             if (config.InternalHardDrive) {
                 const storage = config.InternalHardDrive;
                 const isSSD = isStorageComponentSSD(storage);
@@ -301,7 +316,6 @@ const AutoBuildPCContent: React.FC = () => {
                 };
             }
 
-            // Format the configuration for saving
             const configData = {
                 name: `Cấu hình tự động #${index + 1}`,
                 purpose: input || "Cấu hình được tạo tự động",
@@ -315,6 +329,26 @@ const AutoBuildPCContent: React.FC = () => {
                     0,
                 ),
             };
+
+            // Track the add to cart event
+            trackAutoBuildAddToCart({
+                totalPrice: Object.values(config).reduce(
+                    (acc: number, part: any) => acc + (part.price || 0),
+                    0,
+                ),
+                components: Object.entries(config).map(([key, part]) => ({
+                    type: key,
+                    id: part?.id || part?.partId || "",
+                    name: part?.name || "",
+                    price: part?.price || 0,
+                })),
+                configIndex: index,
+                benchmarkScore: Object.values(config).reduce(
+                    (acc: number, part: any) =>
+                        acc + (part.benchmarkScore || 0),
+                    0,
+                ),
+            });
 
             await saveConfiguration(configData);
             toast.success("Đã lưu cấu hình thành công!");
@@ -659,12 +693,10 @@ const AutoBuildPCContent: React.FC = () => {
                             </div>
                             <div className="flex items-center justify-between p-5 gap-3 border-t dark:border-gray-700">
                                 <div>
-                                    {/* Add Save Configuration button on the left */}
                                     <button
                                         className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-5 rounded flex items-center transition-colors duration-200"
                                         onClick={() => {
                                             setIsModalSaving(true);
-                                            // Find the index of the selected config in pcConfigs array
                                             const configIndex =
                                                 pcConfigs.findIndex(
                                                     (config) =>

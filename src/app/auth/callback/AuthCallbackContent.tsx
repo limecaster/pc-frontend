@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { trackAuthentication } from "@/api/events";
 
 export default function AuthCallback() {
     const router = useRouter();
@@ -17,6 +18,16 @@ export default function AuthCallback() {
             try {
                 const user = JSON.parse(decodeURIComponent(userData));
                 login(token, user);
+
+                // Track the authentication event
+                if (user.id && user.role) {
+                    trackAuthentication(
+                        String(user.id),
+                        user.role,
+                        "user_authenticated_oauth",
+                    );
+                }
+
                 router.push("/"); // Redirect to home page after successful login
             } catch (error) {
                 console.error("Error processing login:", error);

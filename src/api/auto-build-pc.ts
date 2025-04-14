@@ -6,15 +6,15 @@ export interface Component {
     benchmarkScore?: number;
     image?: string;
     id?: string;
-    partId?: string | string[]; // Add partId property
-    details?: any; // Add details property
-    type?: string; // Add type property
-    storageType?: string; // Add storageType property
-    formFactor?: string; // Add form factor property
-    interface?: string; // Add interface property
-    fullDiskWriteThroughput?: number; // Add write throughput
-    writeSpeed?: number; // Add write speed
-    readSpeed?: number; // Add read speed
+    partId?: string | string[];
+    details?: any;
+    type?: string;
+    storageType?: string;
+    formFactor?: string;
+    interface?: string;
+    fullDiskWriteThroughput?: number;
+    writeSpeed?: number;
+    readSpeed?: number;
 }
 
 export interface PCConfiguration {
@@ -26,9 +26,9 @@ export interface PCConfiguration {
     InternalHardDrive: Component;
     Case: Component;
     PowerSupply: Component;
-    SSD?: Component; // Add SSD as optional property
-    HDD?: Component; // Add HDD as optional property
-    [key: string]: Component | undefined; // Allow string indexing
+    SSD?: Component;
+    HDD?: Component;
+    [key: string]: Component | undefined;
 }
 
 export interface AutoBuildResponse {
@@ -37,9 +37,6 @@ export interface AutoBuildResponse {
     popular?: PCConfiguration[];
 }
 
-/**
- * Submits a user's requirements for auto PC building and returns configuration suggestions
- */
 export async function getAutoBuildSuggestions(
     userInput: string,
 ): Promise<AutoBuildResponse> {

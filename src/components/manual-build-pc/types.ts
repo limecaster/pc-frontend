@@ -20,7 +20,6 @@ export interface ProductInfoProps {
 
 export interface ManualBuildPCItemCardProps {
     label: string;
-    // Update to allow React elements
     imageSrc: string | React.ReactNode;
     description: string;
     buttonLabel: string;

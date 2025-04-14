@@ -121,10 +121,8 @@ const PartSelectionModal: React.FC<PartSelectionModalProps> = ({
                                         placeholder="Tìm kiếm theo tên sản phẩm..."
                                         value={searchTerm}
                                         onChange={(e) => {
-                                            // No need for debounce with client-side filtering
                                             const value = e.target.value;
                                             setSearchTerm(value);
-                                            // Call parent's search handler if provided
                                             if (onSearchChange) {
                                                 onSearchChange(value);
                                             }
@@ -138,7 +136,6 @@ const PartSelectionModal: React.FC<PartSelectionModalProps> = ({
                                             }
                                         }}
                                         onBlur={(e) => {
-                                            // Apply search when focus leaves the field
                                             setSearchTerm(
                                                 e.currentTarget.value,
                                             );
@@ -154,7 +151,6 @@ const PartSelectionModal: React.FC<PartSelectionModalProps> = ({
                                             | "price-asc"
                                             | "price-desc";
                                         setSortOption(value);
-                                        // Call parent's sort handler to immediately apply sorting
                                         if (onSortChange) {
                                             onSortChange(value);
                                         }
@@ -290,7 +286,6 @@ const PartSelectionModal: React.FC<PartSelectionModalProps> = ({
                                         { length: totalPages },
                                         (_, index) => {
                                             const pageNumber = index + 1;
-                                            // Force comparison as numbers
                                             const isCurrentPage =
                                                 Number(currentPage) ===
                                                 Number(pageNumber);

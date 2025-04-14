@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
         const sessionId = searchParams.get("sessionId");
         const limit = searchParams.get("limit") || "4";
 
-        // Create URL for NestJS backend
         let url = `${API_URL}/products/recommendations?limit=${limit}`;
 
         if (productId) {
