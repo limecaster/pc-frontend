@@ -96,9 +96,9 @@ const HotSalesSection = () => {
                             .hot-sales-grid :global(.grid) {
                                 grid-template-columns: repeat(
                                     auto-fill,
-                                    minmax(180px, 1fr)
+                                    minmax(150px, 1fr)
                                 );
-                                gap: 1rem;
+                                gap: 0.75rem;
                             }
 
                             .hot-sales-grid :global(.animate-spin) {
@@ -110,7 +110,7 @@ const HotSalesSection = () => {
                                 .hot-sales-grid :global(.grid) {
                                     grid-template-columns: repeat(
                                         auto-fill,
-                                        minmax(200px, 1fr)
+                                        minmax(170px, 1fr)
                                     );
                                 }
                             }

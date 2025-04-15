@@ -65,12 +65,9 @@ export default function RecommendationsPage() {
     const [sessionId, setSessionId] = useState<string | null>(null);
     const { user } = useAuth();
 
-    // Get and store the current sessionId for display purposes
     useEffect(() => {
-        // First check sessionStorage (primary location)
         let currentSessionId = sessionStorage.getItem("sessionId");
 
-        // Fallback to localStorage if not found
         if (!currentSessionId) {
             currentSessionId = localStorage.getItem("sessionId");
         }
@@ -93,104 +90,104 @@ export default function RecommendationsPage() {
                 );
                 setPersonalRecommendations(personalData);
 
-                try {
-                    const preferredCategories =
-                        await fetchPreferredCategories(4);
+                // try {
+                //     const preferredCategories =
+                //         await fetchPreferredCategories(4);
 
-                    const initialCategoryData = preferredCategories.map(
-                        (category) => ({
-                            id: category,
-                            name: getCategoryDisplayName(category),
-                            products: [],
-                            loading: true,
-                        }),
-                    );
-                    setCategoryRecommendations(initialCategoryData);
+                //     const initialCategoryData = preferredCategories.map(
+                //         (category) => ({
+                //             id: category,
+                //             name: getCategoryDisplayName(category),
+                //             products: [],
+                //             loading: true,
+                //         }),
+                //     );
+                //     setCategoryRecommendations(initialCategoryData);
 
-                    const categoryPromises = preferredCategories.map(
-                        async (category) => {
-                            try {
-                                const categoryProducts =
-                                    await fetchCategoryRecommendations(
-                                        category,
-                                        10,
-                                    );
-                                return {
-                                    id: category,
-                                    name: getCategoryDisplayName(category),
-                                    products: categoryProducts,
-                                    loading: false,
-                                };
-                            } catch (error) {
-                                console.error(
-                                    `Error fetching ${category} recommendations:`,
-                                    error,
-                                );
-                                return {
-                                    id: category,
-                                    name: getCategoryDisplayName(category),
-                                    products: [],
-                                    loading: false,
-                                };
-                            }
-                        },
-                    );
+                //     const categoryPromises = preferredCategories.map(
+                //         async (category) => {
+                //             try {
+                //                 const categoryProducts =
+                //                     await fetchCategoryRecommendations(
+                //                         category,
+                //                         10,
+                //                     );
+                //                 return {
+                //                     id: category,
+                //                     name: getCategoryDisplayName(category),
+                //                     products: categoryProducts,
+                //                     loading: false,
+                //                 };
+                //             } catch (error) {
+                //                 console.error(
+                //                     `Error fetching ${category} recommendations:`,
+                //                     error,
+                //                 );
+                //                 return {
+                //                     id: category,
+                //                     name: getCategoryDisplayName(category),
+                //                     products: [],
+                //                     loading: false,
+                //                 };
+                //             }
+                //         },
+                //     );
 
-                    const categoryResults = await Promise.all(categoryPromises);
-                    setCategoryRecommendations(categoryResults);
-                } catch (preferredCategoriesError) {
-                    console.error(
-                        "Error fetching preferred categories:",
-                        preferredCategoriesError,
-                    );
-                    const defaultCategories = [
-                        "CPU",
-                        "GraphicsCard",
-                        "Motherboard",
-                        "RAM",
-                    ];
-                    const initialCategoryData = defaultCategories.map(
-                        (category) => ({
-                            id: category,
-                            name: getCategoryDisplayName(category),
-                            products: [],
-                            loading: true,
-                        }),
-                    );
-                    setCategoryRecommendations(initialCategoryData);
+                //     const categoryResults = await Promise.all(categoryPromises);
+                //     setCategoryRecommendations(categoryResults);
+                // } catch (preferredCategoriesError) {
+                //     console.error(
+                //         "Error fetching preferred categories:",
+                //         preferredCategoriesError,
+                //     );
+                //     const defaultCategories = [
+                //         "CPU",
+                //         "GraphicsCard",
+                //         "Motherboard",
+                //         "RAM",
+                //     ];
+                //     const initialCategoryData = defaultCategories.map(
+                //         (category) => ({
+                //             id: category,
+                //             name: getCategoryDisplayName(category),
+                //             products: [],
+                //             loading: true,
+                //         }),
+                //     );
+                //     setCategoryRecommendations(initialCategoryData);
 
-                    const categoryPromises = defaultCategories.map(
-                        async (category) => {
-                            try {
-                                const categoryProducts =
-                                    await fetchCategoryRecommendations(
-                                        category,
-                                        10,
-                                    );
-                                return {
-                                    id: category,
-                                    name: getCategoryDisplayName(category),
-                                    products: categoryProducts,
-                                    loading: false,
-                                };
-                            } catch (error) {
-                                console.error(
-                                    `Error fetching ${category} recommendations:`,
-                                    error,
-                                );
-                                return {
-                                    id: category,
-                                    name: getCategoryDisplayName(category),
-                                    products: [],
-                                    loading: false,
-                                };
-                            }
-                        },
-                    );
+                //     const categoryPromises = defaultCategories.map(
+                //         async (category) => {
+                //             try {
+                //                 const categoryProducts =
+                //                     await fetchCategoryRecommendations(
+                //                         category,
+                //                         10,
+                //                     );
+                //                 return {
+                //                     id: category,
+                //                     name: getCategoryDisplayName(category),
+                //                     products: categoryProducts,
+                //                     loading: false,
+                //                 };
+                //             } catch (error) {
+                //                 console.error(
+                //                     `Error fetching ${category} recommendations:`,
+                //                     error,
+                //                 );
+                //                 return {
+                //                     id: category,
+                //                     name: getCategoryDisplayName(category),
+                //                     products: [],
+                //                     loading: false,
+                //                 };
+                //             }
+                //         },
+                //     );
 
-                    const categoryResults = await Promise.all(categoryPromises);
-                    setCategoryRecommendations(categoryResults);
-                }
+                //     const categoryResults = await Promise.all(categoryPromises);
+                //     setCategoryRecommendations(categoryResults);
+                // }
             } catch (error) {
                 console.error("Error fetching recommendations:", error);
             } finally {
@@ -199,7 +196,7 @@ export default function RecommendationsPage() {
         };
 
         fetchRecommendationProducts();
-    }, [user?.id, sessionId]); // Add sessionId as a dependency
+    }, [user?.id, sessionId]);
 
     return (
         <div className="min-h-screen bg-gray-100 pb-12">
@@ -231,9 +228,9 @@ export default function RecommendationsPage() {
                 <Tabs defaultValue="personal" className="w-full">
                     <TabsList className="mb-8">
                         <TabsTrigger value="personal">Cho bạn</TabsTrigger>
-                        <TabsTrigger value="categories">
+                        {/* <TabsTrigger value="categories">
                             Theo danh mục
-                        </TabsTrigger>
+                        </TabsTrigger> */}
                     </TabsList>
 
                     <TabsContent value="personal">
@@ -248,7 +245,7 @@ export default function RecommendationsPage() {
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="categories">
+                    {/* <TabsContent value="categories">
                         {categoryRecommendations.map((category) => (
                             <div
                                 key={category.id}
@@ -264,7 +261,7 @@ export default function RecommendationsPage() {
                                 />
                             </div>
                         ))}
-                    </TabsContent>
+                    </TabsContent> */}
                 </Tabs>
             </div>
         </div>

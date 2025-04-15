@@ -12,8 +12,9 @@ import {
 import { getAllConfigurations } from "@/api/pc-configuration";
 import { formatPrice } from "@/utils/format";
 import { useAuth } from "@/contexts/AuthContext";
-import { getOrderHistory } from "@/api/orders"; // Adjust import based on your actual API file
+import { getOrderHistory } from "@/api/orders";
 import OrderStatusBadge from "@/components/orders/OrderStatusBadge";
+import { getWishlist } from "@/api/wishlist";
 
 const DashboardOverview: React.FC = () => {
     const { user } = useAuth();
@@ -27,19 +28,15 @@ const DashboardOverview: React.FC = () => {
         const loadDashboardData = async () => {
             setLoading(true);
             try {
-                // Fetch configurations
                 const configsData = await getAllConfigurations();
-                setConfigurations(configsData.slice(0, 3)); // Show only recent 3
+                setConfigurations(configsData.slice(0, 3));
 
-                // Fetch orders if the API function exists
                 try {
                     const ordersResponse = await getOrderHistory();
-                    // Check if orders response is valid and contains an array
                     if (ordersResponse && Array.isArray(ordersResponse)) {
                         setOrderCount(ordersResponse.length || 0);
-                        setRecentOrders(ordersResponse.slice(0, 3)); // Show only recent 3
+                        setRecentOrders(ordersResponse.slice(0, 3));
                     } else {
-                        // Handle case where response is not an array
                         console.warn(
                             "Orders response is not an array:",
                             ordersResponse,
@@ -49,15 +46,11 @@ const DashboardOverview: React.FC = () => {
                     }
                 } catch (error) {
                     console.log("Orders API not available or error:", error);
-                    // Fallback to empty data if API doesn't exist or fails
                     setOrderCount(0);
                     setRecentOrders([]);
                 }
 
-                // For wishlist, we could use localStorage count if API isn't available
-                const wishlistItems = JSON.parse(
-                    localStorage.getItem("wishlist") || "[]",
-                );
+                const wishlistItems = await getWishlist();
                 setWishlistCount(wishlistItems.length);
             } catch (error) {
                 console.error("Error loading dashboard data:", error);

@@ -33,7 +33,6 @@ export default function HomePageContent() {
                 const user = JSON.parse(decodeURIComponent(userData));
                 login(token, user);
 
-                // Remove token and user from URL without refreshing the page
                 const newUrl = window.location.pathname;
                 window.history.replaceState({}, "", newUrl);
             } catch (error) {
@@ -52,157 +51,163 @@ export default function HomePageContent() {
             {/* First row: Navigation and Hero Banners */}
             <HeroSection />
 
-            {/* Featured PC Builds Section */}
-
             {/* Hot Sales Section */}
             <HotSalesSection />
 
             {/* Recommended Products Section */}
-            <section className="container mx-auto px-4 py-8 bg-white rounded-3xl my-6">
-                <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                        Sản phẩm gợi ý
-                    </h2>
-                    <p className="text-gray-600">
-                        Dành riêng cho bạn dựa trên sở thích và lịch sử xem
-                    </p>
+            <section className="container mx-auto px-4 py-8 my-6">
+                <div className="bg-white rounded-xl p-6 shadow-md">
+                    <div className="text-center mb-8">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                            Sản phẩm gợi ý
+                        </h2>
+                        <p className="text-gray-600">
+                            Dành riêng cho bạn dựa trên sở thích và lịch sử xem
+                        </p>
+                    </div>
+                    <RecommendedProductsCarousel />
                 </div>
-                <RecommendedProductsCarousel />
             </section>
 
             {/* Brand Showcase */}
             <BrandShowcase />
 
             {/* Third row: Product Categories */}
-            <section className="container mx-auto px-4 py-12 bg-gray-100">
-                <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                        Danh mục sản phẩm
-                    </h2>
-                    <p className="text-gray-600 mb-8">
-                        Khám phá các sản phẩm theo danh mục
-                    </p>
-                </div>
+            <section className="container mx-auto px-4 py-8 my-6">
+                <div className="bg-white rounded-xl p-6 shadow-md">
+                    <div className="text-center mb-8">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                            Danh mục sản phẩm
+                        </h2>
+                        <p className="text-gray-600 mb-8">
+                            Khám phá các sản phẩm theo danh mục
+                        </p>
+                    </div>
 
-                <CategoryCarousel />
+                    <CategoryCarousel />
+                </div>
             </section>
 
             {/* Why Choose Us Section */}
-            <section className="container mx-auto px-4 py-12 bg-white rounded-3xl my-6">
-                <div className="text-center mb-10">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                        Tại sao chọn B Store?
-                    </h2>
-                    <p className="text-gray-600 max-w-2xl mx-auto">
-                        Chúng tôi cung cấp trải nghiệm mua sắm tốt nhất cho
-                        khách hàng
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                    <div className="flex flex-col items-center text-center">
-                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-8 w-8 text-primary"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                            </svg>
-                        </div>
-                        <h3 className="font-bold text-lg mb-2">
-                            Giao hàng nhanh chóng
-                        </h3>
-                        <p className="text-gray-600">
-                            Giao hàng nhanh trong vòng 24h đối với nội thành
+            <section className="container mx-auto px-4 py-8 my-6">
+                <div className="bg-white rounded-xl p-6 shadow-md">
+                    <div className="text-center mb-10">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                            Tại sao chọn B Store?
+                        </h2>
+                        <p className="text-gray-600 max-w-2xl mx-auto">
+                            Chúng tôi cung cấp trải nghiệm mua sắm tốt nhất cho
+                            khách hàng
                         </p>
                     </div>
 
-                    <div className="flex flex-col items-center text-center">
-                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-8 w-8 text-primary"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                            </svg>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-8 w-8 text-primary"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
+                                </svg>
+                            </div>
+                            <h3 className="font-bold text-lg mb-2">
+                                Giao hàng nhanh chóng
+                            </h3>
+                            <p className="text-gray-600">
+                                Giao hàng nhanh trong vòng 24h đối với nội thành
+                            </p>
                         </div>
-                        <h3 className="font-bold text-lg mb-2">
-                            Bảo hành chính hãng
-                        </h3>
-                        <p className="text-gray-600">
-                            Tất cả sản phẩm đều được bảo hành chính hãng
-                        </p>
-                    </div>
 
-                    <div className="flex flex-col items-center text-center">
-                        <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-8 w-8 text-primary"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                                />
-                            </svg>
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-8 w-8 text-primary"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
+                                </svg>
+                            </div>
+                            <h3 className="font-bold text-lg mb-2">
+                                Bảo hành chính hãng
+                            </h3>
+                            <p className="text-gray-600">
+                                Tất cả sản phẩm đều được bảo hành chính hãng
+                            </p>
                         </div>
-                        <h3 className="font-bold text-lg mb-2">
-                            Thanh toán trực tuyến
-                        </h3>
-                        <p className="text-gray-600">
-                            Hỗ trợ thanh toán trực tuyến bằng quét mã QR hoặc
-                            chuyển khoản ngân hàng
-                        </p>
-                    </div>
 
-                    <div className="flex flex-col items-center text-center">
-                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-8 w-8 text-primary"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                            </svg>
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-8 w-8 text-primary"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                                    />
+                                </svg>
+                            </div>
+                            <h3 className="font-bold text-lg mb-2">
+                                Thanh toán trực tuyến
+                            </h3>
+                            <p className="text-gray-600">
+                                Hỗ trợ thanh toán trực tuyến bằng quét mã QR
+                                hoặc chuyển khoản ngân hàng
+                            </p>
                         </div>
-                        <h3 className="font-bold text-lg mb-2">Hỗ trợ 24/7</h3>
-                        <p className="text-gray-600">
-                            Đội ngũ hỗ trợ luôn sẵn sàng phục vụ
-                        </p>
+
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-8 w-8 text-primary"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
+                                </svg>
+                            </div>
+                            <h3 className="font-bold text-lg mb-2">
+                                Hỗ trợ 24/7
+                            </h3>
+                            <p className="text-gray-600">
+                                Đội ngũ hỗ trợ luôn sẵn sàng phục vụ
+                            </p>
+                        </div>
                     </div>
                 </div>
             </section>
 
             {/* Fourth row: Promotion + Products */}
-            <section className="container mx-auto px-4 py-12">
+            <section className="container mx-auto px-4 py-8 my-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Left column: Promotion banner */}
                     <div className="lg:col-span-1">
@@ -237,7 +242,7 @@ export default function HomePageContent() {
             </section>
 
             {/* Newsletter Section */}
-            <section className="container mx-auto px-4 py-12 mb-6">
+            {/* <section className="container mx-auto px-4 py-12 mb-6">
                 <div className="bg-primary rounded-2xl p-8 md:p-12 text-white text-center">
                     <h2 className="text-3xl font-bold mb-3">
                         Đăng ký nhận thông tin khuyến mãi
@@ -257,7 +262,7 @@ export default function HomePageContent() {
                         </button>
                     </div>
                 </div>
-            </section>
+            </section> */}
         </main>
     );
 }
@@ -429,7 +434,6 @@ function RecommendedProductsCarousel() {
                 }
             } catch (error) {
                 console.error("Error fetching recommendations:", error);
-                // Fallback to hot sales products
                 try {
                     const response = await fetch("/api/products/hot-sales");
                     if (response.ok) {

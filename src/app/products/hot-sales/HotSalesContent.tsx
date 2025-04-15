@@ -18,7 +18,6 @@ export default function HotSalesContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
-    // Get query parameters
     const initialSortBy = searchParams.get("sortBy") || "popular";
     const initialMinPrice = searchParams.get("minPrice")
         ? Number(searchParams.get("minPrice"))
@@ -55,18 +54,14 @@ export default function HotSalesContent() {
     const [error, setError] = useState<string | null>(null);
     const [shouldUpdateUrl, setShouldUpdateUrl] = useState<boolean>(false);
 
-    // State for pagination
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [totalPages, setTotalPages] = useState<number>(1);
     const [totalResults, setTotalResults] = useState<number>(0);
-    // Add search state
     const [searchQuery, setSearchQuery] = useState<string>("");
 
-    // Update active filters display
     const updateActiveFilters = useCallback(() => {
         const filters: Array<{ id: string; text: string }> = [];
 
-        // Add brand filters
         selectedBrands.forEach((brand) => {
             filters.push({
                 id: `brand-${brand}`,
@@ -74,7 +69,6 @@ export default function HotSalesContent() {
             });
         });
 
-        // Add price filter
         if (priceRange[0] > 0 || priceRange[1] < 100_000_000) {
             const formatter = new Intl.NumberFormat("vi-VN", {
                 style: "currency",
@@ -86,7 +80,6 @@ export default function HotSalesContent() {
             });
         }
 
-        // Add rating filter
         if (selectedRating !== undefined) {
             filters.push({
                 id: "rating-filter",
@@ -97,7 +90,6 @@ export default function HotSalesContent() {
         setActiveFilters(filters);
     }, [selectedBrands, priceRange, selectedRating]);
 
-    // Update URL parameters when shouldUpdateUrl is true
     useEffect(() => {
         if (!shouldUpdateUrl) return;
 
@@ -117,7 +109,6 @@ export default function HotSalesContent() {
         const query = params.toString();
         router.push(`/products/hot-sales${query ? `?${query}` : ""}`);
 
-        // Reset the flag after updating URL
         setShouldUpdateUrl(false);
     }, [
         shouldUpdateUrl,
@@ -130,7 +121,6 @@ export default function HotSalesContent() {
         searchQuery,
     ]);
 
-    // Fetch hot sales products whenever filters change
     useEffect(() => {
         document.title = "B Store - Hot Sales";
         fetchHotSalesProducts();
@@ -143,7 +133,6 @@ export default function HotSalesContent() {
         searchQuery,
     ]);
 
-    // Update active filters when relevant state changes
     useEffect(() => {
         updateActiveFilters();
     }, [updateActiveFilters]);
@@ -237,7 +226,7 @@ export default function HotSalesContent() {
 
     const handleSearch = (query: string) => {
         setSearchQuery(query);
-        setCurrentPage(1); // Reset to first page on new search
+        setCurrentPage(1);
         setShouldUpdateUrl(true);
     };
 
@@ -254,7 +243,7 @@ export default function HotSalesContent() {
                         Hot Sales
                     </h1>
                     <p className="text-gray-600">
-                        Special deals on our top products
+                        Sản phẩm giảm giá hot nhất hiện nay
                     </p>
                 </div>
 
@@ -303,7 +292,7 @@ export default function HotSalesContent() {
                                     handleFilteredProductsChange
                                 }
                                 onSort={handleSort}
-                                onSearch={handleSearch} // Add onSearch handler
+                                onSearch={handleSearch}
                                 initialSearchQuery={searchQuery}
                             />
                         </div>

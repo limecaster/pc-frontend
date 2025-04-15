@@ -82,43 +82,45 @@ const BrandShowcase: React.FC = () => {
     }, []);
 
     return (
-        <section className="container mx-auto px-4 py-12">
-            <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                    Thương hiệu nổi bật
-                </h2>
-                <p className="text-gray-600">
-                    Chúng tôi hợp tác với các thương hiệu hàng đầu
-                </p>
-            </div>
+        <section className="container mx-auto px-4 py-8 my-6">
+            <div className="bg-white rounded-xl p-6 shadow-md">
+                <div className="text-center mb-8">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        Thương hiệu nổi bật
+                    </h2>
+                    <p className="text-gray-600">
+                        Chúng tôi hợp tác với các thương hiệu hàng đầu
+                    </p>
+                </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                {loading
-                    ? // Loading state - show placeholders
-                      Array(6)
-                          .fill(0)
-                          .map((_, index) => (
-                              <div
-                                  key={index}
-                                  className="bg-white p-6 rounded-lg shadow-sm flex items-center justify-center"
-                              >
-                                  <div className="h-12 w-24 bg-gray-200 animate-pulse rounded"></div>
-                              </div>
-                          ))
-                    : // Show actual brand data
-                      brands.map((brand) => (
-                          <Link href={brand.link} key={brand.id}>
-                              <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center h-full">
-                                  <Image
-                                      src={brand.imageUrl}
-                                      alt={brand.title}
-                                      width={120}
-                                      height={60}
-                                      className="object-contain h-12 w-auto opacity-80 hover:opacity-100 transition-opacity"
-                                  />
-                              </div>
-                          </Link>
-                      ))}
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                    {loading
+                        ? // Loading state - show placeholders
+                          Array(6)
+                              .fill(0)
+                              .map((_, index) => (
+                                  <div
+                                      key={index}
+                                      className="bg-white p-6 rounded-lg shadow-sm flex items-center justify-center"
+                                  >
+                                      <div className="h-12 w-24 bg-gray-200 animate-pulse rounded"></div>
+                                  </div>
+                              ))
+                        : // Show actual brand data
+                          brands.map((brand) => (
+                              <Link href={brand.link} key={brand.id}>
+                                  <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center h-full">
+                                      <Image
+                                          src={brand.imageUrl}
+                                          alt={brand.title}
+                                          width={120}
+                                          height={60}
+                                          className="object-contain h-12 w-auto opacity-80 hover:opacity-100 transition-opacity"
+                                      />
+                                  </div>
+                              </Link>
+                          ))}
+                </div>
             </div>
         </section>
     );

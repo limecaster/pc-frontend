@@ -8,7 +8,6 @@ import {
     HeroBanner,
 } from "@/api/hero-content";
 
-// Fallback data in case CMS data is not available
 const fallbackMainBanner = {
     id: 0,
     contentKey: "main-banner",
@@ -50,20 +49,17 @@ const HeroSection: React.FC = () => {
             try {
                 setLoading(true);
 
-                // Fetch banner data from CMS
                 const [heroBannersData, promoBannersData] = await Promise.all([
                     getHeroBanners(),
                     getPromoBanners(),
                 ]);
 
-                // Set main banner (first hero banner if available)
                 if (heroBannersData.length > 0) {
                     setMainBanner(heroBannersData[0]);
                 } else {
                     setMainBanner(fallbackMainBanner);
                 }
 
-                // Set promo banners (up to 2)
                 if (promoBannersData.length > 0) {
                     setPromoBanners(promoBannersData.slice(0, 2));
                 } else {
@@ -72,7 +68,6 @@ const HeroSection: React.FC = () => {
             } catch (error) {
                 console.error("Error fetching banner data:", error);
 
-                // Use fallback data on error
                 setMainBanner(fallbackMainBanner);
                 setPromoBanners(fallbackPromoBanners);
             } finally {

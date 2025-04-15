@@ -13,7 +13,6 @@ import caretDown from "@/assets/icon/others/CaretDown.svg";
 import phone from "@/assets/icon/others/Phone.svg";
 import phoneCall from "@/assets/icon/others/PhoneCall.svg";
 
-// Define types for the category structure
 interface SubcategoryType {
     title: string;
     key: string;
@@ -30,7 +29,6 @@ interface CategoryType {
     items: CategoryItemType[];
 }
 
-// Product categories base data (only most popular subcategories shown)
 const productCategories: CategoryType[] = [
     {
         title: "Linh kiện PC",
@@ -123,23 +121,17 @@ const productCategories: CategoryType[] = [
     },
     {
         title: "Sản phẩm gợi ý",
-        items: [
-            { name: "Dành cho bạn", href: "/recommendations" },
-            { name: "Xem gần đây", href: "/recommendations?tab=recent" },
-            { name: "Xu hướng", href: "/recommendations?tab=trending" },
-        ],
+        items: [{ name: "Dành cho bạn", href: "/recommendations" }],
     },
 ];
 
 const Navigation: React.FC = () => {
-    // Original state variables
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [hoveredCategory, setHoveredCategory] = useState<number | null>(null);
     const [hoveredItem, setHoveredItem] = useState<number | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // New state for dynamically fetched subcategories
     const [subcategoryValues, setSubcategoryValues] = useState<
         Record<string, Record<string, string[]>>
     >({});
@@ -147,12 +139,10 @@ const Navigation: React.FC = () => {
         Record<string, Record<string, boolean>>
     >({});
 
-    // Add state for subcategory search
     const [subcategorySearchQueries, setSubcategorySearchQueries] = useState<
         Record<string, Record<string, string>>
     >({});
 
-    // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (
@@ -190,10 +180,9 @@ const Navigation: React.FC = () => {
     };
 
     const handleCategoryMouseLeave = () => {
-        // We'll let the parent handleMouseLeave handle this
+        setHoveredCategory(null);
     };
 
-    // Handle hovering over a category item - fetch subcategories if needed
     const handleItemMouseEnter = async (
         categoryIdx: number,
         itemIdx: number,
@@ -203,15 +192,12 @@ const Navigation: React.FC = () => {
         const category = productCategories[categoryIdx];
         const item = category.items[itemIdx];
 
-        // If this item has subcategories defined but we haven't fetched values yet
         if (item.subcategories && !subcategoryValues[item.href]) {
-            // Extract category code from URL (e.g., "CPU" from "/products?category=CPU")
             const categoryCode = new URLSearchParams(
                 item.href.split("?")[1],
             ).get("category");
             if (!categoryCode) return;
 
-            // Create an empty object for this category if it doesn't exist
             if (!subcategoryValues[item.href]) {
                 setSubcategoryValues((prev) => ({
                     ...prev,
@@ -223,12 +209,9 @@ const Navigation: React.FC = () => {
                 }));
             }
 
-            // Fetch each subcategory's values
             for (const subcategory of item.subcategories) {
-                // Skip if we've already fetched this subcategory
                 if (subcategoryValues[item.href]?.[subcategory.key]) continue;
 
-                // Set loading state
                 setLoadingSubcategories((prev) => ({
                     ...prev,
                     [item.href]: {
@@ -238,13 +221,11 @@ const Navigation: React.FC = () => {
                 }));
 
                 try {
-                    // Fetch subcategory values from the API
                     const values = await fetchSubcategoryValues(
                         categoryCode,
                         subcategory.key,
                     );
 
-                    // Update state with fetched values
                     setSubcategoryValues((prev) => ({
                         ...prev,
                         [item.href]: {
@@ -258,7 +239,6 @@ const Navigation: React.FC = () => {
                         error,
                     );
                 } finally {
-                    // Clear loading state
                     setLoadingSubcategories((prev) => ({
                         ...prev,
                         [item.href]: {
@@ -294,7 +274,6 @@ const Navigation: React.FC = () => {
         }));
     };
 
-    // Filter subcategory values based on search query
     const getFilteredSubcategoryValues = (
         itemHref: string,
         subcategoryKey: string,
@@ -308,7 +287,6 @@ const Navigation: React.FC = () => {
         return values.filter((value) => value.toLowerCase().includes(query));
     };
 
-    // Extract category from href
     const getCategoryFromHref = (href: string): string => {
         const params = new URLSearchParams(href.split("?")[1]);
         return params.get("category") || "";
@@ -432,7 +410,6 @@ const Navigation: React.FC = () => {
                                                                                                     .value,
                                                                                             )
                                                                                         }
-                                                                                        // Prevent mousedown from closing the dropdown
                                                                                         onMouseDown={(
                                                                                             e,
                                                                                         ) =>
