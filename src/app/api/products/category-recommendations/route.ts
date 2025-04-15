@@ -6,7 +6,6 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
-// Export the GET handler explicitly
 export async function GET(request: NextRequest) {
     try {
         const searchParams = request.nextUrl.searchParams;
@@ -27,14 +26,6 @@ export async function GET(request: NextRequest) {
 
         const requestId = Math.random().toString(36).substring(2, 15);
 
-        console.log(`[${requestId}] Category recommendations request`, {
-            category,
-            customerId,
-            sessionId,
-            limit,
-            url: request.url,
-        });
-
         const apiUrl = new URL(
             `${API_URL}/products/category-recommendations/${category}`,
         );
@@ -49,7 +40,6 @@ export async function GET(request: NextRequest) {
             apiUrl.searchParams.append("limit", limit);
         }
 
-        // Add cache-busting parameter
         apiUrl.searchParams.append("_nocache", Date.now().toString());
 
         const response = await fetch(apiUrl.toString(), {
@@ -90,11 +80,6 @@ export async function GET(request: NextRequest) {
         }
 
         const data = await response.json();
-
-        console.log(`[${requestId}] Category recommendations response`, {
-            success: true,
-            productsCount: data.products?.length || 0,
-        });
 
         return NextResponse.json(
             { success: true, products: data.products || [] },

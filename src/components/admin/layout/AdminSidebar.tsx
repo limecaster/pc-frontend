@@ -60,7 +60,7 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
                     icon: faBox,
                 },
                 {
-                    title: "Hot Sales", // Add this item
+                    title: "Hot Sales",
                     path: "/admin/products/hot-sales",
                     icon: faTag,
                 },
@@ -96,11 +96,6 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
             path: "/admin/cms",
             icon: faMoneyBill,
         },
-        {
-            title: "Cài đặt",
-            path: "/admin/settings",
-            icon: faCog,
-        },
     ];
 
     const toggleExpanded = (title: string) => {
@@ -119,7 +114,6 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
         logout();
     };
 
-    // Modified isActive function to properly handle nested routes
     const isActive = (path: string, item?: MenuItem) => {
         if (pathname === path) {
             return true;
@@ -347,7 +341,6 @@ const AdminSidebar: React.FC<{ className?: string }> = ({ className = "" }) => {
                 </div>
             </aside>
 
-            {/* Add global styles for animations */}
             <style jsx global>{`
                 .animated-dropdown {
                     animation: slideDown 0.2s ease-out forwards;

@@ -157,7 +157,6 @@ export default function AdminDashboard() {
                 // Load data in sequence rather than parallel to avoid overwhelming the server
                 const summaryData = await fetchDashboardSummary();
                 setSummary({
-                    // Use the revenue data from the sales report if available
                     totalSales:
                         salesReport?.summary?.totalRevenue ||
                         summaryData.totalSales ||
@@ -165,7 +164,7 @@ export default function AdminDashboard() {
                     totalOrders: summaryData.totalOrders || 0,
                     totalCustomers: summaryData.totalCustomers || 0,
                     totalProducts: summaryData.totalProducts || 0,
-                    // Use the revenue change from the sales report if available
+
                     salesChange: salesReport?.summary?.revenueChange
                         ? `${salesReport.summary.revenueChange > 0 ? "+" : ""}${salesReport.summary.revenueChange}%`
                         : summaryData.salesChange || "0%",
@@ -174,7 +173,6 @@ export default function AdminDashboard() {
                     productsChange: summaryData.productsChange || "0%",
                 });
 
-                // We'll still fetch the original sales data as a fallback
                 const salesDataResult = await fetchSalesData(salesPeriod);
                 setSalesData({
                     dates: salesDataResult.dates || [],
@@ -438,7 +436,11 @@ export default function AdminDashboard() {
                 <StatCard
                     title="Tổng doanh thu"
                     value={`${summary.totalSales.toLocaleString()}₫`}
-                    change={summary.salesChange}
+                    change={
+                        parseFloat(summary.salesChange.replace("%", ""))
+                            .toFixed(2)
+                            .toString() + "%"
+                    }
                     changeType={
                         summary.salesChange.includes("+")
                             ? "positive"

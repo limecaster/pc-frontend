@@ -39,13 +39,14 @@ export interface AutoBuildResponse {
 
 export async function getAutoBuildSuggestions(
     userInput: string,
+    userId?: string,
 ): Promise<AutoBuildResponse> {
     try {
         const response = await fetch(`${API_URL}/build/auto-build`, {
             method: "POST",
             mode: "cors",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userInput }),
+            body: JSON.stringify({ userInput, userId }),
         });
 
         if (!response.ok) {

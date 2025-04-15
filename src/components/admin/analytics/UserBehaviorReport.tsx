@@ -1062,10 +1062,7 @@ const UserBehaviorReport: React.FC<UserBehaviorReportProps> = ({
                 conversionRates={conversionRates}
             />
             <AbandonedCartReport abandonedCarts={abandonedCarts} />
-            {/* <KeyInsights
-                behaviorSummary={behaviorSummary}
-                abandonedCarts={abandonedCarts}
-            /> */}
+
             <AnalyticsInfo />
         </div>
     );

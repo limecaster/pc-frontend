@@ -13,6 +13,8 @@ import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
 import {
     trackManualBuildAddToCart,
+    trackManualBuildComponentSelect,
+    trackManualBuildSaveConfig,
     trackManualBuildExportExcel,
 } from "@/api/events";
 
@@ -294,6 +296,15 @@ const ManualBuildPCContent: React.FC = () => {
             ...prev,
             [currentCategory]: product,
         }));
+
+        // Track component selection
+        trackManualBuildComponentSelect({
+            componentType: currentCategory,
+            id: product.id || "",
+            name: product.name || "",
+            price: product.price || 0,
+        });
+
         setShowPopup(false);
     };
 
@@ -471,6 +482,23 @@ const ManualBuildPCContent: React.FC = () => {
             trackManualBuildAddToCart({
                 totalPrice,
                 totalWattage,
+                components: Object.entries(selectedProducts).map(
+                    ([key, product]) => ({
+                        type: key,
+                        id: product.id || "",
+                        name: product.name || "",
+                        price: product.price || 0,
+                    }),
+                ),
+            });
+
+            // Track configuration save as a separate event
+            trackManualBuildSaveConfig({
+                name: configName,
+                purpose: configPurpose,
+                totalPrice,
+                totalWattage,
+                isEdit: isEditMode,
                 components: Object.entries(selectedProducts).map(
                     ([key, product]) => ({
                         type: key,

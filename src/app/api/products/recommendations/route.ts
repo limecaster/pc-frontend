@@ -28,8 +28,6 @@ export async function GET(request: NextRequest) {
             url += `&sessionId=${encodeURIComponent(sessionId)}`;
         }
 
-        console.log(`Calling NestJS recommendations API: ${url}`);
-
         const response = await fetch(url, {
             headers: {
                 "Content-Type": "application/json",

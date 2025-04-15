@@ -5,8 +5,6 @@ export async function GET(request: NextRequest) {
     try {
         const url = `${API_URL}/products/hot-sales`;
 
-        console.log(`Calling NestJS hot-sales API: ${url}`);
-
         const response = await fetch(url, {
             headers: {
                 "Content-Type": "application/json",

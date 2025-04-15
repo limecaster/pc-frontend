@@ -20,6 +20,18 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Additional Features
+
+### Word Cloud Visualization
+
+The analytics module includes word cloud visualization for analyzing PC build requests. The visualization is implemented using CSS and doesn't require any additional packages. The word cloud displays the most common terms used in user requests, with larger fonts for more frequently used words.
+
+This feature helps identify:
+
+- Popular purposes for PC builds (gaming, work, design, etc.)
+- Common budget ranges mentioned by users
+- Trending hardware components or specific needs
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

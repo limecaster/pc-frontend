@@ -26,10 +26,6 @@ export async function GET(request: NextRequest) {
             url += `&sessionId=${encodeURIComponent(sessionId)}`;
         }
 
-        console.log(
-            `[${requestId}] Calling NestJS preferred categories API for ${customerId ? "user " + customerId : "session " + sessionId}: ${url}`,
-        );
-
         const response = await fetch(url, {
             headers: {
                 "Content-Type": "application/json",

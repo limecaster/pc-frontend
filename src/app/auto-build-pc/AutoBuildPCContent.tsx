@@ -43,14 +43,20 @@ const AutoBuildPCContent: React.FC = () => {
     const [pcConfigs, setPcConfigs] = useState<PCConfiguration[]>([]);
     const [showConfigModal, setShowConfigModal] = useState(false);
     const [selectedConfig, setSelectedConfig] = useState<any>(null);
-    const [_, setSocket] = useState<Socket | null>(null);
+    const [socket, setSocket] = useState<Socket | null>(null);
     const { isAuthenticated } = useAuth();
     const [isSaving, setIsSaving] = useState<number | null>(null);
     const [isModalSaving, setIsModalSaving] = useState(false);
+    const [userId] = useState(
+        () => `user_${Math.random().toString(36).substr(2, 9)}_${Date.now()}`,
+    );
 
     useEffect(() => {
         const socket = io(WEBSOCKET_URL);
-        socket.on("connect", () => {});
+        socket.on("connect", () => {
+            // Subscribe with userId
+            socket.emit("subscribeAutoBuild", { userId });
+        });
         socket.on("autoBuildSubscribed", (data: any) => {});
         socket.on("pcConfigFormed", (config: any) => {
             setPcConfigs((prevConfigs) => [...prevConfigs, config]);
@@ -60,7 +66,7 @@ const AutoBuildPCContent: React.FC = () => {
         return () => {
             socket.disconnect();
         };
-    }, []);
+    }, [userId]);
 
     const handleInputChange = (e: {
         target: { value: React.SetStateAction<string> };
@@ -81,7 +87,8 @@ const AutoBuildPCContent: React.FC = () => {
             // Track auto build request event
             await trackAutoBuildRequest(input);
 
-            await getAutoBuildSuggestions(input);
+            // Pass userId to ensure configs are only sent to this user
+            await getAutoBuildSuggestions(input, userId);
 
             // Updated: extract items from the first object of each category array
             // const formattedSuggestions = [
@@ -136,65 +143,74 @@ const AutoBuildPCContent: React.FC = () => {
                 PowerSupply: "Nguồn",
             };
 
-            // Process standard components
+            // Process standard components with minimal data
             Object.entries(componentMapping).forEach(([autoKey, manualKey]) => {
                 if (config[autoKey as keyof PCConfiguration]) {
+                    const component = config[
+                        autoKey as keyof PCConfiguration
+                    ] as any;
                     manualBuildProducts[manualKey] = {
-                        ...config[autoKey as keyof PCConfiguration],
-                        id:
-                            config[autoKey as keyof PCConfiguration]?.id ||
-                            config[autoKey as keyof PCConfiguration]?.partId,
+                        id: component?.id || component?.partId,
+                        name: component?.name,
+                        price: component?.price,
+                        tdp: component?.tdp,
                         componentType: autoKey,
-                        details: {
-                            ...(config[autoKey as keyof PCConfiguration]
-                                ?.details || {}),
-                            originalComponentType: autoKey,
-                        },
+                        imageUrl: component?.imageUrl,
                     };
                 }
             });
 
+            // Minimal data for storage components
             if (config.InternalHardDrive) {
-                const storage = config.InternalHardDrive;
+                const storage = config.InternalHardDrive as any;
                 const isSSD = isStorageComponentSSD(storage);
                 const storageKey = isSSD ? "SSD" : "HDD";
 
                 manualBuildProducts[storageKey] = {
-                    ...storage,
                     id: storage.id || storage.partId,
+                    name: storage.name,
+                    price: storage.price,
+                    tdp: storage.tdp,
                     componentType: "InternalHardDrive",
                     type: storageKey,
                     storageType: storageKey,
-                    details: {
-                        ...(storage.details || {}),
-                        type: storageKey,
-                        storageType: storageKey,
-                    },
+                    formFactor: storage.formFactor,
+                    imageUrl: storage.imageUrl,
                 };
             }
 
             // Add explicitly defined SSD and HDD if they exist
             if (config.SSD) {
+                const ssd = config.SSD as any;
                 manualBuildProducts["SSD"] = {
-                    ...config.SSD,
-                    id: config.SSD.id || config.SSD.partId,
+                    id: ssd.id || ssd.partId,
+                    name: ssd.name,
+                    price: ssd.price,
+                    tdp: ssd.tdp,
                     componentType: "SSD",
                     type: "SSD",
                     storageType: "SSD",
+                    formFactor: ssd.formFactor,
+                    imageUrl: ssd.imageUrl,
                 };
             }
 
             if (config.HDD) {
+                const hdd = config.HDD as any;
                 manualBuildProducts["HDD"] = {
-                    ...config.HDD,
-                    id: config.HDD.id || config.HDD.partId,
+                    id: hdd.id || hdd.partId,
+                    name: hdd.name,
+                    price: hdd.price,
+                    tdp: hdd.tdp,
                     componentType: "HDD",
                     type: "HDD",
                     storageType: "HDD",
+                    formFactor: hdd.formFactor,
+                    imageUrl: hdd.imageUrl,
                 };
             }
 
-            // Track the customize event
+            // Track the customize event with full data for analytics
             trackAutoBuildCustomize({
                 totalPrice: Object.values(config).reduce(
                     (acc: number, part: any) => acc + (part.price || 0),
@@ -225,11 +241,32 @@ const AutoBuildPCContent: React.FC = () => {
                 "Đã xảy ra lỗi khi chuyển đổi cấu hình. Vui lòng thử lại!",
             );
 
+            // Fallback with minimal data
             const basicProducts: Record<string, any> = {};
-            if (config.CPU) basicProducts["CPU"] = config.CPU;
-            if (config.RAM) basicProducts["RAM"] = config.RAM;
-            if (config.GraphicsCard)
-                basicProducts["Card đồ họa"] = config.GraphicsCard;
+            if (config.CPU) {
+                const cpu = config.CPU as any;
+                basicProducts["CPU"] = {
+                    id: cpu.id || cpu.partId,
+                    name: cpu.name,
+                    price: cpu.price,
+                };
+            }
+            if (config.RAM) {
+                const ram = config.RAM as any;
+                basicProducts["RAM"] = {
+                    id: ram.id || ram.partId,
+                    name: ram.name,
+                    price: ram.price,
+                };
+            }
+            if (config.GraphicsCard) {
+                const gpu = config.GraphicsCard as any;
+                basicProducts["Card đồ họa"] = {
+                    id: gpu.id || gpu.partId,
+                    name: gpu.name,
+                    price: gpu.price,
+                };
+            }
 
             router.push(
                 `/manual-build-pc?selectedProducts=${encodeURIComponent(

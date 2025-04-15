@@ -8,10 +8,12 @@ import {
     faChartPie,
     faBox,
     faCalendarAlt,
+    faDesktop,
 } from "@fortawesome/free-solid-svg-icons";
 import SalesReport from "@/components/admin/analytics/SalesReport";
 import UserBehaviorReport from "@/components/admin/analytics/UserBehaviorReport";
 import InventoryReport from "@/components/admin/analytics/InventoryReport";
+import PCBuildReport from "@/components/admin/analytics/PCBuildReport";
 // import RefundReport from "@/components/admin/analytics/RefundReport";
 import DateRangePicker from "@/components/admin/analytics/DateRangePicker";
 
@@ -46,6 +48,11 @@ export default function AnalyticsPage() {
             name: "Hành vi người dùng",
             icon: faChartPie,
             component: <UserBehaviorReport dateRange={dateRange} />,
+        },
+        {
+            name: "Xây dựng PC",
+            icon: faDesktop,
+            component: <PCBuildReport dateRange={dateRange} />,
         },
         {
             name: "Kho",

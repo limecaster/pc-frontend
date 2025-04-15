@@ -593,3 +593,29 @@ export async function getProductCategories() {
         return [];
     }
 }
+
+/**
+ * Get PC build analytics report
+ */
+export async function getPCBuildReport(startDate: Date, endDate: Date) {
+    try {
+        const response = await fetch(
+            `${API_URL}/analytics/pc-build-analytics?startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+            {
+                headers: getAuthHeaders(),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch PC build report: ${response.status}`,
+            );
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching PC build report:", error);
+        // Mock data will be returned in the component instead
+        throw error;
+    }
+}
