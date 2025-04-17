@@ -169,7 +169,7 @@ const PartsSelectionGrid: React.FC<PartsSelectionGridProps> = ({
                             }
                             buttonLabel="Sửa"
                             onButtonClick={() => onSelectClick(label)}
-                            onRemoveClick={() => onRemovePart(originalKey)}
+                            onRemoveClick={() => onRemovePart(label)}
                         />
                     );
                 },
