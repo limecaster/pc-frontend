@@ -7,7 +7,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Chatbot from "@/components/chatbot/ChatBot";
 import { Toaster } from "react-hot-toast";
-import { Roboto } from "next/font/google";
+import { Roboto, Inter, Be_Vietnam_Pro } from "next/font/google";
 import { Providers } from "./providers";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { CheckoutProvider } from "@/contexts/CheckoutContext";
@@ -20,7 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { initSessionTracking } from "@/api/events";
 
 const roboto = Roboto({
-    subsets: ["vietnamese"],
+    subsets: ["vietnamese", "latin"],
     weight: ["100", "300", "400", "500", "700", "900"],
 });
 
@@ -41,7 +41,7 @@ function CustomerRouteGuard({ children }: { children: React.ReactNode }) {
         // If user is admin or staff, redirect them to their dashboard
         if (user && (user.role === "admin" || user.role === "staff")) {
             const redirectPath =
-                user.role === "admin" ? "/admin/dashboard" : "/staff";
+                user.role === "admin" ? "/admin/dashboard" : "/staff/orders";
             router.push(redirectPath);
         }
     }, [user, isLoading, router, isExcludedPath]);
