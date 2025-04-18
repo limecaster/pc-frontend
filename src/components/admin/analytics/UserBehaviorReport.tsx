@@ -995,7 +995,6 @@ const UserBehaviorReport: React.FC<UserBehaviorReportProps> = ({
                             dateRange.endDate,
                         ),
                     ]);
-
                 // Process behavior data
                 setBehaviorSummary(behaviorData.summary);
                 setVisitorData(behaviorData.visitorData);

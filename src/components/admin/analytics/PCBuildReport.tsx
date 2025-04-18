@@ -69,11 +69,13 @@ interface PCBuildSummary {
 interface PCBuildTimeSeriesData {
     date: string;
     autoBuildRequests: number;
-    manualBuildRequests: number;
-    autoBuildSaves: number;
-    manualBuildSaves: number;
-    autoBuildToCart: number;
-    manualBuildToCart: number;
+    autoBuildAddToCart: number;
+    autoBuildCustomize: number;
+    manualBuildPageView: number;
+    manualBuildAddToCart: number;
+    manualBuildComponentSelect: number;
+    manualBuildSaveConfig: number;
+    pcBuildViews: number;
 }
 
 interface PCBuildAnalyticsResponse {
@@ -203,7 +205,7 @@ const UsageTrendsChart: React.FC<{
             },
             {
                 label: "Yêu cầu thủ công",
-                data: timeSeriesData.map((item) => item.manualBuildRequests),
+                data: timeSeriesData.map((item) => item.manualBuildPageView),
                 borderColor: "rgba(16, 185, 129, 1)",
                 backgroundColor: "rgba(16, 185, 129, 0.1)",
                 borderWidth: 2,
@@ -258,12 +260,12 @@ const ConversionRateChart: React.FC<{
     const conversionData = timeSeriesData.map((item) => {
         const autoConversion =
             item.autoBuildRequests > 0
-                ? (item.autoBuildToCart / item.autoBuildRequests) * 100
+                ? (item.autoBuildAddToCart / item.autoBuildRequests) * 100
                 : 0;
 
         const manualConversion =
-            item.manualBuildRequests > 0
-                ? (item.manualBuildToCart / item.manualBuildRequests) * 100
+            item.manualBuildPageView > 0
+                ? (item.manualBuildAddToCart / item.manualBuildPageView) * 100
                 : 0;
 
         return {
@@ -737,11 +739,14 @@ const PCBuildReport: React.FC<PCBuildReportProps> = ({ dateRange }) => {
                             .split("/")
                             .join("/"),
                         autoBuildRequests: item.autoBuildRequests || 0,
-                        manualBuildRequests: item.manualBuildAddToCart || 0,
-                        autoBuildSaves: item.autoBuildCustomize || 0,
-                        manualBuildSaves: 0, // Not available in current data
-                        autoBuildToCart: item.autoBuildAddToCart || 0,
-                        manualBuildToCart: item.manualBuildAddToCart || 0,
+                        autoBuildAddToCart: item.autoBuildAddToCart || 0,
+                        autoBuildCustomize: item.autoBuildCustomize || 0,
+                        manualBuildPageView: item.manualBuildPageView || 0,
+                        manualBuildAddToCart: item.manualBuildAddToCart || 0,
+                        manualBuildComponentSelect:
+                            item.manualBuildComponentSelect || 0,
+                        manualBuildSaveConfig: item.manualBuildSaveConfig || 0,
+                        pcBuildViews: item.pcBuildViews || 0,
                     })) || [];
 
                 // Get word cloud data
@@ -826,12 +831,14 @@ const PCBuildReport: React.FC<PCBuildReportProps> = ({ dateRange }) => {
 
                 mockTimeSeriesData.push({
                     date: dateString,
-                    autoBuildRequests,
-                    manualBuildRequests,
-                    autoBuildSaves,
-                    manualBuildSaves,
-                    autoBuildToCart,
-                    manualBuildToCart,
+                    autoBuildRequests: autoBuildRequests,
+                    autoBuildAddToCart: autoBuildToCart,
+                    autoBuildCustomize: autoBuildSaves,
+                    manualBuildPageView: manualBuildRequests,
+                    manualBuildAddToCart: manualBuildToCart,
+                    manualBuildComponentSelect: manualBuildComponentSelects,
+                    manualBuildSaveConfig: manualBuildSaves,
+                    pcBuildViews: manualBuildRequests,
                 });
             }
 

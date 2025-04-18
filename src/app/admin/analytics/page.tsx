@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -22,6 +22,10 @@ function classNames(...classes: string[]) {
 }
 
 export default function AnalyticsPage() {
+    useEffect(() => {
+        document.title = "Báo cáo và phân tích";
+    }, []);
+
     // Default date range: last 30 days with proper time values
     const today = new Date();
     today.setHours(23, 59, 59, 999); // End of today

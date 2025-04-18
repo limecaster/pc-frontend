@@ -20,7 +20,6 @@ export interface Discount {
     isAutomatic: boolean;
     createdAt?: string;
     updatedAt?: string;
-    // New property to store names of targeted products for display
     targetedProducts?: string[];
     description: string;
     maxDiscountAmount?: number;
@@ -30,8 +29,6 @@ export interface Discount {
     customerId?: string;
     priority?: number;
 }
-
-// Update interface for creating/updating discount
 export interface DiscountInput {
     discountCode: string;
     discountName: string;
@@ -50,7 +47,6 @@ export interface DiscountInput {
     isAutomatic?: boolean;
 }
 
-// Update function to fetch products with search and pagination
 export async function fetchProductsForSelector(
     search?: string,
     page: number = 1,
@@ -123,7 +119,6 @@ function getFallbackProducts(): { id: string; name: string }[] {
     ];
 }
 
-// Add function to fetch categories for the selector
 export async function fetchCategoriesForSelector(): Promise<string[]> {
     try {
         const response = await fetch(`${API_URL}/products/categories`, {
@@ -168,7 +163,6 @@ export async function fetchCategoriesForSelector(): Promise<string[]> {
     }
 }
 
-// Update function to fetch customers with search and pagination
 export async function fetchCustomersForSelector(
     search?: string,
     page: number = 1,
@@ -184,7 +178,6 @@ export async function fetchCustomersForSelector(
             throw new Error("Authentication required");
         }
 
-        // Build query string
         const queryParams = new URLSearchParams();
         if (search) queryParams.append("search", search);
         queryParams.append("page", page.toString());
@@ -285,7 +278,6 @@ export async function createDiscount(
             throw new Error("Authentication required");
         }
 
-        // Create a new object with numeric values properly converted
         const processedData = {
             ...discountData,
             // Ensure discountAmount is a number
@@ -332,7 +324,6 @@ export async function updateDiscount(
             throw new Error("Authentication required");
         }
 
-        // Create a new object with numeric values properly converted
         const processedData = {
             ...discountData,
             // Ensure discountAmount is a number if it exists
@@ -451,13 +442,12 @@ export async function fetchAutomaticDiscounts(data: {
     isFirstPurchase?: boolean;
     orderAmount: number;
     productPrices?: Record<string, number>;
-    timestamp?: number; // Added for cache busting
+    timestamp?: number;
 }): Promise<{ success: boolean; discounts: Discount[] }> {
     try {
-        // Add timestamp to the data object instead of using Cache-Control header
         const requestData = {
             ...data,
-            timestamp: new Date().getTime(), // Add timestamp to prevent caching
+            timestamp: new Date().getTime(),
         };
 
         const response = await fetch(`${API_URL}/discounts/automatic`, {

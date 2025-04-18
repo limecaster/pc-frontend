@@ -144,7 +144,6 @@ export async function fetchAllProducts(
     minRating?: number,
 ) {
     try {
-        console.log("Fetching all products...");
         let url = `${API_URL}/products/all?page=${page}&limit=${limit}`;
 
         if (brands && brands.length > 0) {
@@ -356,7 +355,6 @@ export async function searchProducts(
     subcategoryFilters?: Record<string, string[]>,
 ) {
     try {
-        console.log("Searching products...");
         let url = `${API_URL}/products/search?query=${encodeURIComponent(
             query,
         )}&page=${page}&limit=${limit}`;

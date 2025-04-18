@@ -72,7 +72,6 @@ interface AuthEventPayload {
     eventData: Record<string, any>;
 }
 
-// Add a new interface for PC build tracking payloads
 interface PCBuildTrackingPayload {
     eventType: string;
     sessionId: string;
@@ -1096,6 +1095,64 @@ export const trackAutoBuildCustomize = async (configDetails: any) => {
 };
 
 // Manual Build PC Events
+
+export const trackManualBuildPCPageView = async () => {
+    try {
+        const sessionId = getSessionId();
+        const payload: PCBuildTrackingPayload = {
+            eventType: "manual_build_pc_page_view",
+            sessionId,
+            entityId: "manual_build_pc",
+            entityType: "feature",
+            deviceInfo: {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                screenSize: `${window.screen.width}x${window.screen.height}`,
+                viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+            },
+            pageUrl: window.location.href,
+            referrerUrl: document.referrer || null,
+            eventData: {
+                timestamp: new Date().toISOString(),
+                sessionId,
+            },
+        };
+
+        // Add customer ID if available
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                const parts = token.split(".");
+                if (parts.length === 3) {
+                    const tokenPayload = JSON.parse(atob(parts[1]));
+                    if (tokenPayload.sub) {
+                        payload.customerId = String(tokenPayload.sub);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to extract user ID from token", e);
+            }
+        }
+
+        const response = await fetch(`${API_URL}/events/track`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            keepalive: true,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+                `Manual build tracking failed: ${response.status}`,
+                errorText,
+            );
+        }
+    } catch (error) {
+        console.error("Failed to track manual build request:", error);
+    }
+};
+
 export const trackManualBuildAddToCart = async (configDetails: any) => {
     try {
         const sessionId = getSessionId();
@@ -1411,10 +1468,10 @@ export default {
     initSessionTracking,
     trackAuthentication,
     trackLogout,
-    // Add new tracking functions to default export
     trackAutoBuildRequest,
     trackAutoBuildAddToCart,
     trackAutoBuildCustomize,
+    trackManualBuildPCPageView,
     trackManualBuildAddToCart,
     trackManualBuildComponentSelect,
     trackManualBuildSaveConfig,
