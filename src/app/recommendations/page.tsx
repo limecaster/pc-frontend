@@ -1,65 +1,15 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import {
-    fetchAdvancedRecommendations,
-    fetchCategoryRecommendations,
-    fetchPreferredCategories,
-} from "@/api/recommend-products";
+import { fetchAdvancedRecommendations } from "@/api/recommend-products";
 import ProductCarousel from "@/components/products/product/ProductCarousel";
 import { ProductDetailsDto } from "@/types/product";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface CategoryData {
-    id: string;
-    name: string;
-    products: ProductDetailsDto[];
-    loading: boolean;
-}
-
-const getCategoryDisplayName = (categoryId: string): string => {
-    const displayNames: Record<string, string> = {
-        CPU: "CPU được đề xuất",
-        GraphicsCard: "Card đồ họa đề xuất",
-        Motherboard: "Bo mạch chủ",
-        RAM: "Bộ nhớ RAM",
-        InternalHardDrive: "Ổ cứng SSD/HDD",
-        PowerSupply: "Nguồn máy tính",
-        Case: "Vỏ case máy tính",
-        Monitor: "Màn hình",
-        Keyboard: "Bàn phím",
-        Mouse: "Chuột",
-        Headphone: "Tai nghe",
-    };
-
-    return displayNames[categoryId] || categoryId;
-};
-
-const getCategorySubtitle = (categoryId: string): string => {
-    const subtitles: Record<string, string> = {
-        CPU: "Bộ vi xử lý hiệu năng cao",
-        GraphicsCard: "Cho trải nghiệm gaming và đồ họa tuyệt vời",
-        Motherboard: "Bo mạch chủ để kết nối và tương tác giữa các thiết bị",
-        RAM: "Bộ nhớ tốc độ cao cho hệ thống của bạn",
-        InternalHardDrive: "Lưu trữ nhanh và đáng tin cậy",
-        PowerSupply: "Nguồn điện ổn định cho hệ thống",
-        Case: "Vỏ case đẹp và tiện dụng",
-        Monitor: "Màn hình độ phân giải cao",
-        Keyboard: "Bàn phím cơ chất lượng cao",
-        Mouse: "Chuột chơi game chính xác",
-        Headphone: "Âm thanh chất lượng cho game và giải trí",
-    };
-
-    return subtitles[categoryId] || "Sản phẩm được đề xuất riêng cho bạn";
-};
-
 export default function RecommendationsPage() {
     const [personalRecommendations, setPersonalRecommendations] = useState<
         ProductDetailsDto[]
-    >([]);
-    const [categoryRecommendations, setCategoryRecommendations] = useState<
-        CategoryData[]
     >([]);
     const [loading, setLoading] = useState(true);
     const [sessionId, setSessionId] = useState<string | null>(null);
@@ -81,113 +31,12 @@ export default function RecommendationsPage() {
         const fetchRecommendationProducts = async () => {
             setLoading(true);
             try {
-                // Force refresh of sessionId to ensure accurate recommendations
-                const currentSessionId = sessionStorage.getItem("sessionId");
-
                 const personalData = await fetchAdvancedRecommendations(
                     undefined,
                     10,
                 );
+                console.log("Personal recommendations:", personalData);
                 setPersonalRecommendations(personalData);
-
-                // try {
-                //     const preferredCategories =
-                //         await fetchPreferredCategories(4);
-
-                //     const initialCategoryData = preferredCategories.map(
-                //         (category) => ({
-                //             id: category,
-                //             name: getCategoryDisplayName(category),
-                //             products: [],
-                //             loading: true,
-                //         }),
-                //     );
-                //     setCategoryRecommendations(initialCategoryData);
-
-                //     const categoryPromises = preferredCategories.map(
-                //         async (category) => {
-                //             try {
-                //                 const categoryProducts =
-                //                     await fetchCategoryRecommendations(
-                //                         category,
-                //                         10,
-                //                     );
-                //                 return {
-                //                     id: category,
-                //                     name: getCategoryDisplayName(category),
-                //                     products: categoryProducts,
-                //                     loading: false,
-                //                 };
-                //             } catch (error) {
-                //                 console.error(
-                //                     `Error fetching ${category} recommendations:`,
-                //                     error,
-                //                 );
-                //                 return {
-                //                     id: category,
-                //                     name: getCategoryDisplayName(category),
-                //                     products: [],
-                //                     loading: false,
-                //                 };
-                //             }
-                //         },
-                //     );
-
-                //     const categoryResults = await Promise.all(categoryPromises);
-                //     setCategoryRecommendations(categoryResults);
-                // } catch (preferredCategoriesError) {
-                //     console.error(
-                //         "Error fetching preferred categories:",
-                //         preferredCategoriesError,
-                //     );
-                //     const defaultCategories = [
-                //         "CPU",
-                //         "GraphicsCard",
-                //         "Motherboard",
-                //         "RAM",
-                //     ];
-                //     const initialCategoryData = defaultCategories.map(
-                //         (category) => ({
-                //             id: category,
-                //             name: getCategoryDisplayName(category),
-                //             products: [],
-                //             loading: true,
-                //         }),
-                //     );
-                //     setCategoryRecommendations(initialCategoryData);
-
-                //     const categoryPromises = defaultCategories.map(
-                //         async (category) => {
-                //             try {
-                //                 const categoryProducts =
-                //                     await fetchCategoryRecommendations(
-                //                         category,
-                //                         10,
-                //                     );
-                //                 return {
-                //                     id: category,
-                //                     name: getCategoryDisplayName(category),
-                //                     products: categoryProducts,
-                //                     loading: false,
-                //                 };
-                //             } catch (error) {
-                //                 console.error(
-                //                     `Error fetching ${category} recommendations:`,
-                //                     error,
-                //                 );
-                //                 return {
-                //                     id: category,
-                //                     name: getCategoryDisplayName(category),
-                //                     products: [],
-                //                     loading: false,
-                //                 };
-                //             }
-                //         },
-                //     );
-
-                //     const categoryResults = await Promise.all(categoryPromises);
-                //     setCategoryRecommendations(categoryResults);
-                // }
             } catch (error) {
                 console.error("Error fetching recommendations:", error);
             } finally {
@@ -196,7 +45,7 @@ export default function RecommendationsPage() {
         };
 
         fetchRecommendationProducts();
-    }, [user?.id, sessionId]);
+    }, []);
 
     return (
         <div className="min-h-screen bg-gray-100 pb-12">
