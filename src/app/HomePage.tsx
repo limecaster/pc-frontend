@@ -18,6 +18,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchAdvancedRecommendations } from "@/api/recommend-products";
 import { ProductDetailsDto } from "@/types/product";
+import { getHotSalesProducts } from "@/api/hot-sales";
 
 export default function HomePageContent() {
     const router = useRouter();
@@ -414,10 +415,9 @@ function RecommendedProductsCarousel() {
     useEffect(() => {
         const fetchRecommendations = async () => {
             try {
-                // Get advanced recommendations
                 const recommendedProducts = await fetchAdvancedRecommendations(
-                    undefined, // no category filter
-                    10, // limit
+                    undefined,
+                    10,
                 );
 
                 if (recommendedProducts && recommendedProducts.length > 0) {
@@ -427,19 +427,13 @@ function RecommendedProductsCarousel() {
                 }
 
                 // If no recommendations were returned, fall back to regular product recommendations
-                const response = await fetch("/api/products/hot-sales");
-                if (response.ok) {
-                    const data = await response.json();
-                    setProducts(data.products || []);
-                }
+                const response = await getHotSalesProducts();
+                setProducts(response || []);
             } catch (error) {
                 console.error("Error fetching recommendations:", error);
                 try {
-                    const response = await fetch("/api/products/hot-sales");
-                    if (response.ok) {
-                        const data = await response.json();
-                        setProducts(data.products || []);
-                    }
+                    const fallbackProducts = await getHotSalesProducts();
+                    setProducts(fallbackProducts || []);
                 } catch (fallbackError) {
                     console.error(
                         "Error with fallback to hot sales:",

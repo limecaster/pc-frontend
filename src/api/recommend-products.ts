@@ -166,16 +166,12 @@ export const fetchAdvancedRecommendations = async (
         // Add cache-busting parameter
         params.append("_nocache", Date.now().toString());
 
-        const url = `/api/products/recommendations?${params.toString()}`;
+        // Direct call to server API instead of Next.js route
+        const url = `${API_URL}/products/recommendations?${params.toString()}`;
 
+        // Simplified fetch without problematic headers
         const response = await fetch(url, {
             cache: "no-store",
-            headers: {
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                Pragma: "no-cache",
-                Expires: "0",
-                "x-request-time": Date.now().toString(),
-            },
         });
 
         if (!response.ok) {
@@ -184,7 +180,7 @@ export const fetchAdvancedRecommendations = async (
 
         const data = await response.json();
 
-        if (!data.success || !data.products || data.products.length === 0) {
+        if (!data.products || data.products.length === 0) {
             return [];
         }
 
@@ -255,16 +251,12 @@ export const fetchCategoryRecommendations = async (
         // Add timestamp to prevent caching
         params.append("_nocache", Date.now().toString());
 
-        const url = `/api/products/category-recommendations?${params.toString()}`;
+        // Direct call to server API instead of Next.js route
+        const url = `${API_URL}/products/category-recommendations/${category}?${params.toString()}`;
 
+        // Simplified fetch without problematic headers
         const response = await fetch(url, {
             cache: "no-store",
-            headers: {
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                Pragma: "no-cache",
-                Expires: "0",
-                "x-request-time": Date.now().toString(),
-            },
         });
 
         if (!response.ok) {
@@ -276,7 +268,7 @@ export const fetchCategoryRecommendations = async (
             );
         }
         const data = await response.json();
-        if (!data.success || !data.products || data.products.length === 0) {
+        if (!data.products || data.products.length === 0) {
             return [];
         }
         return data.products;
@@ -339,18 +331,12 @@ export const fetchPreferredCategories = async (
             params.append("limit", limit.toString());
         }
 
-        // Use Next.js API route for server-side communication
-        const url = `/api/products/preferred-categories?${params.toString()}`;
+        // Direct call to server API instead of Next.js route
+        const url = `${API_URL}/products/preferred-categories?${params.toString()}`;
+
+        // Simplified fetch without problematic headers
         const response = await fetch(url, {
-            // Added cache: 'no-store' to prevent caching
             cache: "no-store",
-            headers: {
-                // Add random timestamp to prevent caching by CDN/browsers
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                Pragma: "no-cache",
-                Expires: "0",
-                "x-request-time": Date.now().toString(),
-            },
         });
 
         if (!response.ok) {
