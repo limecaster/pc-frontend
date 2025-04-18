@@ -3,10 +3,42 @@
 import React, { useEffect } from "react";
 import { Card } from "flowbite-react";
 import { ShoppingBagIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { getPendingOrders } from "@/api/staff";
+import Link from "next/link";
 
 export default function StaffDashboard() {
     useEffect(() => {
         document.title = "Tổng quan";
+    }, []);
+
+    const [totalOrders, setTotalOrders] = React.useState(0);
+    const [totalCustomers, setTotalCustomers] = React.useState(0);
+
+    const prepareData = async () => {
+        try {
+            const pendingOrders = await getPendingOrders();
+
+            if (!pendingOrders) {
+                throw new Error("No pending orders found");
+            }
+            setTotalOrders(pendingOrders.orders.length);
+            const totalCustomers = // Distinct customers from orders
+                pendingOrders.orders.reduce((acc: any, order: any) => {
+                    if (!acc.includes(order.customerId)) {
+                        acc.push(order.customerId);
+                    }
+                    return acc;
+                }, []).length;
+            setTotalCustomers(totalCustomers);
+        } catch (error) {
+            console.error("Error fetching data: ", error);
+            setTotalOrders(0);
+            setTotalCustomers(0);
+        }
+    };
+
+    useEffect(() => {
+        prepareData();
     }, []);
 
     return (
@@ -18,59 +50,43 @@ export default function StaffDashboard() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {/* Dashboard Cards */}
                 <Card>
-                    <div className="flex justify-between">
-                        <h5 className="text-sm font-medium text-gray-500">
-                            Đơn hàng chờ xác nhận
-                        </h5>
-                        <ShoppingBagIcon className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <div className="mt-2">
-                        <p className="text-2xl font-bold text-gray-900">0</p>
-                        <p className="text-xs text-gray-500">
-                            Chờ xác nhận từ khách hàng
-                        </p>
-                    </div>
+                    <Link href="/staff/orders">
+                        <div className="flex justify-between">
+                            <h5 className="text-sm font-medium text-gray-500">
+                                Đơn hàng chờ xác nhận
+                            </h5>
+                            <ShoppingBagIcon className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <div className="mt-2">
+                            <p className="text-2xl font-bold text-gray-900">
+                                {totalOrders}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                                Chờ xác nhận từ khách hàng
+                            </p>
+                        </div>
+                    </Link>
                 </Card>
 
                 <Card>
-                    <div className="flex justify-between">
-                        <h5 className="text-sm font-medium text-gray-500">
-                            Đơn hàng đang xử lý
-                        </h5>
-                        <ShoppingBagIcon className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <div className="mt-2">
-                        <p className="text-2xl font-bold text-gray-900">0</p>
-                        <p className="text-xs text-gray-500">
-                            Đã xác nhận và đang trong quá trình xử lý
-                        </p>
-                    </div>
-                </Card>
-
-                <Card>
-                    <div className="flex justify-between">
-                        <h5 className="text-sm font-medium text-gray-500">
-                            Tổng khách hàng
-                        </h5>
-                        <UserGroupIcon className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <div className="mt-2">
-                        <p className="text-2xl font-bold text-gray-900">0</p>
-                        <p className="text-xs text-gray-500">
-                            Tổng số khách hàng đã đăng ký
-                        </p>
-                    </div>
+                    <Link href="/staff/orders">
+                        <div className="flex justify-between">
+                            <h5 className="text-sm font-medium text-gray-500">
+                                Tổng khách hàng
+                            </h5>
+                            <UserGroupIcon className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <div className="mt-2">
+                            <p className="text-2xl font-bold text-gray-900">
+                                {totalCustomers}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                                Tổng số khách hàng cần kiểm tra đơn hàng
+                            </p>
+                        </div>
+                    </Link>
                 </Card>
             </div>
-
-            <Card className="mt-6">
-                <h5 className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">
-                    Thông báo hệ thống
-                </h5>
-                <p className="text-gray-500 italic">
-                    Không có thông báo nào để hiển thị.
-                </p>
-            </Card>
         </div>
     );
 }
