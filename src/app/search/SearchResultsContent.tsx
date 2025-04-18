@@ -38,48 +38,47 @@ const SearchResultsContent: React.FC = () => {
     );
     const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
 
+    // Reference to track if we should skip the next fetch due to query change
+    const skipNextFetch = React.useRef(false);
+
+    // Handle initialization, title and active filters when query changes
     useEffect(() => {
-        document.title = `Search results for "${query}" - B Store`;
+        document.title = `Kết quả tìm kiếm: "${query}" - B Store`;
 
         // Add search query as an active filter
         if (query) {
             setActiveFilters([
                 { id: "search-query", text: `Tìm kiếm: ${query}` },
             ]);
-        }
 
-        // Reset to first page when query changes
-        setCurrentPage(1);
-        fetchSearchResults(1);
+            // Flag to avoid double fetching - the page change will trigger its own fetch
+            skipNextFetch.current = true;
+            setCurrentPage(1);
+        }
     }, [query]);
 
+    // Handle page initialization - only fetch once on mount or when query changes
     useEffect(() => {
-        // Fetch results when page changes
-        if (query) {
+        if (query && currentPage === 1) {
+            // If this is from a query change, we need to avoid double fetching
+            if (skipNextFetch.current) {
+                skipNextFetch.current = false;
+            } else {
+                fetchSearchResults(1);
+            }
+        }
+    }, [query]); // Only depends on query
+
+    // Handle search parameter changes (excluding initial load)
+    useEffect(() => {
+        // Only fetch if this isn't the initial page load
+        if (query && !skipNextFetch.current) {
             fetchSearchResults(currentPage);
         }
-    }, [currentPage]);
+    }, [currentPage, selectedBrands, priceRange, selectedRating]); // Does NOT depend on query or products
 
+    // Update filtered products when main products change
     useEffect(() => {
-        if (query) {
-            fetchSearchResults(currentPage);
-        }
-    }, [selectedBrands]);
-
-    useEffect(() => {
-        if (query) {
-            fetchSearchResults(currentPage);
-        }
-    }, [priceRange]);
-
-    useEffect(() => {
-        if (query) {
-            fetchSearchResults(currentPage);
-        }
-    }, [selectedRating]);
-
-    useEffect(() => {
-        // Initialize filtered products with loaded products
         if (products.length > 0) {
             setFilteredProducts(products);
         }
