@@ -7,7 +7,6 @@ import Cart from "@/assets/icon/shop/Cart.svg";
 import { Tooltip } from "@/components/ui/tooltip";
 import { toast } from "react-hot-toast";
 import { addToCartAndSync } from "@/api/cart";
-import { validateTokenFormat } from "@/api/auth";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { trackProductClick } from "@/api/events";
 
