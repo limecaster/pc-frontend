@@ -26,6 +26,7 @@
         "class-variance-authority": "^0.7.1",
         "d3-cloud": "^1.2.7",
         "date-fns": "^2.30.0",
+        "dotenv": "^16.5.0",
         "exceljs": "^4.4.0",
         "file-saver": "^2.0.5",
         "flowbite-react": "^0.10.2",
