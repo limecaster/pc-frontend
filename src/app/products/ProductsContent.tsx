@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import CategoryFilter from "@/components/products/filters/CategoryFilter";
 import PriceFilter from "@/components/products/filters/PriceFilter";
@@ -71,6 +71,8 @@ const ProductsContent: React.FC = () => {
     // Track if we need to update URL (only after user actions)
     const [shouldUpdateUrl, setShouldUpdateUrl] = useState<boolean>(false);
 
+    const didMount = useRef(false);
+
     // Function to get display name for category
     const getCategoryName = (categoryId: string): string => {
         const categoryMap: Record<string, string> = {
@@ -98,7 +100,6 @@ const ProductsContent: React.FC = () => {
     const updateActiveFilters = useCallback(() => {
         const filters: Array<{ id: string; text: string }> = [];
 
-        // Add category filter if selected
         if (selectedCategory) {
             filters.push({
                 id: `category-${selectedCategory}`,
@@ -106,7 +107,6 @@ const ProductsContent: React.FC = () => {
             });
         }
 
-        // Add brand filters
         selectedBrands.forEach((brand) => {
             filters.push({
                 id: `brand-${brand}`,
@@ -114,7 +114,6 @@ const ProductsContent: React.FC = () => {
             });
         });
 
-        // Add subcategory filters
         if (subcategoryFilters) {
             Object.entries(subcategoryFilters).forEach(([key, values]) => {
                 values.forEach((value) => {
@@ -126,7 +125,6 @@ const ProductsContent: React.FC = () => {
             });
         }
 
-        // Add price filter
         if (priceRange[0] > 0 || priceRange[1] < 100_000_000) {
             const formatter = new Intl.NumberFormat("vi-VN", {
                 style: "currency",
@@ -138,7 +136,6 @@ const ProductsContent: React.FC = () => {
             });
         }
 
-        // Add rating filter
         if (selectedRating !== undefined) {
             filters.push({
                 id: "rating-filter",
@@ -155,7 +152,7 @@ const ProductsContent: React.FC = () => {
         subcategoryFilters,
     ]);
 
-    // Update URL parameters - only called when shouldUpdateUrl is true
+    // Only called when shouldUpdateUrl is true
     useEffect(() => {
         if (!shouldUpdateUrl) return;
 
@@ -172,7 +169,6 @@ const ProductsContent: React.FC = () => {
             params.set("minRating", selectedRating.toString());
         if (selectedCategory) params.set("category", selectedCategory);
 
-        // Add subcategory filters to URL if they exist
         if (subcategoryFilters && Object.keys(subcategoryFilters).length > 0) {
             params.set(
                 "subcategories",
@@ -181,7 +177,9 @@ const ProductsContent: React.FC = () => {
         }
 
         const query = params.toString();
-        router.push(`/products${query ? `?${query}` : ""}`);
+        router.replace(`/products${query ? `?${query}` : ""}`, {
+            scroll: false,
+        });
 
         // Reset the flag after updating URL
         setShouldUpdateUrl(false);
@@ -199,6 +197,11 @@ const ProductsContent: React.FC = () => {
 
     useEffect(() => {
         document.title = "B Store - Cửa hàng";
+
+        // Don't set shouldUpdateUrl on initial mount or filter changes
+        // Only update shouldUpdateUrl in user interaction handlers
+
+        // Load products only when filters change or on initial load
         loadProducts();
     }, [
         currentPage,
@@ -207,7 +210,7 @@ const ProductsContent: React.FC = () => {
         priceRange,
         selectedRating,
         sortBy,
-        subcategoryFilters, // Add subcategoryFilters as dependency
+        subcategoryFilters,
     ]);
 
     // Update active filters when relevant state changes
@@ -217,7 +220,7 @@ const ProductsContent: React.FC = () => {
 
     const loadProducts = async () => {
         setIsLoading(true);
-        setError(null); // Reset error state
+        setError(null);
         try {
             let response;
 
@@ -231,7 +234,7 @@ const ProductsContent: React.FC = () => {
                     priceRange[0] > 0 ? priceRange[0] : undefined,
                     priceRange[1] < 100_000_000 ? priceRange[1] : undefined,
                     selectedRating,
-                    subcategoryFilters, // Pass subcategory filters to API
+                    subcategoryFilters,
                 );
             } else {
                 // If no category, fetch all products
@@ -290,27 +293,27 @@ const ProductsContent: React.FC = () => {
         } else {
             setSelectedCategory(category);
         }
-        setCurrentPage(1); // Reset to first page
-        setSubcategoryFilters(undefined); // Clear subcategory filters when changing category
-        setShouldUpdateUrl(true); // Set flag to update URL
+        setCurrentPage(1);
+        setSubcategoryFilters(undefined);
+        setShouldUpdateUrl(true);
     };
 
     const handleBrandSelect = (brands: string[]) => {
         setSelectedBrands(brands);
-        setCurrentPage(1); // Reset to first page
-        setShouldUpdateUrl(true); // Set flag to update URL
+        setCurrentPage(1);
+        setShouldUpdateUrl(true);
     };
 
     const handlePriceChange = (minPrice: number, maxPrice: number) => {
         setPriceRange([minPrice, maxPrice]);
-        setCurrentPage(1); // Reset to first page
-        setShouldUpdateUrl(true); // Set flag to update URL
+        setCurrentPage(1);
+        setShouldUpdateUrl(true);
     };
 
     const handleRatingChange = (rating?: number) => {
         setSelectedRating(rating);
-        setCurrentPage(1); // Reset to first page
-        setShouldUpdateUrl(true); // Set flag to update URL
+        setCurrentPage(1);
+        setShouldUpdateUrl(true);
     };
 
     const handleFilteredProductsChange = (newFilteredProducts: any[]) => {
@@ -319,13 +322,13 @@ const ProductsContent: React.FC = () => {
 
     const handleSort = (sortOption: string) => {
         setSortBy(sortOption);
-        setCurrentPage(1); // Reset to first page
-        setShouldUpdateUrl(true); // Set flag to update URL
+        setCurrentPage(1);
+        setShouldUpdateUrl(true);
     };
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
-        setShouldUpdateUrl(true); // Set flag to update URL
+        setShouldUpdateUrl(true);
     };
 
     const handleRemoveFilter = (id: string) => {
@@ -343,7 +346,7 @@ const ProductsContent: React.FC = () => {
             const parts = id.split("-");
             if (parts.length >= 3) {
                 const key = parts[1];
-                const value = parts.slice(2).join("-"); // Handle values that might contain hyphens
+                const value = parts.slice(2).join("-");
 
                 setSubcategoryFilters((prev) => {
                     if (!prev || !prev[key]) return prev;
