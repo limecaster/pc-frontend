@@ -375,12 +375,10 @@ export async function searchProducts(
             url += `&minRating=${minRating}`;
         }
 
-        // Add category filter if provided
         if (category) {
             url += `&category=${encodeURIComponent(category)}`;
         }
 
-        // Add subcategory filters if provided
         if (subcategoryFilters && Object.keys(subcategoryFilters).length > 0) {
             const subcategoriesParam = encodeURIComponent(
                 JSON.stringify(subcategoryFilters),

@@ -64,7 +64,6 @@ const SearchResultsContent: React.FC = () => {
         initialRating,
     );
     const [sortBy, setSortBy] = useState<string>(initialSortBy);
-    const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
     const [subcategoryFilters, setSubcategoryFilters] = useState<
         Record<string, string[]> | undefined
     >(initialSubcategoryFilters);
@@ -237,13 +236,6 @@ const SearchResultsContent: React.FC = () => {
         updateActiveFilters();
     }, [updateActiveFilters]);
 
-    // Update filtered products when main products change
-    useEffect(() => {
-        if (products.length > 0) {
-            setFilteredProducts(products);
-        }
-    }, [products]);
-
     const fetchSearchResults = async () => {
         if (!searchQuery) return;
 
@@ -261,7 +253,6 @@ const SearchResultsContent: React.FC = () => {
                 selectedCategory,
                 subcategoryFilters,
             );
-
             // Apply sorting if needed
             let finalProducts = [...results.products];
             if (sortBy !== "featured") {
@@ -365,8 +356,8 @@ const SearchResultsContent: React.FC = () => {
         } else {
             setSelectedCategory(category);
         }
-        setCurrentPage(1); // Reset to first page
-        setSubcategoryFilters(undefined); // Clear subcategory filters when changing category
+        setCurrentPage(1);
+        setSubcategoryFilters(undefined);
         setShouldUpdateUrl(true);
     };
 
@@ -392,10 +383,6 @@ const SearchResultsContent: React.FC = () => {
         setSortBy(sortOption);
         setCurrentPage(1);
         setShouldUpdateUrl(true);
-    };
-
-    const handleFilteredProductsChange = (newFilteredProducts: any[]) => {
-        setFilteredProducts(newFilteredProducts);
     };
 
     const handlePageChange = (page: number) => {
@@ -432,12 +419,11 @@ const SearchResultsContent: React.FC = () => {
             </div>
 
             {/* Right Column - Products - flexible width */}
-            <div className="flex-1 min-w-0 drop-shadow-lg rounded-lg bg-white p-4">
+            <div className="flex-1 min-w-0 drop-shadow-lg rounded-lg bg-white p-4 border border-gray-200">
                 {/* Search and Sort */}
                 <SearchSort
                     initialQuery={searchQuery}
                     products={products}
-                    onFilteredProductsChange={handleFilteredProductsChange}
                     onSort={handleSort}
                 />
 
@@ -462,7 +448,7 @@ const SearchResultsContent: React.FC = () => {
                     <div className="flex justify-center items-center h-64 mt-6">
                         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
                     </div>
-                ) : filteredProducts.length === 0 ? (
+                ) : products.length === 0 ? (
                     <div className="flex flex-col justify-center items-center h-64 mt-6">
                         <div className="text-lg text-gray-500">
                             Không tìm thấy sản phẩm phù hợp
@@ -477,7 +463,7 @@ const SearchResultsContent: React.FC = () => {
                 ) : (
                     <div className="mt-6">
                         <ProductGrid
-                            products={filteredProducts}
+                            products={products}
                             isLoading={isLoading}
                         />
                     </div>
