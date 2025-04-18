@@ -1,5 +1,5 @@
 import { API_URL } from "@/config/constants";
-import { ProductDetailsDto } from "@/types/product"; // Add this import
+import { ProductDetailsDto } from "@/types/product";
 
 /**
  * Fetch all available product brands
@@ -144,6 +144,7 @@ export async function fetchAllProducts(
     minRating?: number,
 ) {
     try {
+        console.log("Fetching all products...");
         let url = `${API_URL}/products/all?page=${page}&limit=${limit}`;
 
         if (brands && brands.length > 0) {
@@ -339,6 +340,8 @@ export async function fetchNewProducts() {
  * @param minPrice Optional minimum price filter
  * @param maxPrice Optional maximum price filter
  * @param minRating Optional minimum rating filter (1-5)
+ * @param category Optional category filter
+ * @param subcategoryFilters Optional subcategory filters (e.g., {socket: ['LGA1700']})
  * @returns Promise with search results and pagination info
  */
 export async function searchProducts(
@@ -349,8 +352,11 @@ export async function searchProducts(
     minPrice?: number,
     maxPrice?: number,
     minRating?: number,
+    category?: string | null,
+    subcategoryFilters?: Record<string, string[]>,
 ) {
     try {
+        console.log("Searching products...");
         let url = `${API_URL}/products/search?query=${encodeURIComponent(
             query,
         )}&page=${page}&limit=${limit}`;
@@ -369,6 +375,19 @@ export async function searchProducts(
 
         if (minRating !== undefined) {
             url += `&minRating=${minRating}`;
+        }
+
+        // Add category filter if provided
+        if (category) {
+            url += `&category=${encodeURIComponent(category)}`;
+        }
+
+        // Add subcategory filters if provided
+        if (subcategoryFilters && Object.keys(subcategoryFilters).length > 0) {
+            const subcategoriesParam = encodeURIComponent(
+                JSON.stringify(subcategoryFilters),
+            );
+            url += `&subcategories=${subcategoriesParam}`;
         }
 
         const response = await fetch(url, {
