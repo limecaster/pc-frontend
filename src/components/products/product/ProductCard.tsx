@@ -40,32 +40,23 @@ const ProductCard: React.FC<ProductCardProps> = ({
     const router = useRouter();
     const [isHovered, setIsHovered] = useState(false);
     const [hoveredButton, setHoveredButton] = useState<string | null>(null);
-
-    // Local state for price calculations
     const [localOriginalPrice, setLocalOriginalPrice] = useState<
         number | undefined
     >(originalPrice);
-
-    // Wishlist integration
     const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
     const inWishlist = isInWishlist(id);
 
-    // Extract price from product name if needed (client-side fallback)
     useEffect(() => {
-        // Don't override if backend already provided an original price
         if (originalPrice !== undefined) {
             setLocalOriginalPrice(originalPrice);
             return;
         }
 
-        // Special handling for test product names with price in the name
         if (name && name.includes(" VND")) {
             try {
                 const priceMatch = name.match(/(\d+)\s+VND/);
                 if (priceMatch && priceMatch[1]) {
                     const extractedPrice = parseInt(priceMatch[1], 10);
-
-                    // If current price is lower than extracted price, use extracted price as original
                     if (extractedPrice && price < extractedPrice) {
                         setLocalOriginalPrice(extractedPrice);
                     }
@@ -76,22 +67,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
         }
     }, [name, price, originalPrice]);
 
-    // Format price function
     const formattedPrice = new Intl.NumberFormat("vi-VN").format(price) + "đ";
-
-    // Calculate effective original price and discount information
     const effectiveOriginalPrice = originalPrice || localOriginalPrice;
     const effectiveDiscountPercentage = discountPercentage;
     const effectiveDiscountSource = discountSource;
-
-    // Determine if we're using a fixed amount discount
     const isFixedDiscount = discountType === "fixed";
 
     const formattedOriginalPrice = effectiveOriginalPrice
         ? new Intl.NumberFormat("vi-VN").format(effectiveOriginalPrice) + "đ"
         : null;
 
-    // Calculate discount differences
     const priceDifference =
         effectiveOriginalPrice && effectiveOriginalPrice > price
             ? effectiveOriginalPrice - price
@@ -102,27 +87,22 @@ const ProductCard: React.FC<ProductCardProps> = ({
             ? (priceDifference / effectiveOriginalPrice) * 100
             : 0;
 
-    // Determine if we should show discount
     const hasDiscount =
         isDiscounted ||
         (effectiveOriginalPrice !== undefined &&
             effectiveOriginalPrice > price);
 
-    // Show badge for higher discounts
     const showBadge =
         hasDiscount &&
         ((effectiveDiscountPercentage && effectiveDiscountPercentage > 0) ||
             percentDifference >= 0.1);
 
-    // Calculate display discount - for percentage discounts show at least 1%
     const displayDiscount =
         effectiveDiscountPercentage ||
         (priceDifference > 0 ? Math.max(1, Math.round(percentDifference)) : 0);
 
-    // Handler for wishlist toggle
     const handleWishlistToggle = async (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent card click
-
+        e.stopPropagation();
         if (inWishlist) {
             await removeFromWishlist(id);
         } else {
@@ -130,19 +110,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
         }
     };
 
-    // Handler for adding to cart
     const handleAddToCart = async (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent card click
-
+        e.stopPropagation();
         try {
-            // Use addToCartAndSync instead of direct localStorage manipulation
-            // This ensures tracking is always triggered regardless of auth status
-            const result = await addToCartAndSync(id, 1);
-
-            // Show success notification
-            toast.success(`Đã thêm sản phẩm vào giỏ hàng!`, {
-                duration: 3000,
-            });
+            await addToCartAndSync(id, 1);
+            toast.success(`Đã thêm sản phẩm vào giỏ hàng!`, { duration: 3000 });
         } catch (error) {
             console.error("Error adding to cart:", error);
             toast.error("Không thể thêm vào giỏ hàng. Vui lòng thử lại!");
@@ -150,7 +122,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
     };
 
     const handleProductClick = () => {
-        // Track the product click before navigation
         trackProductClick(id, {
             name,
             price,
@@ -162,14 +133,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
             rating,
             reviewCount,
         });
-
         router.push(`/product/${id}`);
     };
 
     const handleQuickView = (e: React.MouseEvent) => {
         e.stopPropagation();
-
-        // Track quick view click
         trackProductClick(id, {
             name,
             price,
@@ -182,17 +150,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
             reviewCount,
             interactionType: "quick_view",
         });
-
         router.push(`/product/${id}`);
     };
 
-    // Render stars with decimal support
     const renderStars = () => {
         const stars = [];
         const fullStars = Math.floor(rating);
         const hasHalfStar = rating % 1 >= 0.5;
 
-        // Render full stars
         for (let i = 0; i < fullStars; i++) {
             stars.push(
                 <span key={`full-${i}`} className="text-secondary">
@@ -201,7 +166,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
             );
         }
 
-        // Render half star if needed
         if (hasHalfStar) {
             stars.push(
                 <span key="half" className="relative inline-block">
@@ -216,7 +180,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
             );
         }
 
-        // Render remaining empty stars
         const remainingStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
         for (let i = 0; i < remainingStars; i++) {
             stars.push(
@@ -229,7 +192,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
         return stars;
     };
 
-    // Refine the price display function for better discount handling
     const priceDisplay = () => {
         if (price === 0) {
             return (
@@ -239,9 +201,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             );
         }
 
-        // Handle discount display with appropriate formatting
         if (hasDiscount) {
-            // Format the discount badge differently based on discount source
             const discountBadge = () => {
                 if (effectiveDiscountSource === "automatic") {
                     return (
@@ -272,7 +232,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     {priceDifference > 0 && (
                         <span className="text-xs text-rose-500 font-medium mt-1">
                             {isFixedDiscount ? (
-                                // For fixed amount discounts
                                 <>
                                     Tiết kiệm{" "}
                                     {new Intl.NumberFormat("vi-VN").format(
@@ -281,7 +240,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
                                     đ
                                 </>
                             ) : (
-                                // For percentage discounts
                                 <>
                                     Tiết kiệm {displayDiscount}%
                                     <span className="ml-1">
@@ -299,7 +257,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
             );
         }
 
-        // No discount case
         return (
             <span className="font-bold text-base text-primary">
                 {formattedPrice}
@@ -314,9 +271,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             onMouseLeave={() => setIsHovered(false)}
             onClick={handleProductClick}
         >
-            {/* Image section with hover overlay */}
             <div className="relative aspect-square overflow-hidden">
-                {/* Show discount badge */}
                 {showBadge && (
                     <div
                         className={`absolute top-2 right-2 z-10 bg-rose-500 text-white text-xs font-bold px-2 py-1 rounded-full`}
@@ -327,13 +282,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     </div>
                 )}
 
-                {/* Automatic discount badge
-                {effectiveDiscountSource === "automatic" && (
-                    <div className="absolute top-2 left-2 z-10 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                        Auto
-                    </div>
-                )} */}
-
                 <Image
                     src={imageUrl}
                     alt={name}
@@ -343,14 +291,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     className="object-cover object-center transition-transform duration-300 hover:scale-105"
                 />
 
-                {/* Dark overlay on hover */}
                 <div
                     className={`absolute inset-0 bg-black transition-opacity duration-300 ${
                         isHovered ? "opacity-60" : "opacity-0"
                     }`}
                 />
 
-                {/* Action buttons */}
                 <div
                     className={`absolute inset-0 flex items-center justify-center gap-4 transition-opacity duration-300 ${
                         isHovered
@@ -423,9 +369,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 </div>
             </div>
 
-            {/* Product details */}
             <div className="p-4 flex flex-col gap-2">
-                {/* Rating and reviews */}
                 <div className="flex items-center gap-2">
                     <div className="flex text-sm">{renderStars()}</div>
                     <span className="text-xs text-gray-500">
@@ -433,14 +377,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     </span>
                 </div>
 
-                {/* Product name with tooltip */}
                 <Tooltip content={name}>
                     <h3 className="text-sm font-medium text-gray-900 line-clamp-2 h-10 cursor-default">
                         {name}
                     </h3>
                 </Tooltip>
 
-                {/* Price display section */}
                 <div className="flex flex-col">{priceDisplay()}</div>
             </div>
         </div>

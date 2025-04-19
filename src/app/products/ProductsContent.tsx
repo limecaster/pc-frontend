@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import CategoryFilter from "@/components/products/filters/CategoryFilter";
 import PriceFilter from "@/components/products/filters/PriceFilter";
 import BrandFilter from "@/components/products/filters/BrandFilter";
@@ -14,8 +14,10 @@ import { fetchProductsByCategory, fetchAllProducts } from "@/api/product";
 
 const ProductsContent: React.FC = () => {
     const searchParams = useSearchParams();
-    const router = useRouter();
-
+    useEffect(() => {
+        console.log("🔵 ProductsContent mounted");
+        return () => console.log("🔴 ProductsContent unmounted");
+    }, []);
     // Get query parameters
     const initialPage = searchParams.get("page")
         ? Number(searchParams.get("page"))
@@ -152,7 +154,7 @@ const ProductsContent: React.FC = () => {
         subcategoryFilters,
     ]);
 
-    // Only called when shouldUpdateUrl is true
+    // Only called when shouldUpdateUrl is true: update URL and reload products
     useEffect(() => {
         if (!shouldUpdateUrl) return;
 
@@ -177,41 +179,32 @@ const ProductsContent: React.FC = () => {
         }
 
         const query = params.toString();
-        router.replace(`/products${query ? `?${query}` : ""}`, {
-            scroll: false,
-        });
+        // only update the URL in‐place, no Next.js navigation/reload
+        window.history.replaceState(
+            {},
+            "",
+            `/products${query ? `?${query}` : ""}`,
+        );
 
         // Reset the flag after updating URL
         setShouldUpdateUrl(false);
-    }, [
-        shouldUpdateUrl,
-        router,
-        currentPage,
-        sortBy,
-        priceRange,
-        selectedBrands,
-        selectedRating,
-        selectedCategory,
-        subcategoryFilters,
-    ]);
-
-    useEffect(() => {
-        document.title = "B Store - Cửa hàng";
-
-        // Don't set shouldUpdateUrl on initial mount or filter changes
-        // Only update shouldUpdateUrl in user interaction handlers
-
-        // Load products only when filters change or on initial load
         loadProducts();
     }, [
+        shouldUpdateUrl,
         currentPage,
-        selectedCategory,
-        selectedBrands,
-        priceRange,
-        selectedRating,
         sortBy,
+        priceRange,
+        selectedBrands,
+        selectedRating,
+        selectedCategory,
         subcategoryFilters,
     ]);
+
+    // Initial mount only: set title and fetch once
+    useEffect(() => {
+        document.title = "B Store - Cửa hàng";
+        loadProducts();
+    }, []);
 
     // Update active filters when relevant state changes
     useEffect(() => {
@@ -223,7 +216,7 @@ const ProductsContent: React.FC = () => {
         setError(null);
         try {
             let response;
-
+            console.log("🔵 ProductsContent call load product");
             if (selectedCategory) {
                 // If category selected, fetch products for that category
                 response = await fetchProductsByCategory(
@@ -277,7 +270,7 @@ const ProductsContent: React.FC = () => {
             setTotalPages(response.pages);
         } catch (error) {
             console.error("Error loading products:", error);
-            setError("Failed to load products. Please try again.");
+            setError("Lỗi khi tải sản phẩm. Vui lòng thử lại sau.");
             setProducts([]);
             setFilteredProducts([]);
             setTotalResults(0);
