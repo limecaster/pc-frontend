@@ -19,11 +19,28 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fetchAdvancedRecommendations } from "@/api/recommend-products";
 import { ProductDetailsDto } from "@/types/product";
 import { getHotSalesProducts } from "@/api/hot-sales";
+import { fetchNewProducts } from "@/api/product";
 
 export default function HomePageContent() {
+    useEffect(() => {
+        document.title = "B Store - Trang chủ";
+    }, []);
+
     const router = useRouter();
     const searchParams = useSearchParams();
     const { login, isAuthenticated } = useAuth();
+
+    const loadProducts = async () => {
+        try {
+            const newProducts = await fetchNewProducts();
+            return newProducts;
+        } catch (error) {
+            console.error("Error fetching new products:", error);
+            return [];
+        }
+    };
+    const [products, setProducts] = useState<ProductDetailsDto[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const token = searchParams.get("token");
@@ -44,7 +61,19 @@ export default function HomePageContent() {
     }, [searchParams, login, router, isAuthenticated]);
 
     useEffect(() => {
-        document.title = "B Store - Trang chủ";
+        const fetchProducts = async () => {
+            try {
+                setLoading(true);
+                const newProducts = await loadProducts();
+                setProducts(newProducts);
+            } catch (error) {
+                console.error("Error fetching products:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProducts();
     }, []);
 
     return (
@@ -235,7 +264,11 @@ export default function HomePageContent() {
                                 </Link>
                             </div>
                             <div className="grid grid-cols-1 gap-4">
-                                <ProductGrid />
+                                <ProductGrid
+                                    products={products}
+                                    isLoading={loading}
+                                    page={1}
+                                />
                             </div>
                         </div>
                     </div>

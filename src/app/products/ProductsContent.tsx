@@ -14,10 +14,7 @@ import { fetchProductsByCategory, fetchAllProducts } from "@/api/product";
 
 const ProductsContent: React.FC = () => {
     const searchParams = useSearchParams();
-    useEffect(() => {
-        console.log("🔵 ProductsContent mounted");
-        return () => console.log("🔴 ProductsContent unmounted");
-    }, []);
+
     // Get query parameters
     const initialPage = searchParams.get("page")
         ? Number(searchParams.get("page"))
@@ -216,7 +213,7 @@ const ProductsContent: React.FC = () => {
         setError(null);
         try {
             let response;
-            console.log("🔵 ProductsContent call load product");
+
             if (selectedCategory) {
                 // If category selected, fetch products for that category
                 response = await fetchProductsByCategory(

@@ -1,10 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React from "react";
 import ProductCard from "./ProductCard";
-import {
-    fetchProductsByCategory,
-    fetchNewProducts,
-    batchLoadProductsWithDiscounts,
-} from "@/api/product";
 import { ProductDetailsDto } from "@/types/product";
 
 interface ProductGridProps {
@@ -15,16 +10,9 @@ interface ProductGridProps {
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({
-    category,
     products: propProducts,
     isLoading: propIsLoading,
-    page = 1,
 }) => {
-    useEffect(() => {
-        console.log("🔵 Products Grid mounted");
-        return () => console.log("🔴 Products Grid unmounted");
-    }, []);
-
     if (propIsLoading) {
         return (
             <div className="flex justify-center items-center h-64">
