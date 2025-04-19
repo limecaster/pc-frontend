@@ -38,6 +38,48 @@ export function useCart() {
         }
     }, [cartItems, loading]);
 
+    useEffect(() => {
+        // Function to clear old notification records (older than 24 hours)
+        const cleanupNotificationRecords = () => {
+            try {
+                const keys = ['removedCartItems', 'adjustedCartItems'];
+                const now = Date.now();
+                const expireTime = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+                
+                keys.forEach(key => {
+                    const recordStr = sessionStorage.getItem(key);
+                    if (recordStr) {
+                        const records = JSON.parse(recordStr);
+                        let modified = false;
+                        
+                        // Remove entries older than 24 hours
+                        Object.keys(records).forEach(id => {
+                            if (now - records[id].timestamp > expireTime) {
+                                delete records[id];
+                                modified = true;
+                            }
+                        });
+                        
+                        // Save back if modified
+                        if (modified) {
+                            sessionStorage.setItem(key, JSON.stringify(records));
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error cleaning up notification records:', error);
+            }
+        };
+        
+        // Run cleanup on initial load
+        cleanupNotificationRecords();
+        
+        // Set up interval to clean up regularly (every hour)
+        const interval = setInterval(cleanupNotificationRecords, 60 * 60 * 1000);
+        
+        return () => clearInterval(interval);
+    }, []);
+
     const loadCartData = async () => {
         setLoading(true);
         setError(null);
@@ -142,6 +184,17 @@ export function useCart() {
         cartItems: CartItem[],
     ): Promise<CartItem[]> => {
         try {
+            // Don't process empty carts
+            if (!cartItems || cartItems.length === 0) {
+                return [];
+            }
+        
+            // Track items that need quantity adjustment
+            const adjustedItems = new Set<string>();
+            // Track items that need to be removed due to being out of stock
+            const removedItems = new Set<string>();
+            const removedItemsInfo: {id: string, name: string}[] = [];
+            
             const freeProductIds = new Set(
                 cartItems
                     .filter(
@@ -155,6 +208,7 @@ export function useCart() {
 
             const productIds = cartItems.map((item) => item.id);
 
+            // Use the proper API endpoints from the ProductController
             const [stockQuantities, productsWithInfo] = await Promise.all([
                 getProductsStockQuantities(productIds),
                 getProductsWithDiscounts(productIds),
@@ -168,61 +222,159 @@ export function useCart() {
                 {} as Record<string, any>,
             );
 
-            const updatedCart = cartItems.map((item) => {
-                const productInfo = productInfoMap[item.id];
+            // First, identify items to be removed (zero stock)
+            cartItems.forEach(item => {
                 const stockQuantity = stockQuantities[item.id];
-
-                let updatedItem = { ...item };
-
-                if (stockQuantity !== undefined) {
-                    updatedItem.stock_quantity = stockQuantity;
-
-                    if (updatedItem.quantity > stockQuantity) {
-                        updatedItem.quantity = Math.max(1, stockQuantity);
-                        toast.error(
-                            `Số lượng sản phẩm "${item.name}" đã được điều chỉnh do hàng tồn kho không đủ.`,
-                        );
-                    }
+                // If stock is 0 or undefined, mark for removal
+                if (stockQuantity !== undefined && stockQuantity <= 0) {
+                    removedItems.add(item.id);
+                    removedItemsInfo.push({
+                        id: item.id,
+                        name: item.name
+                    });
                 }
+            });
 
-                if (productInfo) {
-                    if (freeProductIds.has(item.id)) {
-                        updatedItem = {
-                            ...updatedItem,
-                            price: 0,
-                            originalPrice:
-                                productInfo.price || item.originalPrice || 0,
-                            category:
-                                productInfo.category || item.category || "",
-                            categoryNames:
+            // Create updated cart with items that have stock > 0
+            const updatedCart = cartItems
+                .filter(item => !removedItems.has(item.id))
+                .map((item) => {
+                    const productInfo = productInfoMap[item.id];
+                    const stockQuantity = stockQuantities[item.id];
+
+                    let updatedItem = { ...item };
+
+                    if (stockQuantity !== undefined) {
+                        updatedItem.stock_quantity = stockQuantity;
+
+                        if (updatedItem.quantity > stockQuantity) {
+                            updatedItem.quantity = Math.max(1, stockQuantity);
+                            // Only add the item to the adjusted set if we're reducing quantity
+                            adjustedItems.add(item.id);
+                        }
+                    }
+
+                    if (productInfo) {
+                        if (freeProductIds.has(item.id)) {
+                            updatedItem = {
+                                ...updatedItem,
+                                price: 0,
+                                originalPrice:
+                                    productInfo.price || item.originalPrice || 0,
+                                category:
+                                    productInfo.category || item.category || "",
+                                categoryNames:
+                                    Array.isArray(productInfo.categories) &&
+                                    productInfo.categories.length > 0
+                                        ? productInfo.categories
+                                        : productInfo.category
+                                          ? [productInfo.category]
+                                          : [],
+                                discountSource: item.discountSource || "automatic",
+                                discountType: item.discountType || "fixed",
+                            };
+                        } else {
+                            updatedItem.price = productInfo.price || item.price;
+                            updatedItem.category =
+                                productInfo.category || item.category || "";
+                            updatedItem.categoryNames =
                                 Array.isArray(productInfo.categories) &&
                                 productInfo.categories.length > 0
                                     ? productInfo.categories
                                     : productInfo.category
                                       ? [productInfo.category]
-                                      : [],
-                            discountSource: item.discountSource || "automatic",
-                            discountType: item.discountType || "fixed",
+                                      : [];
+                            updatedItem.originalPrice = productInfo.originalPrice;
+                            updatedItem.discountSource = productInfo.discountSource;
+                            updatedItem.discountType = productInfo.discountType;
+                        }
+                    }
+
+                    return updatedItem;
+                });
+            
+            // Avoid multiple toast notifications for the same event by saving removed items
+            // to sessionStorage and only showing the notification once
+            if (removedItemsInfo.length > 0) {
+                const sessionKey = 'removedCartItems';
+                // Try to get previously removed items
+                const previouslyRemovedStr = sessionStorage.getItem(sessionKey);
+                const previouslyRemoved = previouslyRemovedStr 
+                    ? JSON.parse(previouslyRemovedStr) 
+                    : {};
+                
+                // Filter out items that were already notified
+                const newRemovedItems = removedItemsInfo.filter(
+                    item => !previouslyRemoved[item.id]
+                );
+                
+                // Update the removed items in session storage
+                if (newRemovedItems.length > 0) {
+                    newRemovedItems.forEach(item => {
+                        previouslyRemoved[item.id] = {
+                            name: item.name,
+                            timestamp: Date.now()
                         };
-                    } else {
-                        updatedItem.price = productInfo.price || item.price;
-                        updatedItem.category =
-                            productInfo.category || item.category || "";
-                        updatedItem.categoryNames =
-                            Array.isArray(productInfo.categories) &&
-                            productInfo.categories.length > 0
-                                ? productInfo.categories
-                                : productInfo.category
-                                  ? [productInfo.category]
-                                  : [];
-                        updatedItem.originalPrice = productInfo.originalPrice;
-                        updatedItem.discountSource = productInfo.discountSource;
-                        updatedItem.discountType = productInfo.discountType;
+                    });
+                    
+                    // Save back to session storage
+                    sessionStorage.setItem(sessionKey, JSON.stringify(previouslyRemoved));
+                    
+                    // Show notification only for newly removed items
+                    if (newRemovedItems.length === 1) {
+                        toast.error(
+                            `Sản phẩm "${newRemovedItems[0].name}" đã hết hàng và đã bị xóa khỏi giỏ hàng.`
+                        );
+                    } else if (newRemovedItems.length > 1) {
+                        const itemNames = newRemovedItems.map(item => `"${item.name}"`).join(", ");
+                        toast.error(
+                            `Một số sản phẩm (${itemNames}) đã hết hàng và đã bị xóa khỏi giỏ hàng.`
+                        );
                     }
                 }
-
-                return updatedItem;
-            });
+            }
+            
+            // Similarly, prevent repeated adjustment notifications
+            if (adjustedItems.size > 0) {
+                const sessionKey = 'adjustedCartItems';
+                // Try to get previously adjusted items
+                const previouslyAdjustedStr = sessionStorage.getItem(sessionKey);
+                const previouslyAdjusted = previouslyAdjustedStr 
+                    ? JSON.parse(previouslyAdjustedStr) 
+                    : {};
+                
+                // Filter adjusted items that weren't already notified
+                const itemsToNotify = Array.from(adjustedItems).filter(
+                    id => !previouslyAdjusted[id]
+                );
+                
+                if (itemsToNotify.length > 0) {
+                    // Update session storage with new adjustments
+                    itemsToNotify.forEach(id => {
+                        previouslyAdjusted[id] = {
+                            timestamp: Date.now()
+                        };
+                    });
+                    
+                    // Save back to session storage
+                    sessionStorage.setItem(sessionKey, JSON.stringify(previouslyAdjusted));
+                    
+                    const adjustedItemNames = updatedCart
+                        .filter(item => itemsToNotify.includes(item.id))
+                        .map(item => `"${item.name}"`)
+                        .join(", ");
+                    
+                    if (itemsToNotify.length === 1) {
+                        toast.error(
+                            `Số lượng sản phẩm ${adjustedItemNames} đã được điều chỉnh do hàng tồn kho không đủ.`
+                        );
+                    } else if (itemsToNotify.length > 1) {
+                        toast.error(
+                            `Số lượng của ${itemsToNotify.length} sản phẩm (${adjustedItemNames}) đã được điều chỉnh do hàng tồn kho không đủ.`
+                        );
+                    }
+                }
+            }
 
             return updatedCart;
         } catch (error) {
@@ -417,25 +569,64 @@ export function useCart() {
         return false;
     };
 
+    const handleUpdateQuantity = async (id: string, newQuantity: number) => {
+        // First, update the local display for immediate feedback
+        const item = cartItems.find((item) => item.id === id);
+        if (!item) return;
+
+        // Handle removing items with zero quantity
+        if (newQuantity < 1) {
+            await removeItem(id);
+            return;
+        }
+
+        // Check for zero stock items - auto remove them
+        if (item.stock_quantity !== undefined && item.stock_quantity <= 0) {
+            toast.error(`Sản phẩm "${item.name}" đã hết hàng và đã bị xóa khỏi giỏ hàng.`);
+            await removeItem(id);
+            return;
+        }
+
+        // Don't allow exceeding stock quantity
+        if (item.stock_quantity !== undefined && newQuantity > item.stock_quantity) {
+            toast.error(`Số lượng tối đa có thể mua là ${item.stock_quantity}`);
+            newQuantity = item.stock_quantity;
+        }
+
+        // Skip redundant updates
+        if (newQuantity === item.quantity) return;
+
+        // Handle asynchronous update
+        await updateQuantity(id, newQuantity);
+    };
+
     const updateQuantity = async (id: string, newQuantity: number) => {
-        if (newQuantity < 1) return;
+        if (newQuantity < 1) {
+            removeItem(id);
+            return;
+        }
 
         const item = cartItems.find((item) => item.id === id);
         if (!item) return;
 
-        const isItemFree =
-            item.price <= 0 && item.originalPrice && item.originalPrice > 0;
         const currentQuantity = item.quantity;
-
-        if (
-            item.stock_quantity !== undefined &&
-            newQuantity > item.stock_quantity
-        ) {
-            newQuantity = Math.max(
-                1,
-                Math.min(newQuantity, item.stock_quantity),
-            );
-            toast.error(`Số lượng tối đa có thể mua là ${item.stock_quantity}`);
+        const isItemFree = item.price <= 0 && item.originalPrice !== undefined;
+        
+        // Check stock quantity before updating
+        if (item.stock_quantity !== undefined) {
+            // Don't allow exceeding available stock
+            if (newQuantity > item.stock_quantity) {
+                toast.error(`Số lượng tối đa có thể mua là ${item.stock_quantity}`);
+                // Set to maximum available instead of rejecting the update completely
+                newQuantity = item.stock_quantity;
+                
+                // If zero stock available, show different message and remove item
+                if (item.stock_quantity <= 0) {
+                    toast.error(`Sản phẩm "${item.name}" đã hết hàng và sẽ bị xóa khỏi giỏ hàng.`);
+                    removeItem(id);
+                    return;
+                }
+            }
         }
 
         const updatedCartItems = cartItems.map((cartItem) =>
@@ -501,28 +692,52 @@ export function useCart() {
                 }
             }, 1000);
         }
+        
+        // Dispatch custom event for cart update
+        const cartUpdatedEvent = new CustomEvent("cart-updated", {
+            detail: updatedCartItems,
+        });
+        window.dispatchEvent(cartUpdatedEvent);
     };
 
     const removeItem = async (id: string) => {
+        // Optimistic update - immediately update UI
+        const itemToRemove = cartItems.find(item => item.id === id);
         const updatedCart = cartItems.filter((item) => item.id !== id);
+        
+        // Update state and localStorage immediately
         setCartItems(updatedCart);
         localStorage.setItem("cart", JSON.stringify(updatedCart));
 
+        // Dispatch custom event for cart updated
+        const cartUpdatedEvent = new CustomEvent("cart-updated", {
+            detail: updatedCart,
+        });
+        window.dispatchEvent(cartUpdatedEvent);
+
+        // Only try server sync if authenticated
         if (isAuthenticated) {
             try {
                 await removeCartItem(id);
             } catch (error) {
                 console.error("Failed to remove item from server cart:", error);
-                toast.error(
-                    "Không thể xóa sản phẩm khỏi giỏ hàng trên máy chủ.",
-                );
+                
+                // If the error isn't just because the item isn't in the cart, show error
+                if (error instanceof Error && 
+                    !error.message.includes("Item not in cart") && 
+                    !error.message.includes("not found in server cart")) {
+                    toast.error(
+                        "Không thể xóa sản phẩm khỏi giỏ hàng trên máy chủ."
+                    );
+                }
 
+                // Try background sync with a delay
                 setTimeout(() => {
                     ensureServerCartSync(updatedCart).catch((err) =>
                         console.error(
                             "Background sync after removal failed:",
-                            err,
-                        ),
+                            err
+                        )
                     );
                 }, 1000);
             }
@@ -542,7 +757,7 @@ export function useCart() {
         loading,
         error,
         isAuthenticated,
-        updateQuantity,
+        handleUpdateQuantity,
         removeItem,
         subtotal,
         shippingFee,

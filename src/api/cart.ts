@@ -90,26 +90,6 @@ export async function addToCart(productId: string, quantity: number = 1) {
 }
 
 /**
- * Helper function to get product price for validation
- * @param productId The product ID to check
- * @returns Promise with the product price
- */
-async function getProductPrice(
-    productId: string,
-): Promise<{ price: number } | null> {
-    try {
-        const response = await fetch(`${API_URL}/products/${productId}`);
-        if (!response.ok) return null;
-
-        const product = await response.json();
-        return { price: product.price };
-    } catch (error) {
-        console.error("Error getting product price:", error);
-        return null;
-    }
-}
-
-/**
  * Add a single product to the cart (local storage + backend if logged in)
  * @param productId The ID of the product to add
  * @param quantity The quantity to add
@@ -123,95 +103,176 @@ export async function addToCartAndSync(
         // First fetch the product to check stock
         const productResponse = await fetch(`${API_URL}/products/${productId}`);
         if (!productResponse.ok) {
-            throw new Error("Failed to fetch product details");
+            throw new Error("Failed to fetch product information");
         }
 
-        const product = await productResponse.json();
-
-        // Check if we have enough stock
-        if (product.stock_quantity < quantity) {
-            // Adjust quantity to available stock
-            quantity = Math.max(1, product.stock_quantity);
+        const productData = await productResponse.json();
+        
+        // Check if product exists and has stock information
+        // The response structure from the Product controller doesn't include a product wrapper
+        if (!productData) {
+            throw new Error("Product not found");
+        }
+        
+        // Get stock quantity - may be at the top level instead of nested in product
+        const stockQuantity = productData.stockQuantity || 0;
+        
+        // Check if product is out of stock
+        if (stockQuantity <= 0) {
+            throw new Error(
+                `Sản phẩm "${productData.name}" đã hết hàng.`,
+            );
         }
 
-        // First update local storage cart
+        // Get current cart to check for existing quantity
         const localCart = JSON.parse(localStorage.getItem("cart") || "[]");
-
-        // Check if product already exists in cart
-        const existingItemIndex = localCart.findIndex(
+        const existingItem = localCart.find(
             (item: any) => item.id === productId,
         );
 
-        if (existingItemIndex >= 0) {
-            // Calculate new quantity but respect stock limits
-            const newQuantity =
-                localCart[existingItemIndex].quantity + quantity;
-            localCart[existingItemIndex].quantity = Math.min(
-                newQuantity,
-                product.stock_quantity || Number.MAX_SAFE_INTEGER,
-            );
-            localCart[existingItemIndex].stock_quantity =
-                product.stock_quantity; // Update stock info
+        // Calculate total requested quantity (existing + new)
+        const totalRequestedQuantity =
+            (existingItem ? existingItem.quantity : 0) + quantity;
 
-            // Include category information when updating existing item
-            if (
-                product.category ||
-                (product.categories && product.categories.length > 0)
-            ) {
-                localCart[existingItemIndex].category = product.category || "";
-                localCart[existingItemIndex].categoryNames =
-                    product.categories ||
-                    (product.category ? [product.category] : []);
+        // Default to the requested quantity
+        let adjustedQuantity = quantity;
+
+        // Check if total quantity exceeds available stock
+        if (totalRequestedQuantity > stockQuantity) {
+            // Adjust quantity to maximum available
+            adjustedQuantity =
+                stockQuantity - (existingItem ? existingItem.quantity : 0);
+
+            if (adjustedQuantity <= 0) {
+                throw new Error(
+                    `Sản phẩm "${productData.name}" đã đạt số lượng tối đa có thể mua (${stockQuantity}).`,
+                );
+            }
+
+            // Update quantity to be added
+            quantity = adjustedQuantity;
+        }
+
+        const token = localStorage.getItem("token");
+
+        let updatedCart = [];
+
+        if (token) {
+            // User is logged in, add to server cart
+            try {
+                await addToCart(productId, quantity);
+                // Track the addition
+                trackAddToCart(productId, quantity, {
+                    name: productData.name,
+                    price: productData.price,
+                    imageUrl: productData.imageUrl,
+                });
+
+                // Fetch updated cart from server
+                const cartResponse = await getCart();
+                if (
+                    cartResponse &&
+                    cartResponse.cart &&
+                    cartResponse.cart.items
+                ) {
+                    updatedCart = cartResponse.cart.items.map((item: any) => ({
+                        id: item.productId,
+                        name: item.productName,
+                        price: item.price,
+                        quantity: item.quantity,
+                        imageUrl: item.imageUrl || "",
+                        stock_quantity:
+                            item.stockQuantity !== undefined
+                                ? item.stockQuantity
+                                : null,
+                    }));
+                }
+            } catch (error) {
+                console.error("Error adding to server cart:", error);
+
+                // Fall back to local cart if server operation fails
+                const localItem = {
+                    id: productId,
+                    name: productData.name,
+                    price: productData.price,
+                    quantity: quantity,
+                    imageUrl: productData.imageUrl || "",
+                    stock_quantity: stockQuantity,
+                };
+
+                const existingItemIndex = localCart.findIndex(
+                    (item: any) => item.id === productId,
+                );
+
+                if (existingItemIndex >= 0) {
+                    // Item exists, update quantity
+                    localCart[existingItemIndex].quantity += quantity;
+                } else {
+                    // New item
+                    localCart.push(localItem);
+                }
+
+                updatedCart = localCart;
+                localStorage.setItem("cart", JSON.stringify(updatedCart));
+
+                // Notify user about the adjusted quantity if applicable
+                if (adjustedQuantity && adjustedQuantity < quantity) {
+                    throw new Error(
+                        `Số lượng sản phẩm "${productData.name}" được điều chỉnh xuống ${adjustedQuantity} do hàng tồn kho giới hạn.`,
+                    );
+                }
             }
         } else {
-            // Add new product to cart with stock info and category information
-            localCart.push({
-                id: product.id,
-                name: product.name,
-                price: product.price,
-                imageUrl: product.imageUrl,
+            // User is not logged in, update local cart only
+            const localItem = {
+                id: productId,
+                name: productData.name,
+                price: productData.price,
                 quantity: quantity,
-                stock_quantity: product.stock_quantity,
-                // NEW: Include category information
-                category: product.category || "",
-                categoryNames:
-                    product.categories ||
-                    (product.category ? [product.category] : []),
+                imageUrl: productData.imageUrl || "",
+                stock_quantity: stockQuantity,
+            };
+
+            const existingItemIndex = localCart.findIndex(
+                (item: any) => item.id === productId,
+            );
+
+            if (existingItemIndex >= 0) {
+                // Item exists, update quantity without exceeding stock
+                localCart[existingItemIndex].quantity += quantity;
+
+                // Ensure we don't exceed stock quantity
+                if (localCart[existingItemIndex].quantity > stockQuantity) {
+                    localCart[existingItemIndex].quantity = stockQuantity;
+                }
+
+                // Update stock quantity info
+                localCart[existingItemIndex].stock_quantity = stockQuantity;
+            } else {
+                // New item
+                localCart.push(localItem);
+            }
+
+            updatedCart = localCart;
+            localStorage.setItem("cart", JSON.stringify(updatedCart));
+
+            // Track the addition even for anonymous users
+            trackAddToCart(productId, quantity, {
+                name: productData.name,
+                price: productData.price,
+                imageUrl: productData.imageUrl,
             });
         }
 
-        // Save updated cart to localStorage
-        localStorage.setItem("cart", JSON.stringify(localCart));
-
-        // Track the add to cart event
-        trackAddToCart(productId, quantity, {
-            name: product.name,
-            price: product.price,
-            originalPrice: product.originalPrice,
-            category: product.category,
-            brand: product.brand,
-            stock_quantity: product.stock_quantity,
+        // Dispatch custom event for cart update
+        const event = new CustomEvent("cart-updated", {
+            detail: updatedCart,
         });
+        window.dispatchEvent(event);
 
-        // If user is logged in, sync with the backend
-        const token = localStorage.getItem("token");
-        if (token) {
-            try {
-                await addToCart(productId, quantity);
-            } catch (error) {
-                console.error("Failed to sync cart with server:", error);
-                // Continue even if backend sync fails - we've already updated localStorage
-            }
-        }
-
-        // Return the updated cart items
-        return {
-            success: true,
-            cart: localCart,
-            message: "Product added to cart successfully",
-        };
-    } catch (error) {
-        console.error("Error adding to cart:", error);
+        return { success: true, cart: updatedCart };
+    } catch (error: any) {
+        console.error("Error in addToCartAndSync:", error);
         throw error;
     }
 }

@@ -485,7 +485,7 @@ export async function fetchAutomaticDiscounts(data: {
  * @param orderAmount The order amount
  * @param productIds Product IDs in the order
  * @param productPrices Product prices in the order
- * @returns Validation result
+ * @returns Promise with detailed validation result
  */
 export async function validateDiscount(
     code: string,
@@ -497,7 +497,12 @@ export async function validateDiscount(
     errorMessage?: string;
     discount?: Discount;
     discountAmount?: number;
+    automaticDiscounts?: Discount[];
     automaticDiscountAmount?: number;
+    totalDiscountAmount?: number;
+    betterDiscountType?: 'manual' | 'automatic';
+    appliedToProducts?: string[];
+    applicableAmount?: number;
 }> {
     try {
         const response = await fetch(`${API_URL}/discounts/validate`, {
@@ -515,10 +520,56 @@ export async function validateDiscount(
 
         if (!response.ok) {
             const error = await response.json();
+            console.error("Discount validation error:", error);
+            
+            // Return a more specific error message based on status code
+            if (response.status === 404) {
+                return {
+                    valid: false,
+                    errorMessage: "Discount code not found",
+                };
+            } else if (response.status === 400) {
+                return {
+                    valid: false,
+                    errorMessage: error.message || "Invalid discount parameters",
+                };
+            } else if (response.status === 403) {
+                return {
+                    valid: false,
+                    errorMessage: "You are not eligible for this discount",
+                };
+            }
+            
             throw new Error(error.message || "Failed to validate discount");
         }
 
-        return await response.json();
+        // Process the validation result
+        const validationResult = await response.json();
+        
+        // Calculate which products the discount applies to (for product-specific discounts)
+        if (validationResult.valid && 
+            validationResult.discount && 
+            validationResult.discount.targetType === "products" && 
+            validationResult.discount.productIds && 
+            productIds) {
+                
+            const appliedToProducts = productIds.filter(id => 
+                validationResult.discount?.productIds?.includes(id)
+            );
+            
+            // Add this information to the response
+            validationResult.appliedToProducts = appliedToProducts;
+            
+            // If we have product prices, calculate the applicable amount
+            if (productPrices && appliedToProducts.length > 0) {
+                const applicableAmount = appliedToProducts.reduce((sum, id) => 
+                    sum + (productPrices[id] || 0), 0
+                );
+                validationResult.applicableAmount = applicableAmount;
+            }
+        }
+
+        return validationResult;
     } catch (error) {
         console.error("Error validating discount:", error);
         return {

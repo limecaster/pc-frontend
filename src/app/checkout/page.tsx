@@ -20,6 +20,9 @@ const Checkout: React.FC = () => {
     // Retrieve discounts from localStorage
     useEffect(() => {
         const stored = localStorage.getItem("appliedDiscounts");
+        const checkoutData = localStorage.getItem("checkoutData");
+        
+        // Process discount information
         if (stored) {
             try {
                 const {
@@ -46,6 +49,19 @@ const Checkout: React.FC = () => {
                 console.error("Error parsing stored discounts:", error);
             }
         }
+        
+        // Check if we have detailed checkout data with discounted items
+        if (checkoutData) {
+            try {
+                const { cartItems } = JSON.parse(checkoutData);
+                // Store the discounted cart items to be used in the checkout
+                if (cartItems && Array.isArray(cartItems) && cartItems.length > 0) {
+                    localStorage.setItem("checkoutItems", JSON.stringify(cartItems));
+                }
+            } catch (error) {
+                console.error("Error parsing checkout data:", error);
+            }
+        }
     }, []);
 
     // Convert the API Discount type to the CheckoutPage expected format
@@ -57,6 +73,10 @@ const Checkout: React.FC = () => {
             discountName: apiDiscount.discountName,
             type: apiDiscount.type, // Include type for proper display
             discountAmount: apiDiscount.discountAmount, // Include amount for proper display
+            targetType: apiDiscount.targetType, // Include targeting information
+            productIds: apiDiscount.productIds, // For product-specific discounts
+            targetedProducts: apiDiscount.targetedProducts, // Names of targeted products
+            categoryNames: apiDiscount.categoryNames, // For category-specific discounts
         };
     };
 
@@ -65,6 +85,12 @@ const Checkout: React.FC = () => {
             id: d.id.toString(),
             discountCode: d.discountCode,
             discountName: d.discountName,
+            type: d.type,
+            discountAmount: d.discountAmount,
+            targetType: d.targetType,
+            productIds: d.productIds,
+            targetedProducts: d.targetedProducts,
+            categoryNames: d.categoryNames,
         }));
     };
 

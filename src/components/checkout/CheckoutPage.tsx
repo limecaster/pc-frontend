@@ -91,16 +91,63 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
     const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
     const [paymentAmount, setPaymentAmount] = useState<number>(0);
 
+    // Calculate subtotal based on current item prices, not discounted ones
     const subtotal = cartItems.reduce(
         (total, item) => total + item.price * item.quantity,
         0,
     );
+    
+    // Calculate actual total with discounts applied
+    const calculateFinalTotal = () => {
+        let calculatedSubtotal = subtotal;
+        // Subtract discount amount
+        if (totalDiscount > 0) {
+            calculatedSubtotal -= totalDiscount;
+        }
+        // Add delivery fee
+        if (deliveryFee > 0) {
+            calculatedSubtotal += deliveryFee;
+        }
+        return Math.max(0, calculatedSubtotal);
+    };
+    
     const deliveryFee = 0;
 
     useEffect(() => {
         const loadCart = async () => {
             setIsLoadingCart(true);
             try {
+                // First, check if we have discounted items from checkout data
+                const checkoutItems = localStorage.getItem("checkoutItems");
+                if (checkoutItems) {
+                    try {
+                        const parsedItems = JSON.parse(checkoutItems);
+                        if (Array.isArray(parsedItems) && parsedItems.length > 0) {
+                            setCartItems(parsedItems);
+                            setIsLoadingCart(false);
+                            return;
+                        }
+                    } catch (error) {
+                        console.error("Error parsing checkout items:", error);
+                    }
+                }
+                
+                // Check for checkout data which might have discounted items
+                const checkoutData = localStorage.getItem("checkoutData");
+                if (checkoutData) {
+                    try {
+                        const parsed = JSON.parse(checkoutData);
+                        if (parsed.cartItems && Array.isArray(parsed.cartItems) && parsed.cartItems.length > 0) {
+                            setCartItems(parsed.cartItems);
+                            setIsLoadingCart(false);
+                            return;
+                        }
+                    } catch (error) {
+                        console.error("Error parsing checkout data:", error);
+                    }
+                }
+                
+                // Fall back to regular cart loading
                 if (localStorage.getItem("token")) {
                     try {
                         const response = await getCart();
@@ -124,7 +171,8 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                                                 quantity: item.quantity || 1,
                                                 imageUrl:
                                                     item.imageUrl ||
-                                                    "/images/placeholder.png",
+                                                    "/images/image-placeholder.webp",
+                                                originalPrice: item.originalPrice,
                                             };
                                         } else if (item.product) {
                                             return {
@@ -144,7 +192,8 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                                                     (item.product.images &&
                                                         item.product
                                                             .images[0]) ||
-                                                    "/images/placeholder.png",
+                                                    "/images/image-placeholder.webp",
+                                                originalPrice: item.product.originalPrice,
                                             };
                                         } else {
                                             console.error(
@@ -437,7 +486,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 orderItems: orderItems,
                 subtotal: subtotal,
                 shippingFee: deliveryFee,
-                total: subtotal + deliveryFee - totalDiscount,
+                total: calculateFinalTotal(),
                 ...(totalDiscount > 0 && {
                     discountAmount: totalDiscount,
                     ...(isUsingManualDiscount &&

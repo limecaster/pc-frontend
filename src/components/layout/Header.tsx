@@ -16,6 +16,7 @@ import {
 import SearchBar from "@/components/ui/SearchBar";
 import { getLogo } from "@/api/logo";
 import { ContentSection } from "@/api/cms";
+import { getCart } from "@/api/cart";
 
 // Default logo path to use as fallback
 const DEFAULT_LOGO = "/logo.png";
@@ -38,17 +39,20 @@ const Header = () => {
 
     // Update cart count
     useEffect(() => {
-        // Fetch cart items from local storage
-        const cartItems = localStorage.getItem("cart");
-        if (cartItems) {
-            const items = JSON.parse(cartItems);
-            const count = items.reduce(
-                (acc: number, item: any) => acc + item.quantity,
-                0,
-            );
-            setCartCount(count);
-        }
-    }, []);
+        const fetchCart = async () => {
+            try {
+                const cartItems = await getCart();
+                if (cartItems) {
+                    setCartCount(cartItems.length);
+                } else {
+                    setCartCount(0);
+                }
+            } catch (error) {
+                console.error("Error fetching cart:", error);
+            }
+        };
+        fetchCart();
+    }, [isAuthenticated]);
 
     // Handle clicks outside of user menu
     useEffect(() => {
@@ -123,6 +127,8 @@ const Header = () => {
                     <div className="relative" ref={userMenuRef}>
                         <button
                             className="flex items-center gap-2 focus:outline-none"
+                            aria-label="User Account"
+                            type="button"
                             onClick={toggleUserMenu}
                         >
                             <FontAwesomeIcon

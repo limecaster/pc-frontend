@@ -566,51 +566,176 @@ export function useDiscount({
         });
     };
 
-    // Apply manual discount function
+    // Implement the missing applyManualDiscount function
     const applyManualDiscount = useCallback(
         (
             manualDiscount: Discount,
-            manualDiscountAmount: number,
-            targetedProducts: CartItem[] = [],
+            discountAmount: number,
+            targetedProducts: CartItem[] = []
         ) => {
-            setDiscount({
+            // Add targeted products information if applicable
+            const discountWithTargets = {
                 ...manualDiscount,
                 targetedProducts:
                     targetedProducts.length > 0
-                        ? targetedProducts.map((p) => p.name)
+                        ? targetedProducts.map((item) => item.name)
                         : undefined,
-            });
-            setAppliedCouponAmount(manualDiscountAmount);
+            };
+
+            // Set the discount and amount
+            setDiscount(discountWithTargets);
+            setAppliedCouponAmount(Math.min(discountAmount, subtotal));
+            setCouponCode(manualDiscount.discountCode);
+
+            // Clean up auto discounts since we're using manual now
             setAppliedAutomaticDiscounts([]);
             setTotalAutoDiscountAmount(0);
 
-            // Show appropriate notification
-            if (
-                targetedProducts.length > 0 &&
-                cartItems.length > targetedProducts.length
-            ) {
-                toast.custom(
-                    (t) => (
-                        <div className="bg-blue-500 p-3 rounded text-white">
-                            Mã giảm giá chỉ áp dụng cho:{" "}
-                            {targetedProducts.map((p) => p.name).join(", ")}
-                        </div>
-                    ),
-                    { duration: 5000 },
-                );
-            } else {
-                toast.success(
-                    `Đã áp dụng mã giảm giá: ${manualDiscount.discountName}`,
-                );
-            }
+            toast.success(
+                `Applied discount: ${manualDiscount.discountName} ${
+                    targetedProducts.length > 0
+                        ? `for ${targetedProducts.length} eligible item(s)`
+                        : ""
+                }`
+            );
         },
-        [cartItems.length],
+        [subtotal]
     );
 
-    // Handle apply coupon
+    // Enhanced validation function for checking discount applicability
+    const validateDiscountApplicability = useCallback(
+        async (code: string) => {
+            if (!code.trim()) {
+                return {
+                    valid: false,
+                    errorMessage: "Please enter a discount code",
+                };
+            }
+
+            try {
+                const productIds = cartItems.map((item) => item.id);
+                const categoryNames = Array.from(
+                    new Set(
+                        cartItems.flatMap((item) =>
+                            item.categoryNames && item.categoryNames.length > 0
+                                ? item.categoryNames
+                                : item.category
+                                  ? [item.category]
+                                  : []
+                        )
+                    )
+                );
+                const productPrices = getProductPricesMap();
+                const customerId = await getCurrentCustomerId();
+                const isFirstPurchase = await checkIfFirstPurchase();
+
+                // Call the API to validate
+                const validationResult = await validateDiscount(
+                    code,
+                    subtotal,
+                    productIds,
+                    productPrices
+                );
+
+                // If already invalid, return early
+                if (!validationResult.valid || !validationResult.discount) {
+                    return validationResult;
+                }
+
+                const discount = validationResult.discount;
+
+                // Additional client-side validations:
+
+                // Check date validity
+                const now = new Date();
+                const startDate = new Date(discount.startDate);
+                const endDate = new Date(discount.endDate);
+
+                if (now < startDate) {
+                    return {
+                        valid: false,
+                        errorMessage: `This discount is not active yet. Starts on ${startDate.toLocaleDateString()}`,
+                    };
+                }
+
+                if (now > endDate) {
+                    return {
+                        valid: false,
+                        errorMessage: "This discount has expired",
+                    };
+                }
+
+                // Check minimum order amount
+                if (discount.minOrderAmount && subtotal < discount.minOrderAmount) {
+                    return {
+                        valid: false,
+                        errorMessage: `Your order total must be at least ${formatCurrency(discount.minOrderAmount)}`,
+                    };
+                }
+
+                // Check product targeting
+                if (discount.targetType === "products" && discount.productIds && discount.productIds.length > 0) {
+                    const hasMatchingProduct = productIds.some((id) =>
+                        discount.productIds?.includes(id)
+                    );
+
+                    if (!hasMatchingProduct) {
+                        return {
+                            valid: false,
+                            errorMessage: "This discount doesn't apply to any items in your cart",
+                        };
+                    }
+                }
+
+                // Check category targeting
+                if (discount.targetType === "categories" && discount.categoryNames && discount.categoryNames.length > 0) {
+                    const hasMatchingCategory = categoryNames.some((name) =>
+                        discount.categoryNames?.includes(name)
+                    );
+
+                    if (!hasMatchingCategory) {
+                        return {
+                            valid: false,
+                            errorMessage: "This discount doesn't apply to any categories in your cart",
+                        };
+                    }
+                }
+
+                // Check customer targeting
+                if (discount.targetType === "customers" && discount.customerIds && discount.customerIds.length > 0) {
+                    if (!customerId || !discount.customerIds.includes(customerId)) {
+                        return {
+                            valid: false,
+                            errorMessage: "This discount is for specific customers only",
+                        };
+                    }
+                }
+
+                // Check first purchase restriction
+                if (discount.isFirstPurchaseOnly && !isFirstPurchase) {
+                    return {
+                        valid: false,
+                        errorMessage: "This discount is only for first-time purchases",
+                    };
+                }
+
+                // All checks passed
+                return validationResult;
+            } catch (error) {
+                console.error("Error validating discount:", error);
+                return {
+                    valid: false,
+                    errorMessage: "Failed to validate discount code",
+                };
+            }
+        },
+        [cartItems, subtotal, getProductPricesMap]
+    );
+
+    // Update handleApplyCoupon to use the enhanced validation
     const handleApplyCoupon = async () => {
         if (!couponCode.trim()) {
-            setCouponError("Vui lòng nhập mã giảm giá");
+            setCouponError("Please enter a discount code");
             return;
         }
 
@@ -618,19 +743,12 @@ export function useDiscount({
             setApplyingCoupon(true);
             setCouponError("");
 
-            const productIds = cartItems.map((item) => item.id);
-            const productPrices = getProductPricesMap();
-
-            const validationResult = await validateDiscount(
-                couponCode,
-                subtotal,
-                productIds,
-                productPrices,
-            );
+            // Use enhanced validation
+            const validationResult = await validateDiscountApplicability(couponCode);
 
             if (!validationResult.valid || !validationResult.discount) {
                 setCouponError(
-                    validationResult.errorMessage || "Mã giảm giá không hợp lệ",
+                    validationResult.errorMessage || "Invalid discount code"
                 );
                 return;
             }
@@ -656,7 +774,7 @@ export function useDiscount({
                 // If no eligible products found, show error
                 if (targetedProducts.length === 0) {
                     setCouponError(
-                        "Không có sản phẩm nào trong giỏ hàng phù hợp với mã giảm giá này",
+                        "No products in your cart are eligible for this discount"
                     );
                     setApplyingCoupon(false);
                     return;
@@ -683,7 +801,7 @@ export function useDiscount({
                 targetedProducts,
             );
         } catch (err: any) {
-            setCouponError(err.message || "Không thể áp dụng mã giảm giá");
+            setCouponError(err.message || "Failed to apply discount code");
             setDiscount(null);
             setAppliedCouponAmount(0);
         } finally {
@@ -720,11 +838,11 @@ export function useDiscount({
             toast.custom(
                 (t) => (
                     <div className="bg-amber-500 p-3 rounded text-white">
-                        Bạn đã chọn sử dụng mã giảm giá có giá trị thấp hơn
-                        khuyến mãi tự động
+                        You've chosen to use a manual discount with a lower value
+                        than the automatic discount
                     </div>
                 ),
-                { duration: 5000 },
+                { duration: 5000 }
             );
         }
         setShowConfirmModal(false);
@@ -735,7 +853,7 @@ export function useDiscount({
     const handleKeepAutomaticDiscount = useCallback(() => {
         if (pendingManualDiscount) {
             toast.success(
-                `Đã giữ lại khuyến mãi tự động với mức giảm: ${formatCurrency(pendingManualDiscount.autoAmount)}`,
+                `Kept automatic discount with a higher value: ${formatCurrency(pendingManualDiscount.autoAmount)}`
             );
         }
         setShowConfirmModal(false);

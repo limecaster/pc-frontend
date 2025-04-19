@@ -39,6 +39,7 @@ const CartItem: React.FC<CartItemProps> = ({
     // IMPROVED: Add local state to prevent UI lag
     const [localQuantity, setLocalQuantity] = React.useState(quantity);
     const [isUpdating, setIsUpdating] = React.useState(false);
+    const [isRemoving, setIsRemoving] = React.useState(false);
 
     // Update local state when prop changes
     React.useEffect(() => {
@@ -147,11 +148,29 @@ const CartItem: React.FC<CartItemProps> = ({
         }
     };
 
-    // Add a calculated total for the row that handles free items properly
-    const rowTotal =
-        price <= 0
-            ? 0 // If item is free, row total is 0
-            : price * quantity;
+    // Simplify the remove handler since tracking is now in the API
+    const handleRemove = async () => {
+        // Set removing state immediately to visually indicate removal
+        setIsRemoving(true);
+        
+        try {
+            // Call the parent remove function
+            await onRemove(id);
+        } catch (error) {
+            // If removal fails, reset the removing state
+            setIsRemoving(false);
+            toast.error("Không thể xóa sản phẩm khỏi giỏ hàng");
+            console.error("Error removing item:", error);
+        }
+    };
+
+    // Calculate the total for this row
+    const rowTotal = price * localQuantity;
+
+    // Don't render at all if the item is being removed
+    if (isRemoving) {
+        return null;
+    }
 
     // Add more informative display for item discount
     const renderPriceInfo = () => {
@@ -201,12 +220,6 @@ const CartItem: React.FC<CartItemProps> = ({
                 {formatCurrency(price)}
             </span>
         );
-    };
-
-    // Simplify the remove handler since tracking is now in the API
-    const handleRemove = async () => {
-        // Simply call the onRemove function which now has tracking built in
-        await onRemove(id);
     };
 
     return (

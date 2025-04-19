@@ -16,6 +16,34 @@ const CartItems: React.FC<CartItemsProps> = ({
     updateQuantity,
     removeItem,
 }) => {
+    // Add state to track items being removed to prevent flickering
+    const [removingItems, setRemovingItems] = React.useState<Set<string>>(new Set());
+
+    // Handle removal with optimistic UI update
+    const handleRemoveItem = async (id: string) => {
+        // Track that this item is being removed
+        setRemovingItems(prev => {
+            const updated = new Set(prev);
+            updated.add(id);
+            return updated;
+        });
+
+        try {
+            // Actually remove the item
+            await removeItem(id);
+        } catch (error) {
+            // If removal fails, remove from tracking set
+            setRemovingItems(prev => {
+                const updated = new Set(prev);
+                updated.delete(id);
+                return updated;
+            });
+        }
+    };
+
+    // Filter out items that are marked as being removed
+    const visibleItems = cartItems.filter(item => !removingItems.has(item.id));
+
     return (
         <div className="overflow-x-auto">
             <table className="w-full">
@@ -37,25 +65,32 @@ const CartItems: React.FC<CartItemsProps> = ({
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                    {cartItems.map((item) => (
-                        <CartItem
-                            key={item.id}
-                            id={item.id}
-                            name={item.name}
-                            price={item.price}
-                            quantity={item.quantity}
-                            image={item.imageUrl}
-                            slug={item.id}
-                            stock_quantity={item.stock_quantity}
-                            onUpdateQuantity={updateQuantity}
-                            onRemove={removeItem}
-                            formatCurrency={formatCurrency}
-                            // Pass these additional props for price consistency
-                            originalPrice={item.originalPrice}
-                            discountSource={item.discountSource}
-                            discountType={item.discountType}
-                        />
-                    ))}
+                    {visibleItems.length > 0 ? (
+                        visibleItems.map((item) => (
+                            <CartItem
+                                key={item.id}
+                                id={item.id}
+                                name={item.name}
+                                price={item.price}
+                                quantity={item.quantity}
+                                image={item.imageUrl}
+                                slug={item.id}
+                                stock_quantity={item.stock_quantity}
+                                onUpdateQuantity={updateQuantity}
+                                onRemove={handleRemoveItem}
+                                formatCurrency={formatCurrency}
+                                originalPrice={item.originalPrice}
+                                discountSource={item.discountSource}
+                                discountType={item.discountType}
+                            />
+                        ))
+                    ) : (
+                        <tr>
+                            <td colSpan={5} className="text-center py-8 text-gray-500">
+                                Giỏ hàng trống
+                            </td>
+                        </tr>
+                    )}
                 </tbody>
             </table>
         </div>

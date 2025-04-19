@@ -83,6 +83,25 @@ export default function RootLayout({
 
     return (
         <html lang="vi">
+            <head>
+                <title>B Store</title>
+                <meta
+                    name="viewport"
+                    content="width=device-width, initial-scale=1.0"
+                />
+                <link rel="icon" href="/favicon.ico" />
+                <meta
+                    name="description"
+                    content="B Store - Website thương mại điện tử - ĐATN của Bâng"
+                />
+                <meta name="theme-color" content="#f3f4f6" />
+                <meta
+                    name="keywords"
+                    content="B Store, thương mại điện tử, website thương mại điện tử, ĐATN, Bâng, linh kiện máy tính, build PC, công nghệ"
+                />
+                <meta name="author" content="B Store - ĐATN của Bâng" />
+                <meta name="copyright" content="B Store - ĐATN của Bâng" />
+            </head>
             <body
                 className={`${roboto.className} antialiased bg-gray-50 text-gray-800`}
             >

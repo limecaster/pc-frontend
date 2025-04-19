@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import CartItems from "./CartItems";
 import CartSummary from "./CartSummary";
@@ -14,6 +14,7 @@ import {
 } from "./utils/cartHelpers";
 import { clearCartAndSync } from "@/api/cart";
 import { toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 const CartPage: React.FC = () => {
     const {
@@ -22,12 +23,12 @@ const CartPage: React.FC = () => {
         loading,
         error,
         isAuthenticated,
-        updateQuantity,
         removeItem,
         subtotal,
         shippingFee,
         isEmpty,
         isInitialized,
+        handleUpdateQuantity: updateCart,
     } = useCart();
 
     const {
@@ -72,21 +73,46 @@ const CartPage: React.FC = () => {
         subtotal: 0,
         itemCount: 0,
         discountedItemCount: 0,
+        total: 0,
     });
+
+    // Function to recalculate totals after updates
+    const recalculateCartTotals = useCallback(() => {
+        const currentSubtotal = cartItems.reduce(
+            (sum, item) => sum + item.price * item.quantity,
+            0,
+        );
+
+        // Calculate the active discount amount
+        const activeDiscountAmount = isUsingManualDiscount
+            ? appliedCouponAmount
+            : totalAutoDiscountAmount;
+
+        // Calculate the discounted total
+        const discountedTotal = Math.max(0, currentSubtotal - activeDiscountAmount);
+
+        setImmediateCartTotals({
+            subtotal: currentSubtotal,
+            itemCount: cartItems.length,
+            discountedItemCount: cartItems.filter(
+                (item) =>
+                    item.originalPrice && item.originalPrice > item.price,
+            ).length,
+            total: discountedTotal, // Set the discounted total correctly
+        });
+    }, [cartItems, appliedCouponAmount, totalAutoDiscountAmount, isUsingManualDiscount]);
 
     // Add a useEffect to listen for cart updates
     useEffect(() => {
         // Calculate initial totals
         if (isInitialized && !loading) {
-            const totals = recalculateCartTotals(displayCartItems);
-            setImmediateCartTotals(totals);
+            recalculateCartTotals();
         }
 
         // Listen for cart updates
         const handleCartUpdate = (e: CustomEvent) => {
             const updatedCart = e.detail;
-            const totals = recalculateCartTotals(updatedCart);
-            setImmediateCartTotals(totals);
+            recalculateCartTotals();
         };
 
         window.addEventListener(
@@ -100,24 +126,24 @@ const CartPage: React.FC = () => {
                 handleCartUpdate as EventListener,
             );
         };
-    }, [isInitialized, loading, displayCartItems]);
+    }, [isInitialized, loading, recalculateCartTotals]);
 
     // Enhanced updateQuantity function that triggers immediate update
     const handleUpdateQuantity = async (id: string, newQuantity: number) => {
         // First, update the local display for immediate feedback
         const updatedItems = displayCartItems.map((item) =>
-            item.id === id ? { ...item, quantity: newQuantity } : item,
+            item.id === id
+                ? { ...item, quantity: newQuantity }
+                : item
         );
-
-        // Recalculate totals and trigger UI update
-        const totals = recalculateCartTotals(updatedItems);
-        setImmediateCartTotals(totals);
-
-        // Then call the original updateQuantity function
-        await updateQuantity(id, newQuantity);
-
-        // Save to local storage with our new function that dispatches an event
-        saveLocalCart(updatedItems);
+        
+        setCartItems(updatedItems);
+        
+        // Call the useCart hook's handleUpdateQuantity function
+        await updateCart(id, newQuantity);
+        
+        // Update cart totals after quantity change
+        recalculateCartTotals();
     };
 
     // Add a function to handle cart clearing
@@ -131,6 +157,7 @@ const CartPage: React.FC = () => {
                 subtotal: 0,
                 itemCount: 0,
                 discountedItemCount: 0,
+                total: 0,
             });
 
             // Clear localStorage and trigger events
@@ -185,6 +212,93 @@ const CartPage: React.FC = () => {
         isUsingManualDiscount,
         appliedCouponAmount,
     ]);
+
+    const router = useRouter();
+
+    // Function to proceed to checkout - make sure to save cart items with discounted prices
+    const handleProceedToCheckout = () => {
+        // If cart is empty, prevent navigation
+        if (cartItems.length === 0) {
+            toast.error("Your cart is empty");
+            return;
+        }
+
+        // Prepare items with correct prices (including discounts)
+        const checkoutItems = cartItems.map(item => {
+            // If this item has discount applied, use the correct discounted price
+            if (item.originalPrice && item.originalPrice > item.price) {
+                // Item already has discounted price set correctly
+                return item;
+            } else if (discountedCartItems && discountedCartItems.length > 0) {
+                // Try to find this item in the discounted items list
+                const discountedItem = discountedCartItems.find(di => di.id === item.id);
+                if (discountedItem) {
+                    // Use the discounted price if we have one
+                    return {
+                        ...item,
+                        price: discountedItem.price,
+                        originalPrice: item.price, // Store original price
+                    };
+                }
+            }
+            // No discount for this item
+            return item;
+        });
+
+        // Store the cart items with discounts applied for checkout
+        localStorage.setItem("checkoutItems", JSON.stringify(checkoutItems));
+
+        // Store discount information
+        localStorage.setItem(
+            "checkoutData",
+            JSON.stringify({
+                // Discount information
+                discountInfo: {
+                    discount: isUsingManualDiscount ? discount : null,
+                    appliedAutomaticDiscounts: isUsingManualDiscount
+                        ? []
+                        : appliedAutomaticDiscounts,
+                    manualDiscountAmount: isUsingManualDiscount
+                        ? appliedCouponAmount
+                        : 0,
+                    totalAutoDiscountAmount: isUsingManualDiscount
+                        ? 0
+                        : totalAutoDiscountAmount,
+                    isUsingManualDiscount,
+                },
+                // Cart items with discounts already applied
+                cartItems: checkoutItems,
+                // Additional summary information
+                summary: {
+                    subtotal: subtotal,
+                    shippingFee: 0,
+                    total: total,
+                },
+            })
+        );
+
+        // For backward compatibility
+        localStorage.setItem(
+            "appliedDiscounts",
+            JSON.stringify({
+                discount: isUsingManualDiscount
+                    ? discount
+                    : null,
+                appliedAutomaticDiscounts: isUsingManualDiscount
+                    ? []
+                    : appliedAutomaticDiscounts,
+                manualDiscountAmount: isUsingManualDiscount
+                    ? appliedCouponAmount
+                    : 0,
+                totalAutoDiscountAmount: isUsingManualDiscount
+                    ? 0
+                    : totalAutoDiscountAmount,
+                isUsingManualDiscount,
+            })
+        );
+
+        router.push("/checkout");
+    };
 
     // Loading state
     if (loading) {
@@ -259,7 +373,7 @@ const CartPage: React.FC = () => {
                         <div className="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
                             <CartItems
                                 cartItems={displayCartItems} // Use display cart items here
-                                updateQuantity={handleUpdateQuantity} // Use our enhanced function
+                                updateQuantity={handleUpdateQuantity} // Use the enhanced function
                                 removeItem={removeItem}
                             />
                         </div>
@@ -324,6 +438,7 @@ const CartPage: React.FC = () => {
                                 discountedCartItems={discountedCartItems} // Add this prop
                                 immediateCartTotals={immediateCartTotals} // Add this new prop
                                 clearCart={handleClearCart} // Add this new prop
+                                proceedToCheckout={handleProceedToCheckout} // Add this new prop
                             />
                         </div>
                     </div>

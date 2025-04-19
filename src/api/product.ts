@@ -515,82 +515,66 @@ export function generateCategoryUrl(
 }
 
 /**
- * Get stock quantities for multiple products
- * @param productIds Array of product IDs to get stock quantities for
- * @returns Promise with product stock quantities { id: stock_quantity }
+ * Get stock quantities for multiple products at once
+ * @param productIds Array of product IDs to check stock for
+ * @returns Promise with a record mapping product IDs to their stock quantities
  */
 export async function getProductsStockQuantities(
-    productIds: string[],
+    productIds: string[]
 ): Promise<Record<string, number>> {
     try {
         if (!productIds || productIds.length === 0) {
             return {};
         }
 
-        // Remove duplicates
-        const uniqueIds = [...new Set(productIds)];
-
-        // Use comma-separated format which is less likely to cause issues
-        const idsParam = uniqueIds.join(",");
-
-        const response = await fetch(
-            `${API_URL}/products/stock?ids=${encodeURIComponent(idsParam)}`,
-        );
+        // Convert array to comma-separated string for query parameter
+        const idsParam = productIds.join(",");
+        // Using correct endpoint path: /products/stock instead of /products/stock-quantities
+        const response = await fetch(`${API_URL}/products/stock?ids=${idsParam}`);
 
         if (!response.ok) {
-            // Get response text for better error diagnosis
-            const responseText = await response.text();
-            console.error(
-                `Stock API returned ${response.status}: ${responseText}`,
-            );
-            throw new Error(
-                `Failed to get stock quantities: ${response.status}`,
-            );
+            throw new Error(`Failed to fetch stock quantities: ${response.status}`);
         }
 
         const data = await response.json();
+        // The response format is { success: true, stocks: {...} }
         return data.stocks || {};
     } catch (error) {
         console.error("Error fetching stock quantities:", error);
-        return {}; // Return empty object rather than failing completely
+        // Return an empty object instead of throwing to avoid breaking the cart functionality
+        return {};
     }
 }
 
 /**
- * Get multiple products by IDs with discount information pre-calculated
- * This replaces the need to extract categories from product names on frontend
- * @param productIds Array of product IDs to retrieve
- * @returns Promise with array of products with discount info
+ * Get detailed product information including discounts for multiple products
+ * @param productIds Array of product IDs to get detailed information for
+ * @returns Promise with an array of product details including discount information
  */
-export async function getProductsWithDiscounts(
-    productIds: string[],
-): Promise<any[]> {
+export async function getProductsWithDiscounts(productIds: string[]): Promise<any[]> {
     try {
         if (!productIds || productIds.length === 0) {
             return [];
         }
 
-        // Use the new batch endpoint
-        const response = await fetch(
-            `${API_URL}/products/batch-with-discounts`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ productIds }),
+        // Using correct endpoint path: /products/batch-with-discounts
+        const response = await fetch(`${API_URL}/products/batch-with-discounts`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
             },
-        );
+            body: JSON.stringify({ productIds }),
+        });
 
         if (!response.ok) {
-            console.error(`Failed to fetch products batch: ${response.status}`);
-            return [];
+            throw new Error(`Failed to fetch products with discounts: ${response.status}`);
         }
 
         const data = await response.json();
         return data.products || [];
     } catch (error) {
         console.error("Error fetching products with discounts:", error);
+        // Return an empty array instead of throwing to avoid breaking the cart functionality
         return [];
     }
 }

@@ -1,5 +1,4 @@
 import React from "react";
-import Link from "next/link";
 import Image from "next/image";
 import VietQRLogo from "@/assets/VietQRLogo.png";
 import { Discount } from "@/api/discount";
@@ -25,14 +24,16 @@ interface CartSummaryProps {
     setCouponCode: React.Dispatch<React.SetStateAction<string>>;
     handleApplyCoupon: () => void;
     removeCoupon: () => void;
-    isDiscountProcessingComplete?: boolean; // Add this prop
-    discountedCartItems?: CartItem[]; // Add this prop for items with discounts applied
+    isDiscountProcessingComplete?: boolean;
+    discountedCartItems?: CartItem[];
     immediateCartTotals?: {
         subtotal: number;
         itemCount: number;
         discountedItemCount: number;
-    }; // Add this new prop
-    clearCart: () => void; // Add this new prop
+        total: number;
+    };
+    clearCart?: () => void;
+    proceedToCheckout?: () => void;
 }
 
 const CartSummary: React.FC<CartSummaryProps> = ({
@@ -56,22 +57,36 @@ const CartSummary: React.FC<CartSummaryProps> = ({
     handleApplyCoupon,
     removeCoupon,
     isDiscountProcessingComplete = false,
-    discountedCartItems = [], // Add default empty array
+    discountedCartItems = [],
     immediateCartTotals,
-    clearCart, // Add this to destructuring
+    clearCart,
+    proceedToCheckout,
 }) => {
-    // Use immediate totals if available
     const displaySubtotal = immediateCartTotals?.subtotal || subtotal;
     const displayTotal = immediateCartTotals
-        ? Math.max(
-              0,
-              immediateCartTotals.subtotal +
-                  shippingFee -
-                  (isUsingManualDiscount ? appliedCouponAmount : 0),
-          )
+        ? immediateCartTotals.total
         : total;
 
-    // Calculate how many free products based on immediateCartTotals if available
+    // Calculate the final total after discounts
+    const calculateDiscountedTotal = () => {
+        // Start with subtotal
+        let calculatedTotal = displaySubtotal;
+
+        // Subtract the total discount amount
+        if (isUsingManualDiscount && appliedCouponAmount > 0) {
+            calculatedTotal -= appliedCouponAmount;
+        } else if (!isUsingManualDiscount && totalAutoDiscountAmount > 0) {
+            calculatedTotal -= totalAutoDiscountAmount;
+        }
+
+        // Add shipping fee if any
+        if (shippingFee > 0) {
+            calculatedTotal += shippingFee;
+        }
+
+        return Math.max(0, calculatedTotal);
+    };
+
     const freeProductsCount = cartItems.filter(
         (item) =>
             item.price <= 0 && item.originalPrice && item.originalPrice > 0,
@@ -115,470 +130,179 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                         {appliedAutomaticDiscounts.length > 0 && (
                             <div className="text-green-600 text-sm bg-green-50 p-3 rounded-lg border border-green-100">
                                 <p className="font-medium mb-1">
-                                    Mã giảm giá tự áp dụng:
+                                    Auto-applied discounts:
                                 </p>
                                 <ul className="space-y-2">
-                                    {appliedAutomaticDiscounts.map((d: any) => (
-                                        <li key={d.id} className="mb-2">
-                                            <div className="flex justify-between">
+                                    {appliedAutomaticDiscounts.map((discount) => (
+                                        <li
+                                            key={discount.id}
+                                            className="flex justify-between items-center"
+                                        >
+                                            <div>
                                                 <span className="font-medium">
-                                                    {d.discountCode}
+                                                    {discount.discountName}
                                                 </span>
-                                                <span>
-                                                    -
-                                                    {d.type === "percentage"
-                                                        ? `${d.discountAmount}%`
-                                                        : formatCurrency(
-                                                              Math.min(
-                                                                  d.calculatedDiscountAmount,
-                                                                  d.discountAmount,
-                                                              ),
-                                                          )}
-                                                </span>
+                                                {discount.targetType === "products" && discount.targetedProducts && (
+                                                    <p className="text-xs text-green-700 mt-0.5">
+                                                        Applied to: {discount.targetedProducts.join(", ")}
+                                                    </p>
+                                                )}
+                                                {discount.targetType === "categories" && discount.categoryNames && (
+                                                    <p className="text-xs text-green-700 mt-0.5">
+                                                        Applied to: {discount.categoryNames.join(", ")}
+                                                    </p>
+                                                )}
+                                                {discount.discountCode && (
+                                                    <p className="text-xs text-green-700 mt-0.5">
+                                                        Code: {discount.discountCode}
+                                                    </p>
+                                                )}
                                             </div>
-
-                                            {/* Category discounts */}
-                                            {d.targetType === "categories" &&
-                                                d.categoryNames &&
-                                                d.categoryNames.length > 0 && (
-                                                    <div className="text-xs italic mt-1 text-gray-600">
-                                                        <div className="flex justify-between">
-                                                            <span>
-                                                                Áp dụng cho danh
-                                                                mục:
-                                                            </span>
-                                                            <span className="font-medium text-green-700">
-                                                                {d.categoryNames.join(
-                                                                    ", ",
-                                                                )}
-                                                            </span>
-                                                        </div>
-
-                                                        {/* List affected products with clearer discount information */}
-                                                        <div className="mt-1.5 border-t border-green-100 pt-1.5">
-                                                            <span className="font-medium">
-                                                                Sản phẩm được
-                                                                giảm giá:
-                                                            </span>
-                                                            <ul className="mt-1 list-disc pl-5 space-y-0.5">
-                                                                {cartItems
-                                                                    .filter(
-                                                                        (
-                                                                            item,
-                                                                        ) => {
-                                                                            // Filter for items in this category
-                                                                            const itemCategories =
-                                                                                item.categoryNames &&
-                                                                                item
-                                                                                    .categoryNames
-                                                                                    .length >
-                                                                                    0
-                                                                                    ? item.categoryNames
-                                                                                    : item.category
-                                                                                      ? [
-                                                                                            item.category,
-                                                                                        ]
-                                                                                      : [];
-
-                                                                            return (
-                                                                                d.categoryNames?.some(
-                                                                                    (
-                                                                                        cat: string,
-                                                                                    ) =>
-                                                                                        itemCategories.some(
-                                                                                            (
-                                                                                                itemCat,
-                                                                                            ) =>
-                                                                                                itemCat.toLowerCase() ===
-                                                                                                cat.toLowerCase(),
-                                                                                        ),
-                                                                                ) ||
-                                                                                false
-                                                                            ); // Add explicit fallback when categoryNames is undefined
-                                                                        },
-                                                                    )
-                                                                    .sort(
-                                                                        (
-                                                                            a,
-                                                                            b,
-                                                                        ) => {
-                                                                            // Free items first
-                                                                            const aIsFree =
-                                                                                a.price <=
-                                                                                    0 &&
-                                                                                a.originalPrice &&
-                                                                                a.originalPrice >
-                                                                                    0;
-                                                                            const bIsFree =
-                                                                                b.price <=
-                                                                                    0 &&
-                                                                                b.originalPrice &&
-                                                                                b.originalPrice >
-                                                                                    0;
-                                                                            if (
-                                                                                aIsFree !==
-                                                                                bIsFree
-                                                                            )
-                                                                                return aIsFree
-                                                                                    ? -1
-                                                                                    : 1;
-
-                                                                            // Then sort by discount amount (most discounted first)
-                                                                            const aDiscount =
-                                                                                a.originalPrice &&
-                                                                                a.originalPrice >
-                                                                                    a.price
-                                                                                    ? (a.originalPrice -
-                                                                                          a.price) *
-                                                                                      a.quantity
-                                                                                    : 0;
-                                                                            const bDiscount =
-                                                                                b.originalPrice &&
-                                                                                b.originalPrice >
-                                                                                    b.price
-                                                                                    ? (b.originalPrice -
-                                                                                          b.price) *
-                                                                                      b.quantity
-                                                                                    : 0;
-                                                                            return (
-                                                                                bDiscount -
-                                                                                aDiscount
-                                                                            );
-                                                                        },
-                                                                    )
-                                                                    .map(
-                                                                        (
-                                                                            item,
-                                                                        ) => {
-                                                                            // Calculate discount amount for display
-                                                                            const isFree =
-                                                                                item.price <=
-                                                                                    0 &&
-                                                                                item.originalPrice &&
-                                                                                item.originalPrice >
-                                                                                    0;
-                                                                            const unitDiscount =
-                                                                                item.originalPrice &&
-                                                                                item.price <
-                                                                                    item.originalPrice
-                                                                                    ? item.originalPrice -
-                                                                                      item.price
-                                                                                    : 0;
-                                                                            const totalDiscount =
-                                                                                unitDiscount *
-                                                                                item.quantity;
-
-                                                                            return (
-                                                                                <li
-                                                                                    key={
-                                                                                        item.id
-                                                                                    }
-                                                                                    className={`${isFree ? "text-green-600 font-medium" : "text-gray-700"}`}
-                                                                                >
-                                                                                    {/* Show name and discount status */}
-                                                                                    {item
-                                                                                        .name
-                                                                                        .length >
-                                                                                    30
-                                                                                        ? `${item.name.substring(0, 30)}...`
-                                                                                        : item.name}
-                                                                                    {isFree
-                                                                                        ? " (Miễn phí)"
-                                                                                        : totalDiscount >
-                                                                                            0
-                                                                                          ? ` (−${formatCurrency(totalDiscount)})`
-                                                                                          : ""}
-                                                                                </li>
-                                                                            );
-                                                                        },
-                                                                    )}
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                            {/* Product-specific discounts */}
-                                            {d.targetType === "products" &&
-                                                d.productIds && (
-                                                    <div className="text-xs italic mt-1 text-gray-600">
-                                                        <span className="font-medium">
-                                                            Sản phẩm được giảm
-                                                            giá:
-                                                        </span>
-                                                        <ul className="mt-1 list-disc pl-5 space-y-0.5">
-                                                            {cartItems
-                                                                .filter(
-                                                                    (item) =>
-                                                                        d.productIds?.includes(
-                                                                            item.id,
-                                                                        ),
-                                                                )
-                                                                .map((item) => (
-                                                                    <li
-                                                                        key={
-                                                                            item.id
-                                                                        }
-                                                                        className={`${item.price <= 0 && item.originalPrice ? "text-green-600 font-medium" : "text-gray-700"}`}
-                                                                    >
-                                                                        {item
-                                                                            .name
-                                                                            .length >
-                                                                        30
-                                                                            ? `${item.name.substring(0, 30)}...`
-                                                                            : item.name}
-                                                                        {item.price <=
-                                                                            0 &&
-                                                                        item.originalPrice
-                                                                            ? " (Miễn phí)"
-                                                                            : ""}
-                                                                    </li>
-                                                                ))}
-                                                        </ul>
-                                                    </div>
-                                                )}
+                                            <div className="font-medium">
+                                                {discount.type === "percentage"
+                                                    ? `-${discount.discountAmount}%`
+                                                    : `-${formatCurrency(discount.discountAmount)}`}
+                                            </div>
                                         </li>
                                     ))}
+                                    <li className="flex justify-between items-center font-medium border-t border-green-200 pt-1 mt-1">
+                                        <span>Total automatic discount:</span>
+                                        <span>
+                                            -{formatCurrency(totalAutoDiscountAmount)}
+                                        </span>
+                                    </li>
                                 </ul>
-                                <p className="mt-2 font-medium text-green-700 border-t border-green-200 pt-2">
-                                    Tổng khuyến mãi tự động:{" "}
-                                    {formatCurrency(totalAutoDiscountAmount)}
-                                </p>
                             </div>
                         )}
 
-                        {/* Manual Discount Section */}
-                        {discount && (
-                            <div className="flex flex-col text-green-600 text-sm">
-                                <div className="flex justify-between">
-                                    <p>
-                                        Mã giảm giá: {discount.discountCode}
-                                        {discount.type === "percentage"
-                                            ? ` (${discount.discountAmount}%)`
-                                            : ""}
-                                    </p>
-                                    <p>
-                                        - {formatCurrency(appliedCouponAmount)}
-                                    </p>
+                        {/* Coupon Input Section */}
+                        <div className="mt-4 space-y-2">
+                            <p className="font-medium text-gray-700">
+                                {isUsingManualDiscount
+                                    ? "Applied discount code:"
+                                    : "Have a discount code?"}
+                            </p>
+                            {!isUsingManualDiscount ? (
+                                <div className="flex space-x-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Enter discount code"
+                                        className="w-full border border-gray-200 rounded-md p-2 focus:ring-1 focus:ring-primary focus:border-primary"
+                                        value={couponCode}
+                                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                    />
+                                    <button
+                                        className={`bg-primary text-white font-medium px-4 py-2 rounded-md transition-opacity ${
+                                            applyingCoupon ? "opacity-70 cursor-not-allowed" : "hover:bg-primary-dark"
+                                        }`}
+                                        onClick={handleApplyCoupon}
+                                        type="button"
+                                        disabled={applyingCoupon}
+                                    >
+                                        {applyingCoupon ? "Applying..." : "Apply"}
+                                    </button>
                                 </div>
-                                {discount.targetType === "products" &&
-                                    discount.productIds && (
-                                        <p className="text-xs italic mt-1">
-                                            Chỉ áp dụng cho sản phẩm:
-                                            {discount.targetedProducts?.join(
-                                                ", ",
-                                            ) ||
-                                                cartItems
-                                                    .filter((item) =>
-                                                        discount.productIds?.includes(
-                                                            item.id,
-                                                        ),
-                                                    )
-                                                    .map((item) => item.name)
-                                                    .join(", ")}
+                            ) : (
+                                <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                    <div>
+                                        <p className="font-medium text-blue-800">
+                                            {discount?.discountName || "Discount"}
                                         </p>
-                                    )}
-                                {discount.targetType === "categories" &&
-                                    discount.categoryNames &&
-                                    discount.categoryNames.length > 0 && (
-                                        <p className="text-xs italic mt-1">
-                                            Chỉ áp dụng cho danh mục:{" "}
-                                            {discount.categoryNames.join(", ")}
+                                        <p className="text-sm text-blue-600">
+                                            {discount?.type === "percentage"
+                                                ? `${discount.discountAmount}% off`
+                                                : `${formatCurrency(
+                                                      discount?.discountAmount || 0,
+                                                  )} off`}
+                                            {discount?.targetType === "products" && discount?.targetedProducts && (
+                                                <span className="block text-xs mt-0.5">
+                                                    on specific products
+                                                </span>
+                                            )}
                                         </p>
-                                    )}
-                            </div>
-                        )}
+                                    </div>
+                                    <button
+                                        onClick={removeCoupon}
+                                        type="button"
+                                        className="text-red-500 hover:text-red-700 text-sm"
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                            )}
+                            {couponError && (
+                                <div className="bg-red-50 border border-red-200 text-red-600 p-2 rounded text-sm">
+                                    {couponError}
+                                </div>
+                            )}
+                        </div>
                     </>
                 )}
 
-                <div className="border-t border-gray-200 pt-4 flex justify-between text-lg font-medium">
-                    <p className="text-gray-900">Tổng cộng</p>
-                    <p className="text-primary font-semibold">
-                        {displayTotal <= 0 ? (
-                            <span className="text-green-600">Miễn phí</span>
-                        ) : (
-                            formatCurrency(displayTotal)
-                        )}
+                {/* Total Amount after all discounts */}
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                    <div className="flex justify-between text-base font-medium text-gray-900">
+                        <p className="font-semibold">Total Amount</p>
+                        <p className="font-bold text-primary text-lg">
+                            {formatCurrency(calculateDiscountedTotal())}
+                        </p>
+                    </div>
+                    <p className="mt-0.5 text-sm text-gray-500">
+                        Shipping and taxes will be calculated at checkout
                     </p>
                 </div>
-            </div>
 
-            {/* Checkout Button */}
-            <div className="mt-6">
-                <Link
-                    href="/checkout"
-                    className={`w-full bg-primary py-3 px-4 rounded-md text-white font-medium hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary text-center block transition-colors ${
-                        cartItems.length === 0
-                            ? "opacity-50 cursor-not-allowed"
-                            : ""
-                    }`}
-                    onClick={(e) => {
-                        if (cartItems.length === 0) {
+                {/* Checkout button */}
+                <div className="mt-6">
+                    <button
+                        onClick={(e) => {
                             e.preventDefault();
-                            return;
-                        }
-
-                        // Determine which cart items to use based on discount type
-                        const checkoutCartItems = isUsingManualDiscount
-                            ? cartItems // Original cart items for manual discount
-                            : discountedCartItems &&
-                                discountedCartItems.length > 0
-                              ? discountedCartItems // Cart items with automatic discounts applied
-                              : cartItems;
-
-                        // Store both discount information and the actual cart items to use
-                        localStorage.setItem(
-                            "checkoutData",
-                            JSON.stringify({
-                                // Discount information
-                                discountInfo: {
-                                    discount: isUsingManualDiscount
-                                        ? discount
-                                        : null,
-                                    appliedAutomaticDiscounts:
-                                        isUsingManualDiscount
-                                            ? []
-                                            : appliedAutomaticDiscounts,
-                                    manualDiscountAmount: isUsingManualDiscount
-                                        ? appliedCouponAmount
-                                        : 0,
-                                    totalAutoDiscountAmount:
-                                        isUsingManualDiscount
-                                            ? 0
-                                            : totalAutoDiscountAmount,
-                                    isUsingManualDiscount,
-                                },
-                                // Cart items to use for checkout with discounts already applied
-                                cartItems: checkoutCartItems,
-                                // Additional summary information
-                                summary: {
-                                    subtotal: subtotal,
-                                    shippingFee: shippingFee,
-                                    total: total,
-                                },
-                            }),
-                        );
-
-                        // For backward compatibility, also store the original appliedDiscounts
-                        localStorage.setItem(
-                            "appliedDiscounts",
-                            JSON.stringify({
-                                discount: isUsingManualDiscount
-                                    ? discount
-                                    : null,
-                                appliedAutomaticDiscounts: isUsingManualDiscount
-                                    ? []
-                                    : appliedAutomaticDiscounts,
-                                manualDiscountAmount: isUsingManualDiscount
-                                    ? appliedCouponAmount
-                                    : 0,
-                                totalAutoDiscountAmount: isUsingManualDiscount
-                                    ? 0
-                                    : totalAutoDiscountAmount,
-                                isUsingManualDiscount,
-                            }),
-                        );
-                    }}
-                >
-                    Tiến hành thanh toán
-                </Link>
-            </div>
-
-            {/* Clear Cart Button - Updated to use the new handler */}
-            <div className="mt-6 text-center text-sm text-gray-500">
-                <p>Hoặc</p>
-                <button
-                    onClick={clearCart}
-                    className="font-medium text-red-600 hover:text-red-800 mt-1 transition-colors"
-                >
-                    Xóa giỏ hàng
-                </button>
-            </div>
-
-            {/* Coupon Section */}
-            <div className="mt-6 bg-white rounded-lg shadow p-6 border border-gray-200">
-                <h2 className="text-sm font-medium text-gray-900 mb-4">
-                    Sử dụng mã giảm giá
-                </h2>
-
-                {!discount ? (
-                    <div className="flex flex-col space-y-3">
-                        <div className="flex space-x-2">
-                            <input
-                                type="text"
-                                placeholder="Nhập mã giảm giá"
-                                className="w-full border border-gray-200 rounded-md p-2"
-                                value={couponCode}
-                                onChange={(e) => setCouponCode(e.target.value)}
-                            />
-                            <button
-                                className={`bg-primary text-white font-medium px-4 py-2 rounded-md ${
-                                    applyingCoupon ? "opacity-70" : ""
-                                }`}
-                                onClick={handleApplyCoupon}
-                                disabled={applyingCoupon}
+                            if (cartItems.length === 0) {
+                                // toast.error("Your cart is empty");
+                                return;
+                            }
+                            if (proceedToCheckout) {
+                                proceedToCheckout();
+                            }
+                        }}
+                        className={`flex justify-center items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition
+                            ${cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                        Proceed to Checkout
+                    </button>
+                    <div className="mt-2">
+                        <button
+                            type="button"
+                            className="text-sm text-red-500 hover:text-red-700 flex items-center justify-center w-full"
+                            onClick={clearCart}
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4 mr-1"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
                             >
-                                {applyingCoupon ? "Đang áp dụng..." : "Áp dụng"}
-                            </button>
-                        </div>
-                        {couponError && (
-                            <p className="text-red-500 text-sm">
-                                {couponError}
-                            </p>
-                        )}
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                            </svg>
+                            Clear Cart
+                        </button>
                     </div>
-                ) : (
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-100">
-                            <div>
-                                <p className="font-medium text-green-800">
-                                    {discount.discountName}
-                                </p>
-                                <p className="text-sm text-green-600">
-                                    {discount.type === "percentage"
-                                        ? `Giảm ${discount.discountAmount}%`
-                                        : `Giảm ${formatCurrency(
-                                              discount.discountAmount,
-                                          )}`}
-                                </p>
-                            </div>
-                            <button
-                                onClick={removeCoupon}
-                                className="text-red-500 hover:text-red-700 text-sm"
-                            >
-                                Xóa
-                            </button>
-                        </div>
-                    </div>
-                )}
-                {automaticDiscounts.length > 0 &&
-                    automaticDiscounts.length !== 1 && (
-                        <div className="mt-4 text-xs text-gray-500">
-                            <p className="font-medium mb-1">
-                                Các khuyến mãi tự động khác:
-                            </p>
-                            <ul className="list-disc pl-4 space-y-1">
-                                {automaticDiscounts
-                                    .filter(
-                                        (d) =>
-                                            !appliedAutomaticDiscounts.some(
-                                                (ad) => ad.id === d.id,
-                                            ),
-                                    )
-                                    .map((d: Discount) => (
-                                        <li key={d.id}>{d.discountName}</li>
-                                    ))}
-                            </ul>
-                        </div>
-                    )}
-            </div>
+                </div>
 
-            {/* Payment Methods */}
-            <div className="mt-6 bg-white rounded-lg shadow p-6 border border-gray-200">
-                <h2 className="text-sm font-medium text-gray-900 mb-4">
-                    Chúng tôi chấp nhận thanh toán qua
-                </h2>
-                <div className="flex items-center space-x-3 flex-wrap gap-2">
-                    <Image src={VietQRLogo} alt="Visa" width={48} height={48} />
+                {/* Payment Methods */}
+                <div className="mt-6 bg-white rounded-lg shadow p-6 border border-gray-200">
+                    <h2 className="text-sm font-medium text-gray-900 mb-4">
+                        Chúng tôi chấp nhận thanh toán qua
+                    </h2>
+                    <div className="flex items-center space-x-3 flex-wrap gap-2">
+                        <Image src={VietQRLogo} alt="Visa" width={48} height={48} />
+                    </div>
                 </div>
             </div>
         </>
