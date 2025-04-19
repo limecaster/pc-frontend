@@ -167,7 +167,6 @@ const PaymentMode: React.FC<PaymentModeProps> = ({
                         router.push(`/track-order/${orderId}`);
                     }}
                     onError={(error) => {
-                        console.log("Payment error:", error);
                         // Switch to fallback mode if embedded payment fails
                         setFallbackMode(true);
                         toast.error(

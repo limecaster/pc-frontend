@@ -1,12 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { getOrderDetails } from "@/api/orders"; // Use the more complete API directly
+import { getOrderDetails } from "@/api/orders";
 import { updateOrderPaymentStatus } from "@/api/order";
 import CheckoutSuccessPage from "@/components/checkout/CheckoutSuccessPage";
 import { trackPaymentCompleted, trackDiscountUsage } from "@/api/events";
 
-// Add an interface for the order item
 interface OrderItem {
     id?: string;
     productId?: string;
@@ -52,32 +51,25 @@ const CheckoutSuccessContent: React.FC = () => {
                     paymentCode === "00" &&
                     !isPaymentTracked
                 ) {
-                    console.log(
-                        "Payment success detected, updating order status",
-                    );
                     await updateOrderPaymentStatus(
                         orderId,
                         paymentStatus,
                         paymentCode,
-                        paymentId, // Include PayOS ID if present
+                        paymentId,
                     );
 
-                    // Track payment completed event exactly once
                     trackPaymentCompleted(orderId, {
                         id: paymentId,
                         status: paymentStatus,
-                        paymentMethod: "online", // Assuming online payment for PayOS
-                        amount: null, // Will be updated when we get order details
+                        paymentMethod: "PayOS",
+                        amount: null,
                     });
 
                     // Mark this payment as tracked to prevent duplicate events
                     sessionStorage.setItem(paymentTrackingKey, "true");
                 }
 
-                // Use the proper API endpoint for fetching complete order details
-                console.log("Fetching order details for ID:", orderId);
                 const orderDetails = await getOrderDetails(orderId, true);
-                console.log("Order details response:", orderDetails);
 
                 if (orderDetails && orderDetails.order) {
                     setOrderData(orderDetails.order);
@@ -98,7 +90,6 @@ const CheckoutSuccessContent: React.FC = () => {
                             orderId,
                         );
 
-                        // Fix the itemDiscounts mapping with proper typing
                         const itemDiscounts = orderDetails.order.items
                             .map((item: OrderItem) => ({
                                 productId: item.id || item.productId,
@@ -117,7 +108,7 @@ const CheckoutSuccessContent: React.FC = () => {
                         // Track discount usage with all relevant information
                         trackDiscountUsage(orderId, {
                             discountAmount: orderDetails.order.discountAmount,
-                            // Include discount IDs if available in the order response
+
                             manualDiscountId:
                                 orderDetails.order.manualDiscountId,
                             appliedDiscountIds:
@@ -126,7 +117,7 @@ const CheckoutSuccessContent: React.FC = () => {
                             orderSubtotal:
                                 orderDetails.order.subtotal ||
                                 orderDetails.order.total,
-                            // Add item-level discount information
+
                             itemDiscounts:
                                 itemDiscounts.length > 0
                                     ? itemDiscounts

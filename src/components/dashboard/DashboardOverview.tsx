@@ -45,7 +45,6 @@ const DashboardOverview: React.FC = () => {
                         setRecentOrders([]);
                     }
                 } catch (error) {
-                    console.log("Orders API not available or error:", error);
                     setOrderCount(0);
                     setRecentOrders([]);
                 }

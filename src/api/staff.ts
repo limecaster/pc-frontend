@@ -317,7 +317,6 @@ export async function getStaffOrderDetails(orderId: string | number) {
         }
 
         const data = await response.json();
-        console.log("Order details response:", data);
 
         // Get the order object (handling both possible response formats)
         const orderData = data.order || data;

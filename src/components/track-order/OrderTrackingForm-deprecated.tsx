@@ -42,9 +42,6 @@ const OrderTrackingForm: React.FC = () => {
 
         // Prevent duplicate submissions
         if (requestInProgress.current || isLoading) {
-            console.log(
-                "Request already in progress, ignoring duplicate submission",
-            );
             return;
         }
 
@@ -67,7 +64,6 @@ const OrderTrackingForm: React.FC = () => {
             requestInProgress.current = true;
 
             try {
-                console.log(`Tracking order ID: ${orderId} - Initial request`);
                 const response = await trackOrder(orderId);
 
                 if (response.success) {
@@ -165,7 +161,7 @@ const OrderTrackingForm: React.FC = () => {
             try {
                 // Request OTP directly when email is entered
                 const response = await requestOrderTrackingOTP(orderId, email);
-                console.log("Requested OTP for order tracking:", response);
+
                 if (response.success) {
                     // Email is valid, move to OTP verification step
                     setVerificationStep("otp");

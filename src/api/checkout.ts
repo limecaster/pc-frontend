@@ -13,11 +13,6 @@ export async function createOrder(orderData: any): Promise<any> {
             throw new Error("You must be logged in to create an order");
         }
 
-        console.log(
-            "Creating order with data:",
-            JSON.stringify(orderData, null, 2),
-        );
-
         // Use the exact endpoint that's implemented in checkout.controller.ts
         const response = await fetch(`${API_URL}/checkout/create-order`, {
             method: "POST",
@@ -96,11 +91,6 @@ export async function createOrder(orderData: any): Promise<any> {
  */
 export async function createGuestOrder(orderData: any): Promise<any> {
     try {
-        console.log(
-            "Creating guest order with data:",
-            JSON.stringify(orderData, null, 2),
-        );
-
         // Use the exact endpoint that's implemented in checkout.controller.ts
         const response = await fetch(`${API_URL}/checkout/guest-order`, {
             method: "POST",

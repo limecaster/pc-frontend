@@ -454,11 +454,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 notes: formData.notes,
             };
 
-            console.log(
-                "Submitting order:",
-                JSON.stringify(orderData, null, 2),
-            );
-
             const result = await createCheckoutOrder(
                 orderData,
                 {
