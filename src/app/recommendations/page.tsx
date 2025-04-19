@@ -35,7 +35,6 @@ export default function RecommendationsPage() {
                     undefined,
                     10,
                 );
-                console.log("Personal recommendations:", personalData);
                 setPersonalRecommendations(personalData);
             } catch (error) {
                 console.error("Error fetching recommendations:", error);
