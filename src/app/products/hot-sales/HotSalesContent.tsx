@@ -13,6 +13,7 @@ import SearchSort from "@/components/products/SearchSort";
 import Pagination from "@/components/products/Pagination";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFire } from "@fortawesome/free-solid-svg-icons";
+import { FaFireAlt } from "react-icons/fa";
 
 export default function HotSalesContent() {
     const searchParams = useSearchParams();
@@ -236,10 +237,7 @@ export default function HotSalesContent() {
                 {/* Header */}
                 <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
                     <h1 className="text-2xl font-bold flex items-center text-primary">
-                        <FontAwesomeIcon
-                            icon={faFire}
-                            className="mr-2 text-rose-500"
-                        />
+                        <FaFireAlt className="text-rose-600 text-xl mr-2 animate-pulse" />
                         Hot Sales
                     </h1>
                     <p className="text-gray-600">
