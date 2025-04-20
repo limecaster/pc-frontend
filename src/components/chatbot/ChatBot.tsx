@@ -5,6 +5,7 @@ import ChatInput from "@/components/chatbot/ChatInput";
 import ChatMessage from "@/components/chatbot/ChatMessage";
 import { ChatBubbleIcon } from "@radix-ui/react-icons";
 import { useFooter } from "@/contexts/FooterContext";
+import { sendMessage as sendChatbotMessage } from "@/api/chatbot";
 
 export default function Chatbot() {
     const [messages, setMessages] = useState<
@@ -78,24 +79,12 @@ export default function Chatbot() {
 
         setIsLoading(true);
         try {
-            const response = await fetch(
-                "http://localhost:3001/chatbot/client-chat",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        message: message,
-                    }),
-                },
-            );
-            const data = await response.json();
-            const responseData = data.response.data;
-
+            const response = await sendChatbotMessage(message);  
             setMessages((prev) => [
-                ...prev,
+                ...prev,    
                 {
-                    type: data.response.type || "text",
-                    data: data.response.data,
+                    type: response.response.type || "text",
+                    data: response.response.data,
                     sender: "bot",
                 },
             ]);

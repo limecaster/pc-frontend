@@ -58,7 +58,7 @@ export default function ChatbotPCConfig({
     if (!config) return null;
 
     const totalPrice = Object.values(config).reduce(
-        (sum: number, part: any) => sum + (part.price || 0),
+        (sum: number, part: any) => sum + (part?.price || 0),
         0,
     );
 
@@ -343,7 +343,8 @@ export default function ChatbotPCConfig({
                         <button
                             onClick={handleSaveConfiguration}
                             disabled={isSaving}
-                            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded transition-colors duration-200 flex items-center justify-center"
+                            type="button"
+                            className="bg-green-600 hover:bg-green-700 text-white font-medium py-1 px-3 rounded transition-colors duration-200 flex items-center justify-center"
                         >
                             {isSaving ? (
                                 <span className="flex items-center">
@@ -393,7 +394,8 @@ export default function ChatbotPCConfig({
                         <button
                             onClick={handleAddAllToCart}
                             disabled={isAddingToCart}
-                            className="flex-1 bg-primary hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors duration-200 flex items-center justify-center"
+                            type="button"
+                            className="bg-primary hover:bg-blue-700 text-white font-medium py-1 px-3 rounded transition-colors duration-200 flex items-center justify-center"
                         >
                             {isAddingToCart ? (
                                 <span className="flex items-center">
