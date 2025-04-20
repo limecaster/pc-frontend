@@ -104,13 +104,11 @@ const CheckoutSuccessComponentPage: React.FC<CheckoutSuccessComponentProps> = ({
         );
     }
 
-    // Destructure data from orderData
     const {
         id: orderId,
         orderNumber,
         orderDate,
         items: orderItems,
-        shippingAddress,
         paymentMethod = "PayOS",
         subtotal = orderData.total,
         shippingFee = 0,

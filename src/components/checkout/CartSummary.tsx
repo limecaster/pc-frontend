@@ -53,9 +53,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
     appliedDiscount,
     appliedAutomaticDiscounts,
     isUsingManualDiscount,
-    onRemoveItem,
     isProcessingPayment,
-    removeCoupon,
     couponError,
     immediateCartTotals,
     shippingFee,
@@ -126,23 +124,23 @@ const CartSummary: React.FC<CartSummaryProps> = ({
     const displaySubtotal =
         discountedCartItems && discountedCartItems.length > 0
             ? discountedCartItems.reduce(
-                  (sum, item) =>
-                      sum + (item.originalPrice ?? item.price) * item.quantity,
-                  0,
-              )
+                (sum, item) =>
+                    sum + (item.originalPrice ?? item.price) * item.quantity,
+                0,
+            )
             : subtotal;
     const freeProductsCount =
         discountedCartItems && discountedCartItems.length > 0
             ? discountedCartItems.filter(
-                  (item) =>
-                      (item.price ?? 0) <= 0 && (item.originalPrice ?? 0) > 0,
-              ).length
+                (item) =>
+                    (item.price ?? 0) <= 0 && (item.originalPrice ?? 0) > 0,
+            ).length
             : cartItems.filter(
-                  (item) =>
-                      item.price <= 0 &&
-                      item.originalPrice &&
-                      item.originalPrice > 0,
-              ).length;
+                (item) =>
+                    item.price <= 0 &&
+                    item.originalPrice &&
+                    item.originalPrice > 0,
+            ).length;
 
     return (
         <div className="bg-white rounded-lg shadow p-6 sticky top-20">
@@ -234,20 +232,20 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                                         {item.name}: -
                                         {formatCurrency(
                                             (item.discountAmount || 0) *
-                                                item.quantity,
+                                            item.quantity,
                                         )}
                                         {item.discountType === "percentage" &&
-                                        item.originalPrice ? (
+                                            item.originalPrice ? (
                                             <span>
                                                 {" "}
                                                 (
                                                 {item.discountAmount &&
-                                                item.originalPrice
+                                                    item.originalPrice
                                                     ? Math.round(
-                                                          (item.discountAmount /
-                                                              item.originalPrice) *
-                                                              100,
-                                                      )
+                                                        (item.discountAmount /
+                                                            item.originalPrice) *
+                                                        100,
+                                                    )
                                                     : ""}
                                                 % giảm)
                                             </span>
@@ -259,7 +257,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                                                 <span
                                                     className={
                                                         item.discountSource ===
-                                                        "manual"
+                                                            "manual"
                                                             ? "text-green-700"
                                                             : "text-blue-700"
                                                     }
@@ -269,7 +267,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                                                         ? ` (${item.discountCode})`
                                                         : ""}
                                                     {item.discountSource ===
-                                                    "manual"
+                                                        "manual"
                                                         ? " (Mã thủ công)"
                                                         : " (Tự động)"}
                                                 </span>
@@ -314,20 +312,9 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                                 <p className="text-sm font-medium text-gray-900">
                                     {formatCurrency(
                                         (item.discountedPrice ?? item.price) *
-                                            item.quantity,
+                                        item.quantity,
                                     )}
                                 </p>
-                                {!isProcessingPayment && (
-                                    <button
-                                        type="button"
-                                        className="mt-1 text-red-500 hover:text-red-700"
-                                        onClick={() => onRemoveItem(item.id)}
-                                    >
-                                        <Tooltip content="Remove item">
-                                            <TrashIcon className="h-4 w-4" />
-                                        </Tooltip>
-                                    </button>
-                                )}
                             </div>
                         </div>
                     ))
@@ -373,11 +360,11 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                     {discountedCartItems && discountedCartItems.length > 0
                         ? `- ${formatCurrency(discountedCartItems.reduce((sum, item) => sum + (item.discountAmount ?? 0) * item.quantity, 0))}`
                         : isUsingManualDiscount && appliedCouponAmount > 0
-                          ? `- ${formatCurrency(appliedCouponAmount)}`
-                          : !isUsingManualDiscount &&
-                              totalAutoDiscountAmount > 0
-                            ? `- ${formatCurrency(totalAutoDiscountAmount)}`
-                            : "- 0₫"}
+                            ? `- ${formatCurrency(appliedCouponAmount)}`
+                            : !isUsingManualDiscount &&
+                                totalAutoDiscountAmount > 0
+                                ? `- ${formatCurrency(totalAutoDiscountAmount)}`
+                                : "- 0₫"}
                 </p>
             </div>
             <div className="flex justify-between text-base font-medium text-gray-900">

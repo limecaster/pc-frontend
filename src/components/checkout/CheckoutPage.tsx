@@ -271,7 +271,23 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
         // setCartItems((items) => items.filter((item) => item.id !== id));
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const calculateFinalTotal = () => {
+        let total = discountedCartItems.reduce(
+            (sum, item) =>
+                sum + (item.discountedPrice ?? item.price) * item.quantity,
+            0,
+        );
+        if (shippingFee && shippingFee > 0) {
+            total += shippingFee;
+        }
+        return Math.max(0, total);
+    };
+
+    const calculateFinalTotalInt = () => {
+        return Math.round(calculateFinalTotal());
+    };
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         if (
@@ -327,11 +343,11 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
                 const discountAmount =
                     manualDiscount &&
-                    manualDiscount.targetedProducts &&
-                    manualDiscount.targetedProducts.includes(item.name)
+                        manualDiscount.targetedProducts &&
+                        manualDiscount.targetedProducts.includes(item.name)
                         ? (originalPrice - finalPrice) * item.quantity
                         : item.discountAmount ||
-                          (originalPrice - finalPrice) * item.quantity;
+                        (originalPrice - finalPrice) * item.quantity;
 
                 const hasDiscount = discountAmount > 0;
 
@@ -351,6 +367,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 };
             });
 
+            const finalTotal = calculateFinalTotalInt();
             const orderData = {
                 customerInfo: {
                     fullName: formData.fullName,
@@ -359,9 +376,9 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     address: fullAddress,
                 },
                 orderItems: orderItems,
-                subtotal: subtotal,
-                shippingFee: shippingFee,
-                total: calculateFinalTotal(),
+                subtotal: Math.round(subtotal),
+                shippingFee: shippingFee ? Math.round(shippingFee) : 0,
+                total: finalTotal,
                 ...(discountInfo && {
                     discountAmount: discountInfo.discountAmount,
                     ...(discountInfo.isManual && {
@@ -369,9 +386,9 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     }),
                     ...(!discountInfo.isManual &&
                         discountInfo.automaticDiscountIds && {
-                            appliedDiscountIds:
-                                discountInfo.automaticDiscountIds,
-                        }),
+                        appliedDiscountIds:
+                            discountInfo.automaticDiscountIds,
+                    }),
                 }),
                 notes: formData.notes,
             };
@@ -406,28 +423,26 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
             console.error("Error creating order:", error);
             setErrorMessage(
                 (error as Error).message ||
-                    "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.",
+                "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.",
             );
         } finally {
             setIsProcessingPayment(false);
         }
     };
 
-    const calculateFinalTotal = () => {
-        let calculatedSubtotal = subtotal;
-        if (manualDiscount && manualDiscount.discountAmount > 0) {
-            calculatedSubtotal -= manualDiscount.discountAmount;
-        } else if (automaticDiscounts.length > 0) {
-            calculatedSubtotal -= automaticDiscounts.reduce(
-                (acc, curr) => acc + (curr.discountAmount || 0),
-                0,
-            );
-        }
-        if (shippingFee && shippingFee > 0) {
-            calculatedSubtotal += shippingFee;
-        }
-        return Math.max(0, calculatedSubtotal);
+    const [localCouponError, setLocalCouponError] = useState<string | null>(null);
+    const removeCoupon = () => {
+        // Remove coupon from URL
+        const params = new URLSearchParams(window.location.search);
+        params.delete('coupon');
+        window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+        // Optionally, reset discount state if needed
+        setLocalCouponError(null);
+        // Trigger re-fetch of discounts if needed (could trigger router.replace or set state)
+        window.location.reload(); // easiest way to refresh discount logic
     };
+
+    const effectiveCouponError = couponError || localCouponError;
 
     if (!discountsReady) {
         return (
@@ -520,10 +535,10 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                                     }
                                     onRemoveItem={removeItem}
                                     isProcessingPayment={!!isProcessingPayment}
-                                    removeCoupon={() => {}} // TODO: Implement or connect actual removeCoupon logic
-                                    couponError={couponError || null} // TODO: Replace with actual error state if available
-                                    immediateCartTotals={immediateCartTotals} // TODO: Replace with actual immediate cart totals if available
-                                    shippingFee={shippingFee || 0} // deliveryFee is used as shippingFee
+                                    removeCoupon={removeCoupon}
+                                    couponError={effectiveCouponError}
+                                    immediateCartTotals={immediateCartTotals}
+                                    shippingFee={shippingFee ? Math.round(shippingFee) : 0}
                                     appliedCouponAmount={
                                         appliedCouponAmount || 0
                                     }

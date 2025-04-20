@@ -86,7 +86,7 @@ export default function OrderTrackingDetailPage() {
             setIsLoading(true);
 
             const response = await trackOrder(orderId);
-
+            console.log("Response:", response);
             if (response.success) {
                 setOrderData(response.order);
 
@@ -104,13 +104,13 @@ export default function OrderTrackingDetailPage() {
                     // If user is not authenticated, only skip verification if they verified in this session
                     (!isAuthenticated
                         ? // For non-logged in users - only skip if recently verified in this session
-                          !(
-                              skipVerification &&
-                              verifiedEmail &&
-                              sessionStorage.getItem("current-session-id")
-                          )
+                        !(
+                            skipVerification &&
+                            verifiedEmail &&
+                            sessionStorage.getItem("current-session-id")
+                        )
                         : // For logged in but non-owner users - always require verification
-                          true)
+                        true)
                 ) {
                     setVerificationNeeded(true);
 
@@ -118,7 +118,7 @@ export default function OrderTrackingDetailPage() {
                     if (isAuthenticated) {
                         setVerificationMessage(
                             "Bạn đã đăng nhập nhưng không phải là chủ đơn hàng này. " +
-                                "Vui lòng xác thực email đã sử dụng khi đặt hàng để xem chi tiết.",
+                            "Vui lòng xác thực email đã sử dụng khi đặt hàng để xem chi tiết.",
                         );
                     } else {
                         setVerificationMessage(
@@ -225,11 +225,11 @@ export default function OrderTrackingDetailPage() {
             } else {
                 setOtpError(
                     response.message ||
-                        "Mã xác thực không hợp lệ hoặc đã hết hạn",
+                    "Mã xác thực không hợp lệ hoặc đã hết hạn",
                 );
                 toast.error(
                     response.message ||
-                        "Mã xác thực không hợp lệ hoặc đã hết hạn",
+                    "Mã xác thực không hợp lệ hoặc đã hết hạn",
                 );
             }
         } catch (error) {
@@ -335,11 +335,10 @@ export default function OrderTrackingDetailPage() {
                                         type="text"
                                         value={otp}
                                         onChange={(e) => setOtp(e.target.value)}
-                                        className={`w-full px-4 py-2 border rounded-md focus:ring-primary focus:border-primary ${
-                                            otpError
+                                        className={`w-full px-4 py-2 border rounded-md focus:ring-primary focus:border-primary ${otpError
                                                 ? "border-red-500"
                                                 : "border-gray-300"
-                                        }`}
+                                            }`}
                                         placeholder="Nhập mã xác thực"
                                         required
                                     />

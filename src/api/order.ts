@@ -148,16 +148,13 @@ export async function trackOrder(orderIdentifier: string | number) {
     }
 
     try {
-        // Create the request
         const requestPromise = (async () => {
-            // Add token to headers if available - make sure it's properly formatted
             const token = localStorage.getItem("token");
             const headers: Record<string, string> = {
                 "Content-Type": "application/json",
             };
 
             if (token) {
-                // Use Bearer authentication scheme
                 headers["Authorization"] = `Bearer ${token}`;
             }
 
@@ -173,14 +170,13 @@ export async function trackOrder(orderIdentifier: string | number) {
                 const errorData = await response.json();
                 throw new Error(
                     errorData.message ||
-                        `Failed to track order: ${response.status}`,
+                    `Failed to track order: ${response.status}`,
                 );
             }
 
             return await response.json();
         })();
 
-        // Cache the request promise
         requestCache[cacheKey] = {
             timestamp: now,
             promise: requestPromise,
@@ -226,7 +222,7 @@ export async function verifyOrderEmail(
             const errorData = await response.json();
             throw new Error(
                 errorData.message ||
-                    `Failed to verify email: ${response.status}`,
+                `Failed to verify email: ${response.status}`,
             );
         }
 
@@ -314,7 +310,7 @@ export async function verifyAndTrackOrder(
                 const errorData = await response.json();
                 throw new Error(
                     errorData.message ||
-                        `Failed to verify order: ${response.status}`,
+                    `Failed to verify order: ${response.status}`,
                 );
             }
 
@@ -380,7 +376,7 @@ export async function requestOrderTrackingOTP(
                 const errorData = await response.json();
                 throw new Error(
                     errorData.message ||
-                        `Failed to request OTP: ${response.status}`,
+                    `Failed to request OTP: ${response.status}`,
                 );
             }
 
