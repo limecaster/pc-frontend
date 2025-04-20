@@ -113,6 +113,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         localStorage.removeItem("token");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("user");
+        localStorage.removeItem("cart");
+        localStorage.removeItem("appliedDiscounts");
+        localStorage.removeItem("checkoutData");
+        localStorage.removeItem("checkoutItems");
         setUser(null);
 
         // Show a toast message if a reason is provided
