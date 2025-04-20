@@ -20,7 +20,6 @@ import {
 } from "@/api/discount";
 
 // Component imports
-import StatisticsCards from "@/components/admin/discounts/StatisticsCards";
 import DiscountTable from "@/components/admin/discounts/DiscountTable";
 import DiscountForm from "@/components/admin/discounts/DiscountForm";
 import DeleteConfirmationModal from "@/components/admin/discounts/DeleteConfirmationModal";
@@ -29,19 +28,8 @@ import SelectorModal from "@/components/admin/SelectorModal";
 export default function DiscountsManagement() {
     const router = useRouter();
 
-    // State for discount data
     const [discounts, setDiscounts] = useState<Discount[]>([]);
 
-    // Update the statistics state with proper typing
-    const [statistics, setStatistics] = useState<{
-        totalUsage: number;
-        totalSavings: number;
-        mostUsedDiscounts: { discountCode: string; usageCount: number }[];
-    }>({
-        totalUsage: 0,
-        totalSavings: 0,
-        mostUsedDiscounts: [],
-    });
 
     // UI state
     const [isLoading, setIsLoading] = useState(true);
@@ -99,13 +87,6 @@ export default function DiscountsManagement() {
 
             const discountsData = await fetchDiscounts();
             setDiscounts(discountsData);
-
-            try {
-                const statsData = await fetchDiscountStatistics();
-                setStatistics(statsData);
-            } catch (statsError) {
-                console.error("Error loading discount statistics:", statsError);
-            }
         } catch (error) {
             console.error("Error loading discounts:", error);
             setError(
@@ -125,7 +106,6 @@ export default function DiscountsManagement() {
         }
     };
 
-    // Handle CRUD operations
     const handleCreateDiscount = () => {
         setModalMode("create");
         setFormData({

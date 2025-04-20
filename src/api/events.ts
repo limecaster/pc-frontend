@@ -347,7 +347,7 @@ export const trackManualBuildPCPageView = async () => {
 
 export const trackManualBuildAddToCart = async (config: any) => {
     await trackEvent({
-        eventType: "manual_build_add_to_cart",
+        eventType: "manual_build_pc_add_to_cart",
         entityType: "feature",
         eventData: {
             ...config,
@@ -358,7 +358,7 @@ export const trackManualBuildAddToCart = async (config: any) => {
 
 export const trackManualBuildComponentSelect = async (component: any) => {
     await trackEvent({
-        eventType: "manual_build_component_select",
+        eventType: "manual_build_pc_component_select",
         entityType: "feature",
         eventData: {
             ...component,
@@ -369,7 +369,7 @@ export const trackManualBuildComponentSelect = async (component: any) => {
 
 export const trackManualBuildSaveConfig = async (config: any) => {
     await trackEvent({
-        eventType: "manual_build_save_config",
+        eventType: "manual_build_pc_save_config",
         entityType: "feature",
         eventData: {
             ...config,
@@ -380,7 +380,7 @@ export const trackManualBuildSaveConfig = async (config: any) => {
 
 export const trackManualBuildExportExcel = async (configDetails: any) => {
     await trackEvent({
-        eventType: "manual_build_export_excel",
+        eventType: "manual_build_pc_export_excel",
         entityType: "feature",
         eventData: {
             ...configDetails,
