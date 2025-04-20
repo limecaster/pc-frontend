@@ -42,7 +42,6 @@ const CartPage: React.FC = () => {
         appliedCouponAmount,
         applyingCoupon,
         isUsingManualDiscount,
-        totalDiscount,
         showConfirmModal,
         setShowConfirmModal,
         pendingManualDiscount,
@@ -219,7 +218,7 @@ const CartPage: React.FC = () => {
     const handleProceedToCheckout = () => {
         // If cart is empty, prevent navigation
         if (cartItems.length === 0) {
-            toast.error("Your cart is empty");
+            toast.error("Giỏ hàng trống");
             return;
         }
 

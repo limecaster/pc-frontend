@@ -39,7 +39,6 @@ interface CartSummaryProps {
 const CartSummary: React.FC<CartSummaryProps> = ({
     subtotal,
     shippingFee,
-    totalDiscount,
     total,
     couponCode,
     couponError,
@@ -50,14 +49,12 @@ const CartSummary: React.FC<CartSummaryProps> = ({
     cartItems,
     setCartItems,
     appliedCouponAmount,
-    automaticDiscounts,
     isUsingManualDiscount,
     formatCurrency,
     setCouponCode,
     handleApplyCoupon,
     removeCoupon,
     isDiscountProcessingComplete = false,
-    discountedCartItems = [],
     immediateCartTotals,
     clearCart,
     proceedToCheckout,
@@ -130,7 +127,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                         {appliedAutomaticDiscounts.length > 0 && (
                             <div className="text-green-600 text-sm bg-green-50 p-3 rounded-lg border border-green-100">
                                 <p className="font-medium mb-1">
-                                    Auto-applied discounts:
+                                    Mã giảm giá tự động áp dụng:
                                 </p>
                                 <ul className="space-y-2">
                                     {appliedAutomaticDiscounts.map((discount) => (
@@ -144,12 +141,12 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                                                 </span>
                                                 {discount.targetType === "products" && discount.targetedProducts && (
                                                     <p className="text-xs text-green-700 mt-0.5">
-                                                        Applied to: {discount.targetedProducts.join(", ")}
+                                                        Áp dụng cho: {discount.targetedProducts.join(", ")}
                                                     </p>
                                                 )}
                                                 {discount.targetType === "categories" && discount.categoryNames && (
                                                     <p className="text-xs text-green-700 mt-0.5">
-                                                        Applied to: {discount.categoryNames.join(", ")}
+                                                        Áp dụng cho: {discount.categoryNames.join(", ")}
                                                     </p>
                                                 )}
                                                 {discount.discountCode && (
@@ -166,7 +163,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                                         </li>
                                     ))}
                                     <li className="flex justify-between items-center font-medium border-t border-green-200 pt-1 mt-1">
-                                        <span>Total automatic discount:</span>
+                                        <span>Tổng tự động giảm:</span>
                                         <span>
                                             -{formatCurrency(totalAutoDiscountAmount)}
                                         </span>
@@ -176,32 +173,32 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                         )}
 
                         {/* Coupon Input Section */}
-                        <div className="mt-4 space-y-2">
-                            <p className="font-medium text-gray-700">
-                                {isUsingManualDiscount
-                                    ? "Applied discount code:"
-                                    : "Have a discount code?"}
-                            </p>
-                            {!isUsingManualDiscount ? (
-                                <div className="flex space-x-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Enter discount code"
-                                        className="w-full border border-gray-200 rounded-md p-2 focus:ring-1 focus:ring-primary focus:border-primary"
-                                        value={couponCode}
-                                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                                    />
-                                    <button
-                                        className={`bg-primary text-white font-medium px-4 py-2 rounded-md transition-opacity ${
-                                            applyingCoupon ? "opacity-70 cursor-not-allowed" : "hover:bg-primary-dark"
-                                        }`}
-                                        onClick={handleApplyCoupon}
-                                        type="button"
-                                        disabled={applyingCoupon}
-                                    >
-                                        {applyingCoupon ? "Applying..." : "Apply"}
-                                    </button>
-                                </div>
+                            <div className="mt-4 space-y-2">
+                                <p className="font-medium text-gray-700">
+                                    {isUsingManualDiscount
+                                        ? "Mã giảm giá đã áp dụng:"
+                                        : "Bạn có mã giảm giá?"}
+                                </p>
+                                {!isUsingManualDiscount ? (
+                                    <div className="flex space-x-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Mã giảm giá"
+                                            className="flex-1 border border-gray-200 rounded-md p-2 focus:ring-1 focus:ring-primary focus:border-primary"
+                                            value={couponCode}
+                                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                        />
+                                        <button
+                                            className={`bg-primary text-white font-medium px-4 py-2 rounded-md transition-opacity ${
+                                                applyingCoupon ? "opacity-70 cursor-not-allowed" : "hover:bg-primary-dark"
+                                            }`}
+                                            onClick={handleApplyCoupon}
+                                            type="button"
+                                            disabled={applyingCoupon}
+                                        >
+                                            {applyingCoupon ? "Applying..." : "Áp dụng"}
+                                        </button>
+                                    </div>
                             ) : (
                                 <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100">
                                     <div>
@@ -216,7 +213,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                                                   )} off`}
                                             {discount?.targetType === "products" && discount?.targetedProducts && (
                                                 <span className="block text-xs mt-0.5">
-                                                    on specific products
+                                                    Áp dụng cho: {discount.targetedProducts.join(", ")}
                                                 </span>
                                             )}
                                         </p>
@@ -226,7 +223,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                                         type="button"
                                         className="text-red-500 hover:text-red-700 text-sm"
                                     >
-                                        Remove
+                                        Xóa
                                     </button>
                                 </div>
                             )}
@@ -242,14 +239,11 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                 {/* Total Amount after all discounts */}
                 <div className="border-t border-gray-200 pt-4 mt-4">
                     <div className="flex justify-between text-base font-medium text-gray-900">
-                        <p className="font-semibold">Total Amount</p>
+                        <p className="font-semibold">Tổng thanh toán</p>
                         <p className="font-bold text-primary text-lg">
                             {formatCurrency(calculateDiscountedTotal())}
                         </p>
                     </div>
-                    <p className="mt-0.5 text-sm text-gray-500">
-                        Shipping and taxes will be calculated at checkout
-                    </p>
                 </div>
 
                 {/* Checkout button */}
@@ -258,17 +252,18 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                         onClick={(e) => {
                             e.preventDefault();
                             if (cartItems.length === 0) {
-                                // toast.error("Your cart is empty");
                                 return;
                             }
                             if (proceedToCheckout) {
                                 proceedToCheckout();
                             }
                         }}
-                        className={`flex justify-center items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition
+                        disabled={cartItems.length === 0}
+                        type="button"
+                        className={`flex justify-center items-center w-full px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition
                             ${cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
-                        Proceed to Checkout
+                        Tiến hành thanh toán
                     </button>
                     <div className="mt-2">
                         <button
@@ -290,7 +285,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                                 />
                             </svg>
-                            Clear Cart
+                            Xóa giỏ hàng
                         </button>
                     </div>
                 </div>

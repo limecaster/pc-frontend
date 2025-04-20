@@ -735,7 +735,7 @@ export function useDiscount({
     // Update handleApplyCoupon to use the enhanced validation
     const handleApplyCoupon = async () => {
         if (!couponCode.trim()) {
-            setCouponError("Please enter a discount code");
+            setCouponError("Vui lòng nhập mã giảm giá");
             return;
         }
 
@@ -748,7 +748,7 @@ export function useDiscount({
 
             if (!validationResult.valid || !validationResult.discount) {
                 setCouponError(
-                    validationResult.errorMessage || "Invalid discount code"
+                    "Mã giảm giá không hợp lệ"
                 );
                 return;
             }
@@ -774,7 +774,7 @@ export function useDiscount({
                 // If no eligible products found, show error
                 if (targetedProducts.length === 0) {
                     setCouponError(
-                        "No products in your cart are eligible for this discount"
+                        "Không có sản phẩm trong giỏ hàng áp dụng mã giảm giá"
                     );
                     setApplyingCoupon(false);
                     return;
@@ -801,7 +801,7 @@ export function useDiscount({
                 targetedProducts,
             );
         } catch (err: any) {
-            setCouponError(err.message || "Failed to apply discount code");
+            setCouponError("Áp dụng mã giảm giá thất bại");
             setDiscount(null);
             setAppliedCouponAmount(0);
         } finally {

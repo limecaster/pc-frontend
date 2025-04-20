@@ -117,11 +117,6 @@ const CheckoutSuccessContent: React.FC = () => {
                             orderSubtotal:
                                 orderDetails.order.subtotal ||
                                 orderDetails.order.total,
-
-                            itemDiscounts:
-                                itemDiscounts.length > 0
-                                    ? itemDiscounts
-                                    : undefined,
                         });
 
                         // Mark discount as tracked both in state and session storage
