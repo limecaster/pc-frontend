@@ -13,6 +13,7 @@ import { trackProductClick } from "@/api/events";
 import { addToCartAndSync } from "@/api/cart";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import Pagination from "@/components/common/Pagination";
 
 interface GroupedProducts {
     [key: string]: ProductDetailsDto[];
@@ -26,22 +27,17 @@ const ViewedProductsPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [dateFilter, setDateFilter] = useState<string>("all");
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalProducts, setTotalProducts] = useState(0);
     const router = useRouter();
 
     useEffect(() => {
         fetchViewedProducts();
-    }, [currentPage]);
+    }, []);
 
     const fetchViewedProducts = async () => {
         try {
             setLoading(true);
-            const response = await getViewedProducts(currentPage);
+            const response = await getViewedProducts();
             setViewedProducts(response.products);
-            setTotalPages(response.pages);
-            setTotalProducts(response.total);
             setError(null);
         } catch (err) {
             setError("Không thể tải sản phẩm đã xem");
@@ -135,10 +131,9 @@ const ViewedProductsPage: React.FC = () => {
     };
 
     const filteredProducts = filterProducts(viewedProducts);
-    const groupedProducts = groupProductsByDay(filteredProducts);
-    const sortedDates = Object.keys(groupedProducts).sort((a, b) =>
-        b.localeCompare(a),
-    );
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 6;
+    const totalPages = Math.ceil(filteredProducts.length / pageSize) || 1;
 
     if (loading) {
         return (
@@ -205,7 +200,14 @@ const ViewedProductsPage: React.FC = () => {
 
             {filteredProducts.length > 0 ? (
                 <div className="space-y-8">
-                    {sortedDates.map((date) => (
+                    {Object.entries(
+                        groupProductsByDay(
+                            filteredProducts.slice(
+                                (currentPage - 1) * pageSize,
+                                currentPage * pageSize,
+                            ),
+                        ),
+                    ).map(([date, products]) => (
                         <div key={date} className="space-y-4">
                             <h2 className="text-lg font-semibold text-gray-700">
                                 {format(
@@ -215,7 +217,7 @@ const ViewedProductsPage: React.FC = () => {
                                 )}
                             </h2>
                             <div className="space-y-4">
-                                {groupedProducts[date].map((product) => (
+                                {products.map((product) => (
                                     <div
                                         key={product.id}
                                         className="bg-white border border-gray-200 rounded-lg p-4 transition-shadow hover:shadow-md"
@@ -334,33 +336,6 @@ const ViewedProductsPage: React.FC = () => {
                             </div>
                         </div>
                     ))}
-
-                    {/* Pagination */}
-                    <div className="flex justify-center items-center gap-2 mt-8">
-                        <button
-                            onClick={() =>
-                                setCurrentPage((prev) => Math.max(prev - 1, 1))
-                            }
-                            disabled={currentPage === 1}
-                            className="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            Trước
-                        </button>
-                        <span className="text-gray-600">
-                            Trang {currentPage} / {totalPages}
-                        </span>
-                        <button
-                            onClick={() =>
-                                setCurrentPage((prev) =>
-                                    Math.min(prev + 1, totalPages),
-                                )
-                            }
-                            disabled={currentPage === totalPages}
-                            className="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            Sau
-                        </button>
-                    </div>
                 </div>
             ) : (
                 <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
@@ -375,6 +350,15 @@ const ViewedProductsPage: React.FC = () => {
                     >
                         Khám phá sản phẩm
                     </Link>
+                </div>
+            )}
+            {totalPages > 1 && (
+                <div className="flex justify-center mt-8">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                    />
                 </div>
             )}
         </div>

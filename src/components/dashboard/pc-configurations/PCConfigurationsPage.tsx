@@ -7,12 +7,15 @@ import {
     PCConfiguration,
 } from "@/api/pc-configuration";
 import { formatPrice } from "@/utils/format";
+import Pagination from "@/components/common/Pagination";
 
 const PCConfigurationsPage = () => {
-    // Fix the type error by providing a proper type annotation for the state
     const [configurations, setConfigurations] = useState<PCConfiguration[]>([]);
     const [loading, setLoading] = useState(true);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 8;
+    const totalPages = Math.ceil(configurations.length / pageSize) || 1;
     const router = useRouter();
 
     useEffect(() => {
@@ -96,7 +99,7 @@ const PCConfigurationsPage = () => {
 
     return (
         <div className="bg-white shadow rounded-lg overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-6 border border-gray-200">
                 <div className="flex justify-between items-center">
                     <h2 className="text-xl font-semibold text-gray-800">
                         Cấu hình PC đã lưu
@@ -153,88 +156,99 @@ const PCConfigurationsPage = () => {
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {configurations.map((config: any) => (
-                            <tr key={config.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm font-medium text-gray-900">
-                                        {config.name}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm text-gray-500">
-                                        {config.purpose || "N/A"}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm text-gray-500">
-                                        {
-                                            Object.keys(config.products || {})
-                                                .length
-                                        }
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm text-gray-900 font-medium">
-                                        {formatPrice(config.totalPrice)} đ
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm text-gray-500">
-                                        {new Date(
-                                            config.updatedAt,
-                                        ).toLocaleDateString("vi-VN")}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    {confirmDelete === config.id ? (
-                                        <div className="flex justify-end space-x-2">
-                                            <button
-                                                onClick={() =>
-                                                    handleDeleteConfiguration(
-                                                        config.id,
-                                                    )
-                                                }
-                                                className="text-red-600 hover:text-red-900"
-                                            >
-                                                Xác nhận
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    setConfirmDelete(null)
-                                                }
-                                                className="text-gray-600 hover:text-gray-900"
-                                            >
-                                                Hủy
-                                            </button>
+                        {configurations
+                            .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                            .map((config: any) => (
+                                <tr key={config.id} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm font-medium text-gray-900">
+                                            {config.name}
                                         </div>
-                                    ) : (
-                                        <div className="flex justify-end space-x-4">
-                                            <button
-                                                onClick={() =>
-                                                    handleEditConfiguration(
-                                                        config.id,
-                                                    )
-                                                }
-                                                className="text-blue-600 hover:text-blue-900"
-                                            >
-                                                Chỉnh sửa
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    setConfirmDelete(config.id)
-                                                }
-                                                className="text-red-600 hover:text-red-900"
-                                            >
-                                                Xóa
-                                            </button>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-gray-500">
+                                            {config.purpose || "N/A"}
                                         </div>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-gray-500">
+                                            {
+                                                Object.keys(config.products || {})
+                                                    .length
+                                            }
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-gray-900 font-medium">
+                                            {formatPrice(config.totalPrice)} đ
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-gray-500">
+                                            {new Date(
+                                                config.updatedAt,
+                                            ).toLocaleDateString("vi-VN")}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        {confirmDelete === config.id ? (
+                                            <div className="flex justify-end space-x-2">
+                                                <button
+                                                    onClick={() =>
+                                                        handleDeleteConfiguration(
+                                                            config.id,
+                                                        )
+                                                    }
+                                                    className="text-red-600 hover:text-red-900"
+                                                >
+                                                    Xác nhận
+                                                </button>
+                                                <button
+                                                    onClick={() =>
+                                                        setConfirmDelete(null)
+                                                    }
+                                                    className="text-gray-600 hover:text-gray-900"
+                                                >
+                                                    Hủy
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex justify-end space-x-4">
+                                                <button
+                                                    onClick={() =>
+                                                        handleEditConfiguration(
+                                                            config.id,
+                                                        )
+                                                    }
+                                                    className="text-blue-600 hover:text-blue-900"
+                                                >
+                                                    Chỉnh sửa
+                                                </button>
+                                                <button
+                                                    onClick={() =>
+                                                        setConfirmDelete(config.id)
+                                                    }
+                                                    className="text-red-600 hover:text-red-900"
+                                                >
+                                                    Xóa
+                                                </button>
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
                     </tbody>
                 </table>
             </div>
+            {totalPages > 1 && (
+                <div className="flex justify-center mt-6">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                    />
+                </div>
+            )}
         </div>
     );
 };

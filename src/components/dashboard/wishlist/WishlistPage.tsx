@@ -6,6 +6,7 @@ import WishlistItem from "./WishlistItem";
 import { Loader2 } from "lucide-react";
 import { getProductById } from "@/api/product";
 import { toast } from "react-hot-toast";
+import Pagination from "@/components/common/Pagination";
 
 interface ProductDetails {
     id: string;
@@ -30,6 +31,9 @@ const WishlistPage: React.FC = () => {
     const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>(
         {},
     );
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 6;
+    const totalPages = Math.ceil(products.length / pageSize) || 1;
 
     // Fetch detailed product information for each wishlist item
     useEffect(() => {
@@ -109,17 +113,28 @@ const WishlistPage: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-800 mb-6">
                 Danh sách yêu thích
             </h1>
-            <div className="bg-white rounded-lg shadow">
+            <div className="bg-white rounded-lg shadow border border-gray-200">
                 <ul className="divide-y divide-gray-200">
-                    {products.map((product) => (
-                        <WishlistItem
-                            key={product.id}
-                            product={product}
-                            onRemove={() => handleRemoveItem(product.id)}
-                            isRemoving={loadingStates[product.id] || false}
-                        />
-                    ))}
+                    {products
+                        .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                        .map((product) => (
+                            <WishlistItem
+                                key={product.id}
+                                product={product}
+                                onRemove={() => handleRemoveItem(product.id)}
+                                isRemoving={loadingStates[product.id] || false}
+                            />
+                        ))}
                 </ul>
+                {totalPages > 1 && (
+                    <div className="flex justify-center mt-6">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );
