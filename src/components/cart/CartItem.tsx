@@ -36,24 +36,17 @@ const CartItem: React.FC<CartItemProps> = ({
     discountSource,
     discountType,
 }) => {
-    // IMPROVED: Add local state to prevent UI lag
     const [localQuantity, setLocalQuantity] = React.useState(quantity);
     const [isUpdating, setIsUpdating] = React.useState(false);
     const [isRemoving, setIsRemoving] = React.useState(false);
 
-    // Update local state when prop changes
     React.useEffect(() => {
         setLocalQuantity(quantity);
     }, [quantity]);
 
-    // Determine if we should disable the increase button based on stock
     const isIncreaseDisabled =
         stock_quantity !== undefined && localQuantity >= stock_quantity;
 
-    // Check if this item has a discount applied
-    const hasDiscount = originalPrice && originalPrice > price;
-
-    // Handle quantity decrease with immediate local update
     const handleDecrease = () => {
         if (localQuantity > 1 && !isUpdating) {
             setIsUpdating(true);
@@ -65,29 +58,9 @@ const CartItem: React.FC<CartItemProps> = ({
         }
     };
 
-    // Handle quantity increase with validation for numeric safety
     const handleIncrease = () => {
         if (!isIncreaseDisabled && !isUpdating) {
-            // Prevent numeric overflow by checking price * quantity
             const nextQuantity = localQuantity + 1;
-
-            // // Check price-based limits
-            // if (price > 0) {
-            //     const total = price * nextQuantity;
-            //     if (total > 99999999) {
-            //         toast.error(
-            //             "Đạt số lượng tối đa cho sản phẩm này với giá hiện tại.",
-            //         );
-            //         return;
-            //     }
-            // }
-
-            // // Prevent exceeding 100 units
-            // if (nextQuantity > 100) {
-            //     toast.error("Số lượng tối đa cho phép là 100");
-            //     return;
-            // }
-
             setIsUpdating(true);
             setLocalQuantity(nextQuantity);
 
@@ -97,30 +70,12 @@ const CartItem: React.FC<CartItemProps> = ({
         }
     };
 
-    // Handle input change with validation and debounce
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = parseInt(e.target.value, 10);
 
         if (!isNaN(value) && value > 0) {
-            // Limit maximum quantity based on price to prevent overflow
             let safeValue = Math.min(value, 100);
 
-            // Calculate if this would cause numeric overflow (99,999,999.99 limit)
-            // if (price > 0) {
-            //     const total = price * safeValue;
-            //     if (total > 99999999) {
-            //         const maxSafeQuantity = Math.floor(99999999 / price);
-            //         safeValue = Math.min(
-            //             safeValue,
-            //             Math.max(1, maxSafeQuantity),
-            //         );
-            //         toast.error(
-            //             "Số lượng đã được điều chỉnh để phù hợp với hệ thống.",
-            //         );
-            //     }
-            // }
-
-            // Apply stock limit if needed
             if (stock_quantity !== undefined) {
                 safeValue = Math.min(safeValue, stock_quantity);
             }
@@ -133,10 +88,8 @@ const CartItem: React.FC<CartItemProps> = ({
                 }
             }
 
-            // Update local UI immediately
             setLocalQuantity(safeValue);
 
-            // Debounce the actual API call
             const timer = setTimeout(() => {
                 setIsUpdating(true);
                 onUpdateQuantity(id, safeValue).finally(() => {
@@ -148,33 +101,25 @@ const CartItem: React.FC<CartItemProps> = ({
         }
     };
 
-    // Simplify the remove handler since tracking is now in the API
     const handleRemove = async () => {
-        // Set removing state immediately to visually indicate removal
         setIsRemoving(true);
-        
+
         try {
-            // Call the parent remove function
             await onRemove(id);
         } catch (error) {
-            // If removal fails, reset the removing state
             setIsRemoving(false);
             toast.error("Không thể xóa sản phẩm khỏi giỏ hàng");
             console.error("Error removing item:", error);
         }
     };
 
-    // Calculate the total for this row
     const rowTotal = price * localQuantity;
 
-    // Don't render at all if the item is being removed
     if (isRemoving) {
         return null;
     }
 
-    // Add more informative display for item discount
     const renderPriceInfo = () => {
-        // If item is free, show special styling
         if (price <= 0 && originalPrice && originalPrice > 0) {
             return (
                 <>
@@ -189,7 +134,6 @@ const CartItem: React.FC<CartItemProps> = ({
             );
         }
 
-        // If item has a regular discount
         if (originalPrice && originalPrice > price) {
             return (
                 <>
@@ -214,7 +158,6 @@ const CartItem: React.FC<CartItemProps> = ({
             );
         }
 
-        // Regular price (no discount)
         return (
             <span className="font-medium text-gray-900">
                 {formatCurrency(price)}
@@ -255,14 +198,15 @@ const CartItem: React.FC<CartItemProps> = ({
             </td>
             <td className="py-4 px-6">
                 <div className="flex items-center justify-center">
-                    <div className="flex border border-gray-800 rounded items-center h-8">
+                    <div className="flex items-center justify-center rounded-md border border-gray-300 h-8">
                         <button
                             onClick={handleDecrease}
+                            type="button"
                             disabled={localQuantity <= 1 || isUpdating}
-                            className={`px-2 py-1 h-full ${
+                            className={`px-2 py-1 text-gray-600 ${
                                 localQuantity <= 1 || isUpdating
-                                    ? "text-gray-200"
-                                    : "text-gray-600"
+                                    ? "text-gray-200 cursor-not-allowed"
+                                    : "hover:text-primary cursor-pointer"
                             }`}
                         >
                             -
@@ -271,16 +215,17 @@ const CartItem: React.FC<CartItemProps> = ({
                             type="text"
                             value={localQuantity}
                             onChange={handleInputChange}
-                            className="w-14 h-full text-center focus:outline-none"
+                            className="w-14 h-full text-center bg-transparent focus:outline-none border-x border-t-0 border-b-0 border-gray-300"
                             disabled={isUpdating}
                         />
                         <button
                             onClick={handleIncrease}
+                            type="button"
                             disabled={isIncreaseDisabled || isUpdating}
-                            className={`px-2 py-1 h-full ${
+                            className={`px-2 py-1 text-gray-600 ${
                                 isIncreaseDisabled || isUpdating
-                                    ? "text-gray-200"
-                                    : "text-gray-600"
+                                    ? "text-gray-200 cursor-not-allowed"
+                                    : "hover:text-primary cursor-pointer"
                             }`}
                         >
                             +

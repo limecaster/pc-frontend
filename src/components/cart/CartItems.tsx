@@ -17,12 +17,14 @@ const CartItems: React.FC<CartItemsProps> = ({
     removeItem,
 }) => {
     // Add state to track items being removed to prevent flickering
-    const [removingItems, setRemovingItems] = React.useState<Set<string>>(new Set());
+    const [removingItems, setRemovingItems] = React.useState<Set<string>>(
+        new Set(),
+    );
 
     // Handle removal with optimistic UI update
     const handleRemoveItem = async (id: string) => {
         // Track that this item is being removed
-        setRemovingItems(prev => {
+        setRemovingItems((prev) => {
             const updated = new Set(prev);
             updated.add(id);
             return updated;
@@ -33,7 +35,7 @@ const CartItems: React.FC<CartItemsProps> = ({
             await removeItem(id);
         } catch (error) {
             // If removal fails, remove from tracking set
-            setRemovingItems(prev => {
+            setRemovingItems((prev) => {
                 const updated = new Set(prev);
                 updated.delete(id);
                 return updated;
@@ -42,7 +44,9 @@ const CartItems: React.FC<CartItemsProps> = ({
     };
 
     // Filter out items that are marked as being removed
-    const visibleItems = cartItems.filter(item => !removingItems.has(item.id));
+    const visibleItems = cartItems.filter(
+        (item) => !removingItems.has(item.id),
+    );
 
     return (
         <div className="overflow-x-auto">
@@ -73,7 +77,10 @@ const CartItems: React.FC<CartItemsProps> = ({
                                 name={item.name}
                                 price={item.price}
                                 quantity={item.quantity}
-                                image={item.imageUrl}
+                                image={
+                                    item.imageUrl ||
+                                    "images/image-placeholder.webp"
+                                }
                                 slug={item.id}
                                 stock_quantity={item.stock_quantity}
                                 onUpdateQuantity={updateQuantity}
@@ -86,7 +93,10 @@ const CartItems: React.FC<CartItemsProps> = ({
                         ))
                     ) : (
                         <tr>
-                            <td colSpan={5} className="text-center py-8 text-gray-500">
+                            <td
+                                colSpan={6}
+                                className="text-center py-8 text-gray-500"
+                            >
                                 Giỏ hàng trống
                             </td>
                         </tr>

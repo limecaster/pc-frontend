@@ -56,6 +56,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
     removeCoupon,
     isDiscountProcessingComplete = false,
     immediateCartTotals,
+    discountedCartItems,
     clearCart,
     proceedToCheckout,
 }) => {
@@ -64,23 +65,30 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         ? immediateCartTotals.total
         : total;
 
-    // Calculate the final total after discounts
+    // Calculate the final total after discounts using discountedCartItems
     const calculateDiscountedTotal = () => {
-        // Start with subtotal
+        if (discountedCartItems && discountedCartItems.length > 0) {
+            let discountedTotal = discountedCartItems.reduce(
+                (sum, item) =>
+                    sum + (item.discountedPrice ?? item.price) * item.quantity,
+                0,
+            );
+            // Add shipping fee if any
+            if (shippingFee > 0) {
+                discountedTotal += shippingFee;
+            }
+            return Math.max(0, discountedTotal);
+        }
+        // Fallback to previous logic if discountedCartItems missing
         let calculatedTotal = displaySubtotal;
-
-        // Subtract the total discount amount
         if (isUsingManualDiscount && appliedCouponAmount > 0) {
             calculatedTotal -= appliedCouponAmount;
         } else if (!isUsingManualDiscount && totalAutoDiscountAmount > 0) {
             calculatedTotal -= totalAutoDiscountAmount;
         }
-
-        // Add shipping fee if any
         if (shippingFee > 0) {
             calculatedTotal += shippingFee;
         }
-
         return Math.max(0, calculatedTotal);
     };
 
@@ -130,42 +138,61 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                                     Mã giảm giá tự động áp dụng:
                                 </p>
                                 <ul className="space-y-2">
-                                    {appliedAutomaticDiscounts.map((discount) => (
-                                        <li
-                                            key={discount.id}
-                                            className="flex justify-between items-center"
-                                        >
-                                            <div>
-                                                <span className="font-medium">
-                                                    {discount.discountName}
-                                                </span>
-                                                {discount.targetType === "products" && discount.targetedProducts && (
-                                                    <p className="text-xs text-green-700 mt-0.5">
-                                                        Áp dụng cho: {discount.targetedProducts.join(", ")}
-                                                    </p>
-                                                )}
-                                                {discount.targetType === "categories" && discount.categoryNames && (
-                                                    <p className="text-xs text-green-700 mt-0.5">
-                                                        Áp dụng cho: {discount.categoryNames.join(", ")}
-                                                    </p>
-                                                )}
-                                                {discount.discountCode && (
-                                                    <p className="text-xs text-green-700 mt-0.5">
-                                                        Code: {discount.discountCode}
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <div className="font-medium">
-                                                {discount.type === "percentage"
-                                                    ? `-${discount.discountAmount}%`
-                                                    : `-${formatCurrency(discount.discountAmount)}`}
-                                            </div>
-                                        </li>
-                                    ))}
+                                    {appliedAutomaticDiscounts.map(
+                                        (discount) => (
+                                            <li
+                                                key={discount.id}
+                                                className="flex justify-between items-center"
+                                            >
+                                                <div>
+                                                    <span className="font-medium">
+                                                        {discount.discountName}
+                                                    </span>
+                                                    {discount.targetType ===
+                                                        "products" &&
+                                                        discount.targetedProducts && (
+                                                            <p className="text-xs text-green-700 mt-0.5">
+                                                                Áp dụng cho:{" "}
+                                                                {discount.targetedProducts.join(
+                                                                    ", ",
+                                                                )}
+                                                            </p>
+                                                        )}
+                                                    {discount.targetType ===
+                                                        "categories" &&
+                                                        discount.categoryNames && (
+                                                            <p className="text-xs text-green-700 mt-0.5">
+                                                                Áp dụng cho:{" "}
+                                                                {discount.categoryNames.join(
+                                                                    ", ",
+                                                                )}
+                                                            </p>
+                                                        )}
+                                                    {discount.discountCode && (
+                                                        <p className="text-xs text-green-700 mt-0.5">
+                                                            Code:{" "}
+                                                            {
+                                                                discount.discountCode
+                                                            }
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <div className="font-medium">
+                                                    {discount.type ===
+                                                    "percentage"
+                                                        ? `-${discount.discountAmount}%`
+                                                        : `-${formatCurrency(discount.discountAmount)}`}
+                                                </div>
+                                            </li>
+                                        ),
+                                    )}
                                     <li className="flex justify-between items-center font-medium border-t border-green-200 pt-1 mt-1">
                                         <span>Tổng tự động giảm:</span>
                                         <span>
-                                            -{formatCurrency(totalAutoDiscountAmount)}
+                                            -
+                                            {formatCurrency(
+                                                totalAutoDiscountAmount,
+                                            )}
                                         </span>
                                     </li>
                                 </ul>
@@ -173,49 +200,64 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                         )}
 
                         {/* Coupon Input Section */}
-                            <div className="mt-4 space-y-2">
-                                <p className="font-medium text-gray-700">
-                                    {isUsingManualDiscount
-                                        ? "Mã giảm giá đã áp dụng:"
-                                        : "Bạn có mã giảm giá?"}
-                                </p>
-                                {!isUsingManualDiscount ? (
-                                    <div className="flex space-x-2">
-                                        <input
-                                            type="text"
-                                            placeholder="Mã giảm giá"
-                                            className="flex-1 border border-gray-200 rounded-md p-2 focus:ring-1 focus:ring-primary focus:border-primary"
-                                            value={couponCode}
-                                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                                        />
-                                        <button
-                                            className={`bg-primary text-white font-medium px-4 py-2 rounded-md transition-opacity ${
-                                                applyingCoupon ? "opacity-70 cursor-not-allowed" : "hover:bg-primary-dark"
-                                            }`}
-                                            onClick={handleApplyCoupon}
-                                            type="button"
-                                            disabled={applyingCoupon}
-                                        >
-                                            {applyingCoupon ? "Applying..." : "Áp dụng"}
-                                        </button>
-                                    </div>
+                        <div className="mt-4 space-y-2">
+                            <p className="font-medium text-gray-700">
+                                {isUsingManualDiscount
+                                    ? "Mã giảm giá đã áp dụng:"
+                                    : "Bạn có mã giảm giá?"}
+                            </p>
+                            {!isUsingManualDiscount ? (
+                                <div className="flex space-x-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Mã giảm giá"
+                                        className="flex-1 border border-gray-200 rounded-md p-2 focus:ring-1 focus:ring-primary focus:border-primary"
+                                        value={couponCode}
+                                        onChange={(e) =>
+                                            setCouponCode(
+                                                e.target.value.toUpperCase(),
+                                            )
+                                        }
+                                    />
+                                    <button
+                                        className={`bg-primary text-white font-medium px-4 py-2 rounded-md transition-opacity ${
+                                            applyingCoupon
+                                                ? "opacity-70 cursor-not-allowed"
+                                                : "hover:bg-primary-dark"
+                                        }`}
+                                        onClick={handleApplyCoupon}
+                                        type="button"
+                                        disabled={applyingCoupon}
+                                    >
+                                        {applyingCoupon
+                                            ? "Applying..."
+                                            : "Áp dụng"}
+                                    </button>
+                                </div>
                             ) : (
                                 <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100">
                                     <div>
                                         <p className="font-medium text-blue-800">
-                                            {discount?.discountName || "Discount"}
+                                            {discount?.discountName ||
+                                                "Discount"}
                                         </p>
                                         <p className="text-sm text-blue-600">
                                             {discount?.type === "percentage"
                                                 ? `${discount.discountAmount}% off`
                                                 : `${formatCurrency(
-                                                      discount?.discountAmount || 0,
+                                                      discount?.discountAmount ||
+                                                          0,
                                                   )} off`}
-                                            {discount?.targetType === "products" && discount?.targetedProducts && (
-                                                <span className="block text-xs mt-0.5">
-                                                    Áp dụng cho: {discount.targetedProducts.join(", ")}
-                                                </span>
-                                            )}
+                                            {discount?.targetType ===
+                                                "products" &&
+                                                discount?.targetedProducts && (
+                                                    <span className="block text-xs mt-0.5">
+                                                        Áp dụng cho:{" "}
+                                                        {discount.targetedProducts.join(
+                                                            ", ",
+                                                        )}
+                                                    </span>
+                                                )}
                                         </p>
                                     </div>
                                     <button
@@ -233,6 +275,80 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                                 </div>
                             )}
                         </div>
+
+                        {/* Enhanced Discount Details Section */}
+                        {discountedCartItems &&
+                            discountedCartItems.length > 0 &&
+                            discountedCartItems.some(
+                                (item) =>
+                                    item.discountAmount &&
+                                    item.discountAmount > 0,
+                            ) && (
+                                <div className="bg-blue-50 border border-blue-200 rounded p-3 my-2">
+                                    <div className="font-semibold text-blue-700 mb-1">
+                                        Chi tiết giảm giá trên từng sản phẩm:
+                                    </div>
+                                    <ul className="list-disc list-inside text-blue-800 text-sm">
+                                        {discountedCartItems
+                                            .filter(
+                                                (item) =>
+                                                    item.discountAmount &&
+                                                    item.discountAmount > 0,
+                                            )
+                                            .map((item) => (
+                                                <li key={item.id}>
+                                                    {item.name}: -
+                                                    {formatCurrency(
+                                                        (item.discountAmount ||
+                                                            0) * item.quantity,
+                                                    )}
+                                                    {item.discountType ===
+                                                        "percentage" &&
+                                                    item.originalPrice ? (
+                                                        <span>
+                                                            {" "}
+                                                            (
+                                                            {item.discountAmount &&
+                                                            item.originalPrice
+                                                                ? Math.round(
+                                                                      (item.discountAmount /
+                                                                          item.originalPrice) *
+                                                                          100,
+                                                                  )
+                                                                : ""}
+                                                            % giảm)
+                                                        </span>
+                                                    ) : null}
+                                                    {item.discountName && (
+                                                        <span>
+                                                            {" "}
+                                                            |{" "}
+                                                            <span
+                                                                className={
+                                                                    item.discountSource ===
+                                                                    "manual"
+                                                                        ? "text-green-700"
+                                                                        : "text-blue-700"
+                                                                }
+                                                            >
+                                                                {
+                                                                    item.discountName
+                                                                }
+                                                                {item.discountCode
+                                                                    ? ` (${item.discountCode})`
+                                                                    : ""}
+                                                                {item.discountSource ===
+                                                                "manual"
+                                                                    ? " (Mã thủ công)"
+                                                                    : " (Tự động)"}
+                                                            </span>
+                                                        </span>
+                                                    )}
+                                                </li>
+                                            ))}
+                                    </ul>
+                                </div>
+                            )}
                     </>
                 )}
 
@@ -242,6 +358,21 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                         <p className="font-semibold">Tổng thanh toán</p>
                         <p className="font-bold text-primary text-lg">
                             {formatCurrency(calculateDiscountedTotal())}
+                        </p>
+                    </div>
+                    <div className="flex justify-between text-base text-gray-900">
+                        <p>Giảm giá</p>
+                        <p className="text-green-600 font-medium">
+                            {discountedCartItems &&
+                            discountedCartItems.length > 0
+                                ? `- ${formatCurrency(discountedCartItems.reduce((sum, item) => sum + (item.discountAmount ?? 0) * item.quantity, 0))}`
+                                : isUsingManualDiscount &&
+                                    appliedCouponAmount > 0
+                                  ? `- ${formatCurrency(appliedCouponAmount)}`
+                                  : !isUsingManualDiscount &&
+                                      totalAutoDiscountAmount > 0
+                                    ? `- ${formatCurrency(totalAutoDiscountAmount)}`
+                                    : "- 0₫"}
                         </p>
                     </div>
                 </div>
@@ -296,7 +427,12 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                         Chúng tôi chấp nhận thanh toán qua
                     </h2>
                     <div className="flex items-center space-x-3 flex-wrap gap-2">
-                        <Image src={VietQRLogo} alt="Visa" width={48} height={48} />
+                        <Image
+                            src={VietQRLogo}
+                            alt="Visa"
+                            width={48}
+                            height={48}
+                        />
                     </div>
                 </div>
             </div>

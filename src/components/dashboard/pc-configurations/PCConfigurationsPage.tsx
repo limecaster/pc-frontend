@@ -157,9 +157,15 @@ const PCConfigurationsPage = () => {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                         {configurations
-                            .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                            .slice(
+                                (currentPage - 1) * pageSize,
+                                currentPage * pageSize,
+                            )
                             .map((config: any) => (
-                                <tr key={config.id} className="hover:bg-gray-50">
+                                <tr
+                                    key={config.id}
+                                    className="hover:bg-gray-50"
+                                >
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm font-medium text-gray-900">
                                             {config.name}
@@ -173,8 +179,9 @@ const PCConfigurationsPage = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm text-gray-500">
                                             {
-                                                Object.keys(config.products || {})
-                                                    .length
+                                                Object.keys(
+                                                    config.products || {},
+                                                ).length
                                             }
                                         </div>
                                     </td>
@@ -226,7 +233,9 @@ const PCConfigurationsPage = () => {
                                                 </button>
                                                 <button
                                                     onClick={() =>
-                                                        setConfirmDelete(config.id)
+                                                        setConfirmDelete(
+                                                            config.id,
+                                                        )
                                                     }
                                                     className="text-red-600 hover:text-red-900"
                                                 >

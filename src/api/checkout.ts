@@ -13,7 +13,6 @@ export async function createOrder(orderData: any): Promise<any> {
             throw new Error("You must be logged in to create an order");
         }
 
-        // Use the exact endpoint that's implemented in checkout.controller.ts
         const response = await fetch(`${API_URL}/checkout/create-order`, {
             method: "POST",
             headers: {
@@ -23,7 +22,6 @@ export async function createOrder(orderData: any): Promise<any> {
             body: JSON.stringify(orderData),
         });
 
-        // Always parse the response body before checking response.ok
         let responseData;
         try {
             responseData = await response.json();
@@ -45,7 +43,6 @@ export async function createOrder(orderData: any): Promise<any> {
             // Handle validation error arrays
             if (responseData.message && Array.isArray(responseData.message)) {
                 errorMessage = responseData.message.join(", ");
-                // Also log the complete detailed error for debugging
                 console.error("Validation errors:", responseData.message);
             } else if (responseData.message) {
                 errorMessage = responseData.message;

@@ -5,16 +5,19 @@ export interface CartItem {
     name: string;
     price: number;
     quantity: number;
-    imageUrl: string;
-    slug: string;
+    imageUrl?: string;
     stock_quantity?: number;
-    category: string;
-    categoryNames?: string[];
+    slug?: string;
     originalPrice?: number;
     discountSource?: "automatic" | "manual";
-    discountType?: "fixed" | "percentage";
-    discountAmount?: number; // Track the actual discount amount applied to this item
-    discountPercentage?: number; // Add this property to track percentage-based discounts
+    discountType?: "percentage" | "fixed";
+    discountedPrice?: number;
+    discountAmount?: number;
+    category: string;
+    categoryNames?: string[];
+    discountPercentage?: number;
+    discountName?: string;
+    discountCode?: string;
 }
 
 export interface PendingDiscountData {

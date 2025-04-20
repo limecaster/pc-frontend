@@ -30,7 +30,6 @@ export default function DiscountsManagement() {
 
     const [discounts, setDiscounts] = useState<Discount[]>([]);
 
-
     // UI state
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);

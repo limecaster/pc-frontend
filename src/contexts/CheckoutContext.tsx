@@ -78,25 +78,34 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({
                 );
             }
 
-            const orderItems = orderData.orderItems.map((item: any) => ({
-                productId: item.productId || item.id,
-                quantity: item.quantity,
-                price: item.price,
-                ...(item.originalPrice && {
-                    originalPrice: item.originalPrice,
-                }),
-                ...(item.finalPrice && { finalPrice: item.finalPrice }),
-                ...(item.discountAmount > 0 && {
-                    discountAmount: item.discountAmount,
-                }),
-                ...(item.discountType && { discountType: item.discountType }),
-                ...(item.discountId && { discountId: item.discountId }),
-            }));
+            const orderItems = orderData.orderItems.map((item: any) => {
+                const base: any = {
+                    productId: item.productId || item.id,
+                    quantity: item.quantity,
+                    price: item.price,
+                    ...(item.originalPrice && {
+                        originalPrice: item.originalPrice,
+                    }),
+                    ...(item.finalPrice && { finalPrice: item.finalPrice }),
+                    ...(item.discountAmount > 0 && {
+                        discountAmount: item.discountAmount,
+                    }),
+                    ...(item.discountType && {
+                        discountType: item.discountType,
+                    }),
+                };
+                // Only include discountId if not using manual discount
+                if (!orderData.manualDiscountId && item.discountId) {
+                    base.discountId = item.discountId;
+                }
+                return base;
+            });
 
             const subtotal = orderData.subtotal || 0;
             const finalTotal = orderData.total || subtotal;
 
-            const payload = {
+            // Build payload: if manualDiscountId is present, do NOT include discountId at order level
+            const payload: any = {
                 deliveryAddress: shippingInfo.address,
                 items: orderItems,
                 total: finalTotal,
@@ -107,13 +116,17 @@ export const CheckoutProvider: React.FC<{ children: React.ReactNode }> = ({
                     discountAmount: orderData.discountAmount,
                 }),
                 ...(orderData.manualDiscountId && {
-                    manualDiscountId: orderData.manualDiscountId,
+                    manualDiscountId: Number(orderData.manualDiscountId),
                 }),
-                ...(orderData.appliedDiscountIds && {
-                    appliedDiscountIds: orderData.appliedDiscountIds,
+                // Only include appliedDiscountIds at order level if not using manual discount
+                ...(!orderData.manualDiscountId &&
+                    orderData.appliedDiscountIds && {
+                        appliedDiscountIds: orderData.appliedDiscountIds,
+                    }),
+                ...(orderData.appliedProductDiscounts && {
+                    appliedProductDiscounts: orderData.appliedProductDiscounts,
                 }),
             };
-
             let result;
 
             if (isAuthenticated) {

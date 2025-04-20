@@ -101,7 +101,10 @@ const PartSelectionModal: React.FC<PartSelectionModalProps> = ({
                                 className="grid grid-cols-3 gap-4 mb-4"
                                 onSubmit={(e) => e.preventDefault()}
                             >
-                                <label htmlFor="simple-search" className="sr-only">
+                                <label
+                                    htmlFor="simple-search"
+                                    className="sr-only"
+                                >
                                     Search
                                 </label>
                                 <input
@@ -112,13 +115,20 @@ const PartSelectionModal: React.FC<PartSelectionModalProps> = ({
                                     value={searchTerm}
                                     onChange={(e) => {
                                         setSearchTerm(e.target.value);
-                                        if (onSearchChange) onSearchChange(e.target.value);
+                                        if (onSearchChange)
+                                            onSearchChange(e.target.value);
                                     }}
                                 />
                             </form>
                             <div className="text-center text-gray-500 mt-8">
-                                <div className="font-semibold text-lg mb-2">Không có linh kiện tương thích</div>
-                                <div>Thử chọn các linh kiện khác hoặc bỏ bớt các linh kiện đã chọn để tìm được sản phẩm phù hợp</div>
+                                <div className="font-semibold text-lg mb-2">
+                                    Không có linh kiện tương thích
+                                </div>
+                                <div>
+                                    Thử chọn các linh kiện khác hoặc bỏ bớt các
+                                    linh kiện đã chọn để tìm được sản phẩm phù
+                                    hợp
+                                </div>
                             </div>
                         </div>
                         <div className="flex items-center p-6 space-x-2 border-t border-gray-200 rounded-b dark:border-gray-600">

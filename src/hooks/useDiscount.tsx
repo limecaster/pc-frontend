@@ -1,4 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import {
+    useState,
+    useEffect,
+    useRef,
+    useCallback,
+    Dispatch,
+    SetStateAction,
+} from "react";
 import { toast } from "react-hot-toast";
 import {
     Discount,
@@ -17,7 +24,9 @@ interface UseDiscountProps {
     subtotal: number;
     isAuthenticated: boolean;
     loading: boolean;
-    isInitialized?: boolean; // New prop to check cart initialization
+    isInitialized?: boolean;
+    couponCode?: string;
+    setCouponCode?: Dispatch<SetStateAction<string>>;
 }
 
 export function useDiscount({
@@ -26,6 +35,8 @@ export function useDiscount({
     isAuthenticated,
     loading,
     isInitialized = false,
+    couponCode: externalCouponCode = "",
+    setCouponCode: externalSetCouponCode,
 }: UseDiscountProps) {
     // State for automatic discounts
     const [automaticDiscounts, setAutomaticDiscounts] = useState<Discount[]>(
@@ -38,7 +49,7 @@ export function useDiscount({
         useState<number>(0);
 
     // State for manual discounts
-    const [couponCode, setCouponCode] = useState("");
+    const [couponCode, setCouponCode] = useState(externalCouponCode);
     const [discount, setDiscount] = useState<Discount | null>(null);
     const [couponError, setCouponError] = useState("");
     const [appliedCouponAmount, setAppliedCouponAmount] = useState(0);
@@ -50,16 +61,31 @@ export function useDiscount({
     const [pendingManualDiscount, setPendingManualDiscount] =
         useState<PendingDiscountData | null>(null);
 
+    // State for cart items with discounts applied
+    const [discountedCartItems, setDiscountedCartItems] = useState<CartItem[]>(
+        [],
+    );
+
     // Refs for optimization
     const isValidatingRef = useRef(false);
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
     const lastRequestTimeRef = useRef<number>(0);
     const discountProcessingCompleteRef = useRef(false);
 
-    // New state for cart items with discounts applied
-    const [discountedCartItems, setDiscountedCartItems] = useState<CartItem[]>(
-        [],
-    );
+    // Add two new states: discountsLoading and manualDiscountReady
+    const [discountsLoading, setDiscountsLoading] = useState(true);
+    const [manualDiscountReady, setManualDiscountReady] = useState(false);
+
+    // Sync external coupon code (from props) to internal state
+    useEffect(() => {
+        if (externalCouponCode && externalCouponCode !== couponCode) {
+            setCouponCode(externalCouponCode);
+        }
+    }, [externalCouponCode]);
+
+    // If parent provides setCouponCode, use it
+    const setCouponCodeUnified: Dispatch<SetStateAction<string>> =
+        externalSetCouponCode || setCouponCode;
 
     // Calculate total discount based on which type is active
     const totalDiscount = isUsingManualDiscount
@@ -82,92 +108,86 @@ export function useDiscount({
         );
     }, [cartItems]);
 
-    // Fetch and process automatic discounts with improved error handling
-    const fetchAndProcessAutomaticDiscounts = useCallback(async () => {
-        // Skip processing if cart isn't ready or we're already processing
-        if (
-            loading ||
-            !isInitialized ||
-            isValidatingRef.current ||
-            cartItems.length === 0
-        ) {
-            return;
-        }
-
-        // Throttle requests to avoid too many API calls
-        const now = Date.now();
-        if (now - lastRequestTimeRef.current < 1000) {
-            // No more than once per second
-            return;
-        }
-        lastRequestTimeRef.current = now;
-
-        try {
-            isValidatingRef.current = true;
-
-            // Get data needed for discount calculation
-            const productIds = cartItems.map((item) => item.id);
-            const categoryNames = Array.from(
-                new Set(
-                    cartItems.flatMap((item) =>
-                        item.categoryNames && item.categoryNames.length > 0
-                            ? item.categoryNames
-                            : item.category
-                              ? [item.category]
-                              : [],
-                    ),
-                ),
-            );
-
-            const customerId = isAuthenticated
-                ? await getCurrentCustomerId()
-                : undefined;
-            const isFirstPurchase = isAuthenticated
-                ? await checkIfFirstPurchase()
-                : undefined;
-            const productPrices = getProductPricesMap();
-
-            // Call API to get automatic discounts
-            const response = await fetchAutomaticDiscounts({
-                productIds,
-                categoryNames,
-                customerId,
-                isFirstPurchase,
-                orderAmount: subtotal,
-                productPrices,
-                timestamp: Date.now(),
-            });
-
-            const discounts = response.discounts || [];
-            setAutomaticDiscounts(discounts);
-
-            if (discounts.length > 0) {
-                processAutomaticDiscounts(
-                    discounts,
-                    productIds,
-                    productPrices,
-                    subtotal,
-                );
-            } else {
-                setAppliedAutomaticDiscounts([]);
-                setTotalAutoDiscountAmount(0);
+    // Fetch and process automatic discounts
+    useEffect(() => {
+        const asyncFetchAndProcessAutomaticDiscounts = async () => {
+            // Skip processing if cart isn't ready or we're already processing
+            if (
+                loading ||
+                !isAuthenticated ||
+                cartItems.length === 0 ||
+                isValidatingRef.current
+            ) {
+                return;
             }
+            // Throttle requests to avoid too many API calls
+            const now = Date.now();
+            if (now - lastRequestTimeRef.current < 1000) {
+                // No more than once per second
+                return;
+            }
+            lastRequestTimeRef.current = now;
 
-            // Mark discount processing as complete
-            discountProcessingCompleteRef.current = true;
-        } catch (error) {
-            console.error("Error fetching automatic discounts:", error);
-        } finally {
-            isValidatingRef.current = false;
-        }
-    }, [
-        cartItems,
-        isAuthenticated,
-        subtotal,
-        loading,
-        isInitialized,
-        getProductPricesMap,
-    ]);
+            try {
+                isValidatingRef.current = true;
+
+                // Get data needed for discount calculation
+                const productIds = cartItems.map((item) => item.id);
+                const categoryNames = Array.from(
+                    new Set(
+                        cartItems.flatMap((item) =>
+                            item.categoryNames && item.categoryNames.length > 0
+                                ? item.categoryNames
+                                : item.category
+                                  ? [item.category]
+                                  : [],
+                        ),
+                    ),
+                );
+
+                const customerId = isAuthenticated
+                    ? await getCurrentCustomerId()
+                    : undefined;
+                const isFirstPurchase = isAuthenticated
+                    ? await checkIfFirstPurchase()
+                    : undefined;
+                const productPrices = getProductPricesMap();
+
+                const response = await fetchAutomaticDiscounts({
+                    productIds,
+                    categoryNames,
+                    customerId,
+                    isFirstPurchase,
+                    orderAmount: subtotal,
+                    productPrices,
+                    timestamp: Date.now(),
+                });
+
+                const discounts = response.discounts || [];
+                setAutomaticDiscounts(discounts);
+
+                if (discounts.length > 0) {
+                    processAutomaticDiscounts(
+                        discounts,
+                        productIds,
+                        productPrices,
+                        subtotal,
+                    );
+                } else {
+                    setAppliedAutomaticDiscounts([]);
+                    setTotalAutoDiscountAmount(0);
+                }
+
+                // Mark discount processing as complete
+                discountProcessingCompleteRef.current = true;
+            } catch (error) {
+                console.error("Error fetching automatic discounts:", error);
+            } finally {
+                isValidatingRef.current = false;
+            }
+        };
+        asyncFetchAndProcessAutomaticDiscounts();
+    }, [loading, isAuthenticated, cartItems]);
 
     // Process automatic discounts and calculate amounts
     const processAutomaticDiscounts = (
@@ -566,12 +586,151 @@ export function useDiscount({
         });
     };
 
+    // --- Best Discount Calculation Helper ---
+    function getBestDiscountForProduct(
+        productId: string,
+        productPrice: number,
+        discounts: Discount[],
+    ): { bestDiscount: Discount | null; discountAmount: number } {
+        let bestDiscount: Discount | null = null;
+        let maxDiscountAmount = 0;
+        for (const discount of discounts) {
+            let currentDiscount = 0;
+            if (
+                discount.targetType === "products" &&
+                discount.productIds?.includes(productId)
+            ) {
+                if (discount.type === "percentage") {
+                    currentDiscount =
+                        (productPrice * discount.discountAmount) / 100;
+                } else {
+                    currentDiscount = Math.min(
+                        discount.discountAmount,
+                        productPrice,
+                    );
+                }
+            } else if (
+                discount.targetType === "categories" &&
+                discount.categoryNames
+            ) {
+                // Category check will be handled in the main loop
+                continue;
+            } else if (discount.targetType === "all") {
+                if (discount.type === "percentage") {
+                    currentDiscount =
+                        (productPrice * discount.discountAmount) / 100;
+                } else {
+                    currentDiscount = Math.min(
+                        discount.discountAmount,
+                        productPrice,
+                    );
+                }
+            } else if (discount.targetType === "customers") {
+                // Customer-specific handled elsewhere, skip for now
+                continue;
+            }
+            if (currentDiscount > maxDiscountAmount) {
+                maxDiscountAmount = currentDiscount;
+                bestDiscount = discount;
+            }
+        }
+        return { bestDiscount, discountAmount: maxDiscountAmount };
+    }
+
+    // --- Main Discounted Cart Items Calculation ---
+    function calculateDiscountedCartItems(
+        cartItems: CartItem[],
+        discounts: Discount[],
+        isUsingManualDiscount: boolean,
+    ): CartItem[] {
+        return cartItems.map((item) => {
+            const basePrice = item.originalPrice ?? item.price;
+            let best: Discount | null = null;
+            let maxAmount = 0;
+            let discountSource: "automatic" | "manual" | undefined = undefined;
+
+            // Gather all applicable discounts (manual + automatic, but only if eligible)
+            let allApplicableDiscounts: Discount[] = [...discounts];
+            if (isUsingManualDiscount && discount) {
+                // Only add manual discount if it applies to this product
+                if (
+                    (discount.targetType === "products" &&
+                        discount.productIds?.includes(item.id)) ||
+                    (discount.targetType === "categories" &&
+                        discount.categoryNames &&
+                        item.categoryNames?.some((cat) =>
+                            discount.categoryNames?.includes(cat),
+                        )) ||
+                    discount.targetType === "all"
+                ) {
+                    allApplicableDiscounts = [discount, ...discounts];
+                }
+            }
+
+            // For this product, find the best discount
+            for (const d of allApplicableDiscounts) {
+                let eligible = false;
+                if (
+                    d.targetType === "products" &&
+                    d.productIds?.includes(item.id)
+                )
+                    eligible = true;
+                if (
+                    d.targetType === "categories" &&
+                    d.categoryNames &&
+                    item.categoryNames?.some((cat) =>
+                        d.categoryNames?.includes(cat),
+                    )
+                )
+                    eligible = true;
+                if (d.targetType === "all") eligible = true;
+                if (!eligible) continue;
+
+                let amount = 0;
+                if (d.type === "percentage") {
+                    amount = (basePrice * d.discountAmount) / 100;
+                } else {
+                    amount = Math.min(d.discountAmount, basePrice);
+                }
+                if (amount > maxAmount) {
+                    maxAmount = amount;
+                    best = d;
+                    discountSource = d.isAutomatic ? "automatic" : "manual";
+                }
+            }
+            return {
+                ...item,
+                originalPrice: basePrice,
+                price: basePrice - maxAmount,
+                discountedPrice: basePrice - maxAmount,
+                discountAmount: maxAmount,
+                discountSource,
+                discountType: best ? best.type : undefined,
+            };
+        });
+    }
+
+    // Add effect to recalculate discountedCartItems when discounts/cartItems change
+    useEffect(() => {
+        // Compose all discounts to consider
+        let allDiscounts = automaticDiscounts;
+        if (isUsingManualDiscount && discount) {
+            allDiscounts = [discount, ...automaticDiscounts];
+        }
+        const newDiscountedCartItems = calculateDiscountedCartItems(
+            cartItems,
+            allDiscounts,
+            isUsingManualDiscount,
+        );
+        setDiscountedCartItems(newDiscountedCartItems);
+    }, [cartItems, automaticDiscounts, discount, isUsingManualDiscount]);
+
     // Implement the missing applyManualDiscount function
     const applyManualDiscount = useCallback(
         (
             manualDiscount: Discount,
             discountAmount: number,
-            targetedProducts: CartItem[] = []
+            targetedProducts: CartItem[] = [],
         ) => {
             // Add targeted products information if applicable
             const discountWithTargets = {
@@ -585,21 +744,21 @@ export function useDiscount({
             // Set the discount and amount
             setDiscount(discountWithTargets);
             setAppliedCouponAmount(Math.min(discountAmount, subtotal));
-            setCouponCode(manualDiscount.discountCode);
+            setCouponCodeUnified(manualDiscount.discountCode);
 
             // Clean up auto discounts since we're using manual now
             setAppliedAutomaticDiscounts([]);
             setTotalAutoDiscountAmount(0);
 
             toast.success(
-                `Applied discount: ${manualDiscount.discountName} ${
+                `Đã áp dụng mã giảm giá: ${manualDiscount.discountName} ${
                     targetedProducts.length > 0
-                        ? `for ${targetedProducts.length} eligible item(s)`
+                        ? ` cho ${targetedProducts.length} sản phẩm`
                         : ""
-                }`
+                }`,
             );
         },
-        [subtotal]
+        [subtotal],
     );
 
     // Enhanced validation function for checking discount applicability
@@ -608,7 +767,7 @@ export function useDiscount({
             if (!code.trim()) {
                 return {
                     valid: false,
-                    errorMessage: "Please enter a discount code",
+                    errorMessage: "Vui lòng nhập mã giảm giá",
                 };
             }
 
@@ -621,9 +780,9 @@ export function useDiscount({
                                 ? item.categoryNames
                                 : item.category
                                   ? [item.category]
-                                  : []
-                        )
-                    )
+                                  : [],
+                        ),
+                    ),
                 );
                 const productPrices = getProductPricesMap();
                 const customerId = await getCurrentCustomerId();
@@ -634,7 +793,7 @@ export function useDiscount({
                     code,
                     subtotal,
                     productIds,
-                    productPrices
+                    productPrices,
                 );
 
                 // If already invalid, return early
@@ -654,59 +813,80 @@ export function useDiscount({
                 if (now < startDate) {
                     return {
                         valid: false,
-                        errorMessage: `This discount is not active yet. Starts on ${startDate.toLocaleDateString()}`,
+                        errorMessage: `Mã giảm giá này chưa được kích hoạt. Bắt đầu vào ${startDate.toLocaleDateString()}`,
                     };
                 }
 
                 if (now > endDate) {
                     return {
                         valid: false,
-                        errorMessage: "This discount has expired",
+                        errorMessage: "Mã giảm giá này đã hết hạn",
                     };
                 }
 
                 // Check minimum order amount
-                if (discount.minOrderAmount && subtotal < discount.minOrderAmount) {
+                if (
+                    discount.minOrderAmount &&
+                    subtotal < discount.minOrderAmount
+                ) {
                     return {
                         valid: false,
-                        errorMessage: `Your order total must be at least ${formatCurrency(discount.minOrderAmount)}`,
+                        errorMessage: `Tổng tiền mua hàng của bạn phải tối thiểu ${formatCurrency(discount.minOrderAmount)}`,
                     };
                 }
 
                 // Check product targeting
-                if (discount.targetType === "products" && discount.productIds && discount.productIds.length > 0) {
+                if (
+                    discount.targetType === "products" &&
+                    discount.productIds &&
+                    discount.productIds.length > 0
+                ) {
                     const hasMatchingProduct = productIds.some((id) =>
-                        discount.productIds?.includes(id)
+                        discount.productIds?.includes(id),
                     );
 
                     if (!hasMatchingProduct) {
                         return {
                             valid: false,
-                            errorMessage: "This discount doesn't apply to any items in your cart",
+                            errorMessage:
+                                "Mã giảm giá này không áp dụng cho bất kỳ sản phẩm nào trong giỏ hàng của bạn",
                         };
                     }
                 }
 
                 // Check category targeting
-                if (discount.targetType === "categories" && discount.categoryNames && discount.categoryNames.length > 0) {
+                if (
+                    discount.targetType === "categories" &&
+                    discount.categoryNames &&
+                    discount.categoryNames.length > 0
+                ) {
                     const hasMatchingCategory = categoryNames.some((name) =>
-                        discount.categoryNames?.includes(name)
+                        discount.categoryNames?.includes(name),
                     );
 
                     if (!hasMatchingCategory) {
                         return {
                             valid: false,
-                            errorMessage: "This discount doesn't apply to any categories in your cart",
+                            errorMessage:
+                                "Mã giảm giá này không áp dụng cho bất kỳ danh mục nào trong giỏ hàng của bạn",
                         };
                     }
                 }
 
                 // Check customer targeting
-                if (discount.targetType === "customers" && discount.customerIds && discount.customerIds.length > 0) {
-                    if (!customerId || !discount.customerIds.includes(customerId)) {
+                if (
+                    discount.targetType === "customers" &&
+                    discount.customerIds &&
+                    discount.customerIds.length > 0
+                ) {
+                    if (
+                        !customerId ||
+                        !discount.customerIds.includes(customerId)
+                    ) {
                         return {
                             valid: false,
-                            errorMessage: "This discount is for specific customers only",
+                            errorMessage:
+                                "Mã giảm giá này chỉ áp dụng cho khách hàng mua hàng lần đầu",
                         };
                     }
                 }
@@ -715,7 +895,8 @@ export function useDiscount({
                 if (discount.isFirstPurchaseOnly && !isFirstPurchase) {
                     return {
                         valid: false,
-                        errorMessage: "This discount is only for first-time purchases",
+                        errorMessage:
+                            "Mã giảm giá này chỉ áp dụng cho khách hàng mua hàng lần đầu",
                     };
                 }
 
@@ -725,11 +906,11 @@ export function useDiscount({
                 console.error("Error validating discount:", error);
                 return {
                     valid: false,
-                    errorMessage: "Failed to validate discount code",
+                    errorMessage: "Lỗi khi kiểm tra mã giảm giá",
                 };
             }
         },
-        [cartItems, subtotal, getProductPricesMap]
+        [cartItems, subtotal, getProductPricesMap],
     );
 
     // Update handleApplyCoupon to use the enhanced validation
@@ -744,11 +925,13 @@ export function useDiscount({
             setCouponError("");
 
             // Use enhanced validation
-            const validationResult = await validateDiscountApplicability(couponCode);
+            const validationResult =
+                await validateDiscountApplicability(couponCode);
 
             if (!validationResult.valid || !validationResult.discount) {
                 setCouponError(
-                    "Mã giảm giá không hợp lệ"
+                    validationResult.errorMessage ||
+                        "Failed to validate discount code",
                 );
                 return;
             }
@@ -774,7 +957,7 @@ export function useDiscount({
                 // If no eligible products found, show error
                 if (targetedProducts.length === 0) {
                     setCouponError(
-                        "Không có sản phẩm trong giỏ hàng áp dụng mã giảm giá"
+                        "No products in your cart are eligible for this discount",
                     );
                     setApplyingCoupon(false);
                     return;
@@ -801,7 +984,7 @@ export function useDiscount({
                 targetedProducts,
             );
         } catch (err: any) {
-            setCouponError("Áp dụng mã giảm giá thất bại");
+            setCouponError("Failed to apply discount code");
             setDiscount(null);
             setAppliedCouponAmount(0);
         } finally {
@@ -812,7 +995,7 @@ export function useDiscount({
     // Remove coupon function
     const removeCoupon = useCallback(() => {
         setDiscount(null);
-        setCouponCode("");
+        setCouponCodeUnified("");
         setAppliedCouponAmount(0);
         setCouponError("");
 
@@ -838,11 +1021,11 @@ export function useDiscount({
             toast.custom(
                 (t) => (
                     <div className="bg-amber-500 p-3 rounded text-white">
-                        You've chosen to use a manual discount with a lower value
-                        than the automatic discount
+                        You've chosen to use a manual discount with a lower
+                        value than the automatic discount
                     </div>
                 ),
-                { duration: 5000 }
+                { duration: 5000 },
             );
         }
         setShowConfirmModal(false);
@@ -853,7 +1036,7 @@ export function useDiscount({
     const handleKeepAutomaticDiscount = useCallback(() => {
         if (pendingManualDiscount) {
             toast.success(
-                `Kept automatic discount with a higher value: ${formatCurrency(pendingManualDiscount.autoAmount)}`
+                `Kept automatic discount with a higher value: ${formatCurrency(pendingManualDiscount.autoAmount)}`,
             );
         }
         setShowConfirmModal(false);
@@ -885,10 +1068,84 @@ export function useDiscount({
                 return;
             }
 
-            fetchAndProcessAutomaticDiscounts();
-        });
+            const asyncFetchAndProcessAutomaticDiscounts = async () => {
+                if (
+                    loading ||
+                    !isAuthenticated ||
+                    cartItems.length === 0 ||
+                    isValidatingRef.current
+                ) {
+                    return;
+                }
+                // Throttle requests to avoid too many API calls
+                const now = Date.now();
+                if (now - lastRequestTimeRef.current < 1000) {
+                    // No more than once per second
+                    return;
+                }
+                lastRequestTimeRef.current = now;
 
-        // Cleanup function
+                try {
+                    isValidatingRef.current = true;
+
+                    // Get data needed for discount calculation
+                    const productIds = cartItems.map((item) => item.id);
+                    const categoryNames = Array.from(
+                        new Set(
+                            cartItems.flatMap((item) =>
+                                item.categoryNames &&
+                                item.categoryNames.length > 0
+                                    ? item.categoryNames
+                                    : item.category
+                                      ? [item.category]
+                                      : [],
+                            ),
+                        ),
+                    );
+
+                    const customerId = isAuthenticated
+                        ? await getCurrentCustomerId()
+                        : undefined;
+                    const isFirstPurchase = isAuthenticated
+                        ? await checkIfFirstPurchase()
+                        : undefined;
+                    const productPrices = getProductPricesMap();
+
+                    const response = await fetchAutomaticDiscounts({
+                        productIds,
+                        categoryNames,
+                        customerId,
+                        isFirstPurchase,
+                        orderAmount: subtotal,
+                        productPrices,
+                        timestamp: Date.now(),
+                    });
+
+                    const discounts = response.discounts || [];
+                    setAutomaticDiscounts(discounts);
+
+                    if (discounts.length > 0) {
+                        processAutomaticDiscounts(
+                            discounts,
+                            productIds,
+                            productPrices,
+                            subtotal,
+                        );
+                    } else {
+                        setAppliedAutomaticDiscounts([]);
+                        setTotalAutoDiscountAmount(0);
+                    }
+
+                    // Mark discount processing as complete
+                    discountProcessingCompleteRef.current = true;
+                } catch (error) {
+                    console.error("Error fetching automatic discounts:", error);
+                } finally {
+                    isValidatingRef.current = false;
+                }
+            };
+            asyncFetchAndProcessAutomaticDiscounts();
+        });
         return () => {
             cancelAnimationFrame(frameId);
 
@@ -904,7 +1161,6 @@ export function useDiscount({
         loading,
         subtotal,
         isInitialized,
-        fetchAndProcessAutomaticDiscounts,
     ]);
 
     // Recalculate manual discount when cart changes
@@ -970,6 +1226,73 @@ export function useDiscount({
         }
     };
 
+    // --- Apply manual discount from coupon code in URL if present and valid ---
+    useEffect(() => {
+        // Only run if coupon code is present from props/URL
+        if (externalCouponCode && externalCouponCode.trim()) {
+            // If the coupon code changed, try to validate and apply it as a manual discount
+            (async () => {
+                setCouponError("");
+                setApplyingCoupon(true);
+                try {
+                    const validationResult =
+                        await validateDiscountApplicability(externalCouponCode);
+                    if (validationResult.valid && validationResult.discount) {
+                        // Apply the manual discount
+                        applyManualDiscount(
+                            validationResult.discount,
+                            validationResult.discountAmount || 0,
+                            cartItems.filter((item) =>
+                                validationResult.discount?.productIds?.includes(
+                                    item.id,
+                                ),
+                            ),
+                        );
+                        setIsUsingManualDiscount(true);
+                    } else {
+                        setDiscount(null);
+                        setAppliedCouponAmount(0);
+                        setIsUsingManualDiscount(false);
+                        setCouponError(
+                            validationResult.errorMessage ||
+                                "Coupon code is not valid",
+                        );
+                    }
+                } catch (err) {
+                    setDiscount(null);
+                    setAppliedCouponAmount(0);
+                    setIsUsingManualDiscount(false);
+                    setCouponError("Failed to apply discount code");
+                } finally {
+                    setApplyingCoupon(false);
+                }
+            })();
+        } else {
+            // No coupon code, clear manual discount
+            setDiscount(null);
+            setAppliedCouponAmount(0);
+            setIsUsingManualDiscount(false);
+            setCouponError("");
+        }
+        // Only run this effect when the coupon code from props/URL changes or cart changes
+    }, [externalCouponCode, cartItems, subtotal]);
+
+    // When automatic discounts are loaded, set discountsLoading to false
+    useEffect(() => {
+        if (automaticDiscounts) {
+            setDiscountsLoading(false);
+        }
+    }, [automaticDiscounts]);
+
+    // When manual discount is validated (or not in use), set manualDiscountReady
+    useEffect(() => {
+        if (!isUsingManualDiscount || !!discount) {
+            setManualDiscountReady(true);
+        } else {
+            setManualDiscountReady(false);
+        }
+    }, [discount, isUsingManualDiscount]);
+
     // Return all necessary state and functions
     return {
         discount,
@@ -977,9 +1300,10 @@ export function useDiscount({
         appliedAutomaticDiscounts,
         totalAutoDiscountAmount,
         couponCode,
-        setCouponCode,
+        setCouponCode: setCouponCodeUnified,
         couponError,
         appliedCouponAmount,
+        manualDiscountAmount: appliedCouponAmount,
         applyingCoupon,
         isUsingManualDiscount,
         totalDiscount,
@@ -993,5 +1317,7 @@ export function useDiscount({
         formatCurrency,
         isDiscountProcessingComplete: discountProcessingCompleteRef.current,
         discountedCartItems,
+        discountsLoading,
+        manualDiscountReady,
     };
 }

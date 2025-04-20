@@ -79,9 +79,9 @@ export default function Chatbot() {
 
         setIsLoading(true);
         try {
-            const response = await sendChatbotMessage(message);  
+            const response = await sendChatbotMessage(message);
             setMessages((prev) => [
-                ...prev,    
+                ...prev,
                 {
                     type: response.response.type || "text",
                     data: response.response.data,

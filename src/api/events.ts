@@ -63,18 +63,23 @@ const getSessionId = () => {
 };
 
 // --- Refactored Event Tracking Functions ---
-export const trackProductClick = async (productId: string, productData?: any) => {
+export const trackProductClick = async (
+    productId: string,
+    productData?: any,
+) => {
     const eventData: Record<string, any> = {
         productId,
         productName: productData?.name || null,
         category: productData?.category || null,
-        price: typeof productData?.price === "number" ? productData.price : null,
+        price:
+            typeof productData?.price === "number" ? productData.price : null,
         timestamp: new Date().toISOString(),
-        ...(productData && Object.fromEntries(
-            Object.entries(productData).filter(([_, v]) =>
-                ["string", "number", "boolean"].includes(typeof v)
-            )
-        )),
+        ...(productData &&
+            Object.fromEntries(
+                Object.entries(productData).filter(([_, v]) =>
+                    ["string", "number", "boolean"].includes(typeof v),
+                ),
+            )),
     };
     await trackEvent({
         eventType: "product_click",
@@ -84,19 +89,25 @@ export const trackProductClick = async (productId: string, productData?: any) =>
     });
 };
 
-export const trackAddToCart = async (productId: string, quantity: number, productData?: any) => {
+export const trackAddToCart = async (
+    productId: string,
+    quantity: number,
+    productData?: any,
+) => {
     const eventData: Record<string, any> = {
         productId,
         productName: productData?.name || null,
         category: productData?.category || null,
-        price: typeof productData?.price === "number" ? productData.price : null,
+        price:
+            typeof productData?.price === "number" ? productData.price : null,
         quantity,
         timestamp: new Date().toISOString(),
-        ...(productData && Object.fromEntries(
-            Object.entries(productData).filter(([_, v]) =>
-                ["string", "number", "boolean"].includes(typeof v)
-            )
-        )),
+        ...(productData &&
+            Object.fromEntries(
+                Object.entries(productData).filter(([_, v]) =>
+                    ["string", "number", "boolean"].includes(typeof v),
+                ),
+            )),
     };
     await trackEvent({
         eventType: "product_added_to_cart",
@@ -106,18 +117,23 @@ export const trackAddToCart = async (productId: string, quantity: number, produc
     });
 };
 
-export const trackRemoveFromCart = async (productId: string, productData?: any) => {
+export const trackRemoveFromCart = async (
+    productId: string,
+    productData?: any,
+) => {
     const eventData: Record<string, any> = {
         productId,
         productName: productData?.name || null,
         category: productData?.category || null,
-        price: typeof productData?.price === "number" ? productData.price : null,
+        price:
+            typeof productData?.price === "number" ? productData.price : null,
         timestamp: new Date().toISOString(),
-        ...(productData && Object.fromEntries(
-            Object.entries(productData).filter(([_, v]) =>
-                ["string", "number", "boolean"].includes(typeof v)
-            )
-        )),
+        ...(productData &&
+            Object.fromEntries(
+                Object.entries(productData).filter(([_, v]) =>
+                    ["string", "number", "boolean"].includes(typeof v),
+                ),
+            )),
     };
     await trackEvent({
         eventType: "product_removed_from_cart",
@@ -174,13 +190,17 @@ export const trackProductView = async (
             productId,
             productName: productData?.name || null,
             category: productData?.category || null,
-            price: typeof productData?.price === "number" ? productData.price : null,
+            price:
+                typeof productData?.price === "number"
+                    ? productData.price
+                    : null,
             timestamp: new Date().toISOString(),
-            ...(productData && Object.fromEntries(
-                Object.entries(productData).filter(([_, v]) =>
-                    ["string", "number", "boolean"].includes(typeof v)
-                )
-            )),
+            ...(productData &&
+                Object.fromEntries(
+                    Object.entries(productData).filter(([_, v]) =>
+                        ["string", "number", "boolean"].includes(typeof v),
+                    ),
+                )),
         };
         await trackEvent({
             eventType: "product_viewed",
@@ -207,7 +227,10 @@ export const trackOrderCreated = async (orderId: string, orderData: any) => {
     });
 };
 
-export const trackPaymentCompleted = async (orderId: string, paymentData: any) => {
+export const trackPaymentCompleted = async (
+    orderId: string,
+    paymentData: any,
+) => {
     const eventData = {
         orderId,
         ...paymentData,

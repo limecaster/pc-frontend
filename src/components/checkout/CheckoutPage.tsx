@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { toast } from "react-hot-toast";
@@ -9,12 +9,12 @@ import { useCheckout } from "@/contexts/CheckoutContext";
 import { initiateOrderPayment } from "@/api/order";
 import { getOrderDetails } from "@/api/checkout";
 import { getAddresses, getProfile } from "@/api/account";
+import { calculateDiscountedCartItems } from "@/utils/discountUtils";
+import { useDiscount } from "@/hooks/useDiscount";
 
 import ShippingForm, { CheckoutFormData } from "./ShippingForm";
-import CartSummary, {
-    Product as CartSummaryProduct,
-    Discount,
-} from "./CartSummary";
+import CartSummary, { Product as CartSummaryProduct } from "./CartSummary";
+import { Discount } from "@/api/discount";
 import PaymentSection from "./PaymentSection";
 import PaymentMode from "./PaymentMode";
 
@@ -34,12 +34,13 @@ const AlertDescription = dynamic(
 interface CheckoutPageProps {
     paymentOnly?: boolean;
     existingOrderId?: string;
-    appliedDiscount: Discount | null;
-    appliedAutomaticDiscounts: Discount[];
-    manualDiscountAmount: number;
-    automaticDiscountAmount: number;
-    totalDiscount: number;
-    isUsingManualDiscount: boolean;
+    cartItems: Product[];
+    subtotal: number;
+    couponError?: string;
+    appliedCouponAmount?: number;
+    immediateCartTotals?: any;
+    shippingFee?: number;
+    totalAutoDiscountAmount?: number;
 }
 
 export interface Product {
@@ -52,24 +53,39 @@ export interface Product {
     discountAmount?: number;
     discountType?: "percentage" | "fixed" | "none";
     discountId?: string | number;
-    discountSource?: string;
+    discountSource?: "automatic" | "manual" | undefined;
+}
+
+interface CartItem {
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+    imageUrl: string;
+    originalPrice?: number;
+    discountAmount?: number;
+    discountType?: "percentage" | "fixed" | undefined;
+    discountId?: string | number;
+    discountSource?: "automatic" | "manual" | undefined;
+    category: string;
+    categoryNames: string[];
 }
 
 const CheckoutPage: React.FC<CheckoutPageProps> = ({
     paymentOnly = false,
     existingOrderId = "",
-    appliedDiscount,
-    appliedAutomaticDiscounts,
-    manualDiscountAmount,
-    automaticDiscountAmount,
-    totalDiscount,
-    isUsingManualDiscount,
+    cartItems,
+    subtotal,
+    couponError,
+    appliedCouponAmount,
+    immediateCartTotals,
+    shippingFee,
+    totalAutoDiscountAmount,
 }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { createCheckoutOrder } = useCheckout();
 
-    const [cartItems, setCartItems] = useState<Product[]>([]);
     const [isLoadingCart, setIsLoadingCart] = useState(true);
     const [formData, setFormData] = useState<CheckoutFormData>({
         fullName: "",
@@ -91,212 +107,66 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
     const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
     const [paymentAmount, setPaymentAmount] = useState<number>(0);
 
-    // Calculate subtotal based on current item prices, not discounted ones
-    const subtotal = cartItems.reduce(
-        (total, item) => total + item.price * item.quantity,
-        0,
+    const defaultCartItems = useMemo(() => {
+        return cartItems.map((item) => ({
+            ...item,
+            category: (item as any).category || "",
+            categoryNames: (item as any).categoryNames || [],
+            originalPrice: item.originalPrice ?? item.price,
+            discountSource: ["automatic", "manual"].includes(
+                (item as any).discountSource,
+            )
+                ? (item as any).discountSource
+                : undefined,
+            discountType:
+                (item as any).discountType === "none"
+                    ? undefined
+                    : (item as any).discountType,
+        }));
+    }, [cartItems]);
+
+    const isAuthenticated =
+        typeof window !== "undefined" && !!localStorage.getItem("token");
+    const loading = isLoadingCart;
+
+    const couponCodeFromQuery = searchParams.get("coupon") || "";
+
+    const {
+        discount: manualDiscount,
+        automaticDiscounts,
+        isUsingManualDiscount,
+        discountsLoading,
+        manualDiscountReady,
+    } = useDiscount({
+        cartItems: defaultCartItems,
+        subtotal,
+        isAuthenticated,
+        loading,
+        couponCode: couponCodeFromQuery,
+    });
+
+    const discountsReady = useMemo(
+        () =>
+            !discountsLoading &&
+            (isUsingManualDiscount ? manualDiscountReady : true),
+        [discountsLoading, isUsingManualDiscount, manualDiscountReady],
     );
-    
-    // Calculate actual total with discounts applied
-    const calculateFinalTotal = () => {
-        let calculatedSubtotal = subtotal;
-        // Subtract discount amount
-        if (totalDiscount > 0) {
-            calculatedSubtotal -= totalDiscount;
-        }
-        // Add delivery fee
-        if (deliveryFee > 0) {
-            calculatedSubtotal += deliveryFee;
-        }
-        return Math.max(0, calculatedSubtotal);
-    };
-    
-    const deliveryFee = 0;
 
-    useEffect(() => {
-        const loadCart = async () => {
-            setIsLoadingCart(true);
-            try {
-                // First, check if we have discounted items from checkout data
-                const checkoutItems = localStorage.getItem("checkoutItems");
-                if (checkoutItems) {
-                    try {
-                        const parsedItems = JSON.parse(checkoutItems);
-                        if (Array.isArray(parsedItems) && parsedItems.length > 0) {
-                            setCartItems(parsedItems);
-                            setIsLoadingCart(false);
-                            return;
-                        }
-                    } catch (error) {
-                        console.error("Error parsing checkout items:", error);
-                    }
-                }
-                
-                // Check for checkout data which might have discounted items
-                const checkoutData = localStorage.getItem("checkoutData");
-                if (checkoutData) {
-                    try {
-                        const parsed = JSON.parse(checkoutData);
-                        if (parsed.cartItems && Array.isArray(parsed.cartItems) && parsed.cartItems.length > 0) {
-                            setCartItems(parsed.cartItems);
-                            setIsLoadingCart(false);
-                            return;
-                        }
-                    } catch (error) {
-                        console.error("Error parsing checkout data:", error);
-                    }
-                }
-                
-                // Fall back to regular cart loading
-                if (localStorage.getItem("token")) {
-                    try {
-                        const response = await getCart();
-                        if (response.success && response.cart) {
-                            const apiCartItems =
-                                response.cart.items
-                                    ?.map((item: any) => {
-                                        if (
-                                            item.productId &&
-                                            item.productName
-                                        ) {
-                                            return {
-                                                id: item.productId,
-                                                name: item.productName,
-                                                price:
-                                                    parseFloat(
-                                                        item.price ||
-                                                            item.subPrice /
-                                                                item.quantity,
-                                                    ) || 0,
-                                                quantity: item.quantity || 1,
-                                                imageUrl:
-                                                    item.imageUrl ||
-                                                    "/images/image-placeholder.webp",
-                                                originalPrice: item.originalPrice,
-                                            };
-                                        } else if (item.product) {
-                                            return {
-                                                id:
-                                                    item.product.id ||
-                                                    `temp-${Date.now()}-${Math.random()}`,
-                                                name:
-                                                    item.product.name ||
-                                                    "Unknown Product",
-                                                price:
-                                                    parseFloat(
-                                                        item.product.price,
-                                                    ) || 0,
-                                                quantity: item.quantity || 1,
-                                                imageUrl:
-                                                    item.product.imageUrl ||
-                                                    (item.product.images &&
-                                                        item.product
-                                                            .images[0]) ||
-                                                    "/images/image-placeholder.webp",
-                                                originalPrice: item.product.originalPrice,
-                                            };
-                                        } else {
-                                            console.error(
-                                                "Unrecognized cart item structure:",
-                                                item,
-                                            );
-                                            return null;
-                                        }
-                                    })
-                                    .filter(Boolean) || [];
-
-                            setCartItems(apiCartItems);
-
-                            localStorage.setItem(
-                                "cart",
-                                JSON.stringify(apiCartItems),
-                            );
-                            return;
-                        }
-                    } catch (error) {
-                        console.error("Error loading cart from API:", error);
-                    }
-                }
-
-                const storedCart = localStorage.getItem("cart");
-                if (storedCart) {
-                    try {
-                        const parsedCart = JSON.parse(storedCart);
-
-                        const validCartItems = parsedCart.filter(
-                            (item: any) =>
-                                item && typeof item === "object" && item.id,
-                        );
-
-                        setCartItems(validCartItems);
-                    } catch (error) {
-                        console.error(
-                            "Error parsing cart from localStorage:",
-                            error,
-                        );
-                        setCartItems([]);
-                    }
-                }
-            } catch (error) {
-                console.error("Error loading cart:", error);
-                setCartItems([]);
-            } finally {
-                setIsLoadingCart(false);
-            }
-        };
-
-        loadCart();
-    }, []);
-
-    useEffect(() => {
-        if (!isLoadingCart) {
-            localStorage.setItem("cart", JSON.stringify(cartItems));
-        }
-    }, [cartItems, isLoadingCart]);
-
-    useEffect(() => {
-        if (mode === "pay" && orderId) {
-            const paymentDataString = sessionStorage.getItem(
-                `payment_data_${orderId}`,
-            );
-            if (paymentDataString) {
-                try {
-                    const paymentData = JSON.parse(paymentDataString);
-                    const timestamp = paymentData.timestamp || 0;
-                    const now = new Date().getTime();
-
-                    if (now - timestamp < 5 * 60 * 1000) {
-                        setIsPaymentMode(true);
-                        setPaymentOrderId(orderId);
-                        setPaymentAmount(paymentData.finalPrice || 0);
-
-                        if (
-                            paymentData.paymentData &&
-                            (paymentData.paymentData.checkoutUrl ||
-                                paymentData.paymentData.paymentLinkId)
-                        ) {
-                            setPaymentData(paymentData.paymentData);
-                        } else {
-                            fetchPaymentDetails(orderId);
-                        }
-                    } else {
-                        sessionStorage.removeItem(`payment_data_${orderId}`);
-                        toast.error(
-                            "Thông tin thanh toán đã hết hạn. Vui lòng thử lại.",
-                        );
-                        router.push("/dashboard/orders");
-                    }
-                } catch (err) {
-                    console.error("Error parsing payment data:", err);
-                    toast.error("Có lỗi xảy ra khi khởi tạo thanh toán");
-                    router.push("/dashboard/orders");
-                }
-            } else {
-                toast.error("Không tìm thấy thông tin thanh toán");
-                router.push("/dashboard/orders");
-            }
-        }
-    }, [mode, orderId, router]);
+    const discountedCartItems = useMemo(() => {
+        if (!discountsReady) return [];
+        return calculateDiscountedCartItems(
+            defaultCartItems,
+            automaticDiscounts,
+            manualDiscount,
+            isUsingManualDiscount,
+        );
+    }, [
+        discountsReady,
+        defaultCartItems,
+        automaticDiscounts,
+        manualDiscount,
+        isUsingManualDiscount,
+    ]);
 
     useEffect(() => {
         const loadDefaultAddress = async () => {
@@ -336,6 +206,12 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
         loadDefaultAddress();
     }, []);
+
+    useEffect(() => {
+        if (cartItems && Array.isArray(cartItems) && cartItems.length > 0) {
+            setIsLoadingCart(false);
+        }
+    }, [cartItems]);
 
     const fetchPaymentDetails = async (orderId: string) => {
         try {
@@ -392,7 +268,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
     };
 
     const removeItem = (id: string) => {
-        setCartItems((items) => items.filter((item) => item.id !== id));
+        // setCartItems((items) => items.filter((item) => item.id !== id));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -423,34 +299,36 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
             const fullAddress = `${formData.address}, ${formData.ward}, ${formData.district}, ${formData.province}`;
 
             let discountInfo = undefined;
-            if (totalDiscount > 0) {
-                if (isUsingManualDiscount && appliedDiscount) {
-                    discountInfo = {
-                        discountId: parseInt(appliedDiscount.id),
-                        discountCode: appliedDiscount.discountCode,
-                        discountAmount: manualDiscountAmount,
-                        isManual: true,
-                    };
-                } else if (appliedAutomaticDiscounts.length > 0) {
-                    discountInfo = {
-                        automaticDiscountIds: appliedAutomaticDiscounts.map(
-                            (d) => parseInt(d.id),
-                        ),
-                        discountAmount: automaticDiscountAmount,
-                        isManual: false,
-                    };
-                }
+            if (manualDiscount && manualDiscount.discountAmount > 0) {
+                const discountCode =
+                    manualDiscount && "code" in manualDiscount
+                        ? manualDiscount.code
+                        : undefined;
+                discountInfo = {
+                    discountId: manualDiscount.id,
+                    discountCode,
+                    discountAmount: manualDiscount.discountAmount,
+                    isManual: true,
+                };
+            } else if (automaticDiscounts.length > 0) {
+                discountInfo = {
+                    automaticDiscountIds: automaticDiscounts.map((d) => d.id),
+                    discountAmount: automaticDiscounts.reduce(
+                        (acc, curr) => acc + (curr.discountAmount || 0),
+                        0,
+                    ),
+                    isManual: false,
+                };
             }
 
-            const orderItems = cartItems.map((item) => {
+            const orderItems = defaultCartItems.map((item) => {
                 const originalPrice = item.originalPrice || item.price;
                 const finalPrice = item.price;
 
                 const discountAmount =
-                    isUsingManualDiscount &&
-                    appliedDiscount &&
-                    appliedDiscount.targetedProducts &&
-                    appliedDiscount.targetedProducts.includes(item.name)
+                    manualDiscount &&
+                    manualDiscount.targetedProducts &&
+                    manualDiscount.targetedProducts.includes(item.name)
                         ? (originalPrice - finalPrice) * item.quantity
                         : item.discountAmount ||
                           (originalPrice - finalPrice) * item.quantity;
@@ -468,10 +346,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                         discountType:
                             item.discountType ||
                             (discountAmount > 0 ? "percentage" : "none"),
-                        discountId:
-                            isUsingManualDiscount && appliedDiscount
-                                ? appliedDiscount.id
-                                : item.discountId,
+                        discountId: manualDiscount && manualDiscount.id,
                     }),
                 };
             });
@@ -485,19 +360,17 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 },
                 orderItems: orderItems,
                 subtotal: subtotal,
-                shippingFee: deliveryFee,
+                shippingFee: shippingFee,
                 total: calculateFinalTotal(),
-                ...(totalDiscount > 0 && {
-                    discountAmount: totalDiscount,
-                    ...(isUsingManualDiscount &&
-                        appliedDiscount && {
-                            manualDiscountId: appliedDiscount.id,
-                        }),
-                    ...(!isUsingManualDiscount &&
-                        appliedAutomaticDiscounts?.length > 0 && {
-                            appliedDiscountIds: appliedAutomaticDiscounts.map(
-                                (d) => d.id,
-                            ),
+                ...(discountInfo && {
+                    discountAmount: discountInfo.discountAmount,
+                    ...(discountInfo.isManual && {
+                        manualDiscountId: discountInfo.discountId,
+                    }),
+                    ...(!discountInfo.isManual &&
+                        discountInfo.automaticDiscountIds && {
+                            appliedDiscountIds:
+                                discountInfo.automaticDiscountIds,
                         }),
                 }),
                 notes: formData.notes,
@@ -515,9 +388,9 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
             );
 
             if (result && result.success) {
-                setCartItems([]);
-                localStorage.removeItem("cart");
-                localStorage.removeItem("appliedDiscounts");
+                // setCartItems([]);
+                // localStorage.removeItem("cart");
+                // localStorage.removeItem("appliedDiscounts");
 
                 toast.success("Đơn hàng đã được tạo thành công!");
                 router.push("/dashboard/orders");
@@ -539,6 +412,30 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
             setIsProcessingPayment(false);
         }
     };
+
+    const calculateFinalTotal = () => {
+        let calculatedSubtotal = subtotal;
+        if (manualDiscount && manualDiscount.discountAmount > 0) {
+            calculatedSubtotal -= manualDiscount.discountAmount;
+        } else if (automaticDiscounts.length > 0) {
+            calculatedSubtotal -= automaticDiscounts.reduce(
+                (acc, curr) => acc + (curr.discountAmount || 0),
+                0,
+            );
+        }
+        if (shippingFee && shippingFee > 0) {
+            calculatedSubtotal += shippingFee;
+        }
+        return Math.max(0, calculatedSubtotal);
+    };
+
+    if (!discountsReady) {
+        return (
+            <div className="w-full h-96 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
 
     if (isLoadingCart) {
         return (
@@ -586,24 +483,58 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({
                             <div className="w-full lg:w-1/3">
                                 <CartSummary
                                     cartItems={
-                                        cartItems as unknown as CartSummaryProduct[]
+                                        discountedCartItems as unknown as CartSummaryProduct[]
                                     }
                                     subtotal={subtotal}
-                                    deliveryFee={deliveryFee}
-                                    appliedDiscount={appliedDiscount}
+                                    deliveryFee={shippingFee || 0}
+                                    appliedDiscount={manualDiscount}
                                     appliedAutomaticDiscounts={
-                                        appliedAutomaticDiscounts
+                                        automaticDiscounts
                                     }
-                                    manualDiscountAmount={manualDiscountAmount}
+                                    manualDiscountAmount={
+                                        manualDiscount?.discountAmount || 0
+                                    }
                                     automaticDiscountAmount={
-                                        automaticDiscountAmount
+                                        automaticDiscounts.reduce(
+                                            (acc, curr) =>
+                                                acc +
+                                                (curr.discountAmount || 0),
+                                            0,
+                                        ) || 0
                                     }
-                                    totalDiscount={totalDiscount}
+                                    totalDiscount={
+                                        manualDiscount?.discountAmount ||
+                                        automaticDiscounts.reduce(
+                                            (acc, curr) =>
+                                                acc +
+                                                (curr.discountAmount || 0),
+                                            0,
+                                        ) ||
+                                        0
+                                    }
                                     isUsingManualDiscount={
-                                        isUsingManualDiscount
+                                        !!(
+                                            manualDiscount &&
+                                            manualDiscount.discountAmount > 0
+                                        )
                                     }
                                     onRemoveItem={removeItem}
-                                    isProcessingPayment={isProcessingPayment}
+                                    isProcessingPayment={!!isProcessingPayment}
+                                    removeCoupon={() => {}} // TODO: Implement or connect actual removeCoupon logic
+                                    couponError={couponError || null} // TODO: Replace with actual error state if available
+                                    immediateCartTotals={immediateCartTotals} // TODO: Replace with actual immediate cart totals if available
+                                    shippingFee={shippingFee || 0} // deliveryFee is used as shippingFee
+                                    appliedCouponAmount={
+                                        appliedCouponAmount || 0
+                                    }
+                                    totalAutoDiscountAmount={
+                                        automaticDiscounts.reduce(
+                                            (acc, curr) =>
+                                                acc +
+                                                (curr.discountAmount || 0),
+                                            0,
+                                        ) || 0
+                                    }
                                 />
                             </div>
                         </div>

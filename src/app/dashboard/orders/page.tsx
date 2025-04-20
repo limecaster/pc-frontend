@@ -192,9 +192,15 @@ export default function OrdersPage() {
                         </Table.Head>
                         <Table.Body>
                             {orders
-                                .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                                .slice(
+                                    (currentPage - 1) * pageSize,
+                                    currentPage * pageSize,
+                                )
                                 .map((order) => (
-                                    <Table.Row key={order.id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
+                                    <Table.Row
+                                        key={order.id}
+                                        className="bg-white dark:border-gray-700 dark:bg-gray-800"
+                                    >
                                         <Table.Cell className="font-medium text-gray-900">
                                             {order.orderNumber}
                                         </Table.Cell>
@@ -249,7 +255,9 @@ export default function OrdersPage() {
                                                 ].includes(order.status) && (
                                                     <button
                                                         onClick={() =>
-                                                            openCancelModal(order)
+                                                            openCancelModal(
+                                                                order,
+                                                            )
                                                         }
                                                         disabled={
                                                             cancellingOrderId ===

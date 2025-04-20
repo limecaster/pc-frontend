@@ -520,7 +520,7 @@ export function generateCategoryUrl(
  * @returns Promise with a record mapping product IDs to their stock quantities
  */
 export async function getProductsStockQuantities(
-    productIds: string[]
+    productIds: string[],
 ): Promise<Record<string, number>> {
     try {
         if (!productIds || productIds.length === 0) {
@@ -530,10 +530,14 @@ export async function getProductsStockQuantities(
         // Convert array to comma-separated string for query parameter
         const idsParam = productIds.join(",");
         // Using correct endpoint path: /products/stock instead of /products/stock-quantities
-        const response = await fetch(`${API_URL}/products/stock?ids=${idsParam}`);
+        const response = await fetch(
+            `${API_URL}/products/stock?ids=${idsParam}`,
+        );
 
         if (!response.ok) {
-            throw new Error(`Failed to fetch stock quantities: ${response.status}`);
+            throw new Error(
+                `Failed to fetch stock quantities: ${response.status}`,
+            );
         }
 
         const data = await response.json();
@@ -551,23 +555,30 @@ export async function getProductsStockQuantities(
  * @param productIds Array of product IDs to get detailed information for
  * @returns Promise with an array of product details including discount information
  */
-export async function getProductsWithDiscounts(productIds: string[]): Promise<any[]> {
+export async function getProductsWithDiscounts(
+    productIds: string[],
+): Promise<any[]> {
     try {
         if (!productIds || productIds.length === 0) {
             return [];
         }
 
         // Using correct endpoint path: /products/batch-with-discounts
-        const response = await fetch(`${API_URL}/products/batch-with-discounts`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
+        const response = await fetch(
+            `${API_URL}/products/batch-with-discounts`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ productIds }),
             },
-            body: JSON.stringify({ productIds }),
-        });
+        );
 
         if (!response.ok) {
-            throw new Error(`Failed to fetch products with discounts: ${response.status}`);
+            throw new Error(
+                `Failed to fetch products with discounts: ${response.status}`,
+            );
         }
 
         const data = await response.json();

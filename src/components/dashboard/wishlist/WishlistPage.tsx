@@ -116,7 +116,10 @@ const WishlistPage: React.FC = () => {
             <div className="bg-white rounded-lg shadow border border-gray-200">
                 <ul className="divide-y divide-gray-200">
                     {products
-                        .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                        .slice(
+                            (currentPage - 1) * pageSize,
+                            currentPage * pageSize,
+                        )
                         .map((product) => (
                             <WishlistItem
                                 key={product.id}

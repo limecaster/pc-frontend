@@ -107,21 +107,19 @@ export async function addToCartAndSync(
         }
 
         const productData = await productResponse.json();
-        
+
         // Check if product exists and has stock information
         // The response structure from the Product controller doesn't include a product wrapper
         if (!productData) {
             throw new Error("Product not found");
         }
-        
+
         // Get stock quantity - may be at the top level instead of nested in product
         const stockQuantity = productData.stockQuantity || 0;
-        
+
         // Check if product is out of stock
         if (stockQuantity <= 0) {
-            throw new Error(
-                `Sản phẩm "${productData.name}" đã hết hàng.`,
-            );
+            throw new Error(`Sản phẩm "${productData.name}" đã hết hàng.`);
         }
 
         // Get current cart to check for existing quantity

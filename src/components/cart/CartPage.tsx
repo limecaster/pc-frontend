@@ -88,18 +88,25 @@ const CartPage: React.FC = () => {
             : totalAutoDiscountAmount;
 
         // Calculate the discounted total
-        const discountedTotal = Math.max(0, currentSubtotal - activeDiscountAmount);
+        const discountedTotal = Math.max(
+            0,
+            currentSubtotal - activeDiscountAmount,
+        );
 
         setImmediateCartTotals({
             subtotal: currentSubtotal,
             itemCount: cartItems.length,
             discountedItemCount: cartItems.filter(
-                (item) =>
-                    item.originalPrice && item.originalPrice > item.price,
+                (item) => item.originalPrice && item.originalPrice > item.price,
             ).length,
             total: discountedTotal, // Set the discounted total correctly
         });
-    }, [cartItems, appliedCouponAmount, totalAutoDiscountAmount, isUsingManualDiscount]);
+    }, [
+        cartItems,
+        appliedCouponAmount,
+        totalAutoDiscountAmount,
+        isUsingManualDiscount,
+    ]);
 
     // Add a useEffect to listen for cart updates
     useEffect(() => {
@@ -131,16 +138,14 @@ const CartPage: React.FC = () => {
     const handleUpdateQuantity = async (id: string, newQuantity: number) => {
         // First, update the local display for immediate feedback
         const updatedItems = displayCartItems.map((item) =>
-            item.id === id
-                ? { ...item, quantity: newQuantity }
-                : item
+            item.id === id ? { ...item, quantity: newQuantity } : item,
         );
-        
+
         setCartItems(updatedItems);
-        
+
         // Call the useCart hook's handleUpdateQuantity function
         await updateCart(id, newQuantity);
-        
+
         // Update cart totals after quantity change
         recalculateCartTotals();
     };
@@ -223,66 +228,26 @@ const CartPage: React.FC = () => {
         }
 
         // Prepare items with correct prices (including discounts)
-        const checkoutItems = cartItems.map(item => {
+        const checkoutItems = cartItems.map((item) => {
             // If this item has discount applied, use the correct discounted price
             if (item.originalPrice && item.originalPrice > item.price) {
                 // Item already has discounted price set correctly
                 return item;
-            } else if (discountedCartItems && discountedCartItems.length > 0) {
-                // Try to find this item in the discounted items list
-                const discountedItem = discountedCartItems.find(di => di.id === item.id);
-                if (discountedItem) {
-                    // Use the discounted price if we have one
-                    return {
-                        ...item,
-                        price: discountedItem.price,
-                        originalPrice: item.price, // Store original price
-                    };
-                }
             }
-            // No discount for this item
             return item;
         });
 
-        // Store the cart items with discounts applied for checkout
-        localStorage.setItem("checkoutItems", JSON.stringify(checkoutItems));
-
-        // Store discount information
+        // Save checkout data
         localStorage.setItem(
             "checkoutData",
-            JSON.stringify({
-                // Discount information
-                discountInfo: {
-                    discount: isUsingManualDiscount ? discount : null,
-                    appliedAutomaticDiscounts: isUsingManualDiscount
-                        ? []
-                        : appliedAutomaticDiscounts,
-                    manualDiscountAmount: isUsingManualDiscount
-                        ? appliedCouponAmount
-                        : 0,
-                    totalAutoDiscountAmount: isUsingManualDiscount
-                        ? 0
-                        : totalAutoDiscountAmount,
-                    isUsingManualDiscount,
-                },
-                // Cart items with discounts already applied
-                cartItems: checkoutItems,
-                // Additional summary information
-                summary: {
-                    subtotal: subtotal,
-                    shippingFee: 0,
-                    total: total,
-                },
-            })
+            JSON.stringify({ cartItems: checkoutItems }),
         );
 
-        // For backward compatibility
+        // Save applied discounts (optional, for legacy/analytics)
         localStorage.setItem(
             "appliedDiscounts",
             JSON.stringify({
-                discount: isUsingManualDiscount
-                    ? discount
-                    : null,
+                discount: isUsingManualDiscount ? discount : null,
                 appliedAutomaticDiscounts: isUsingManualDiscount
                     ? []
                     : appliedAutomaticDiscounts,
@@ -293,10 +258,17 @@ const CartPage: React.FC = () => {
                     ? 0
                     : totalAutoDiscountAmount,
                 isUsingManualDiscount,
-            })
+            }),
         );
 
-        router.push("/checkout");
+        // --- MAIN LOGIC: Pass coupon code via URL if using manual discount ---
+        if (isUsingManualDiscount && discount && discount.discountCode) {
+            router.push(
+                `/checkout?coupon=${encodeURIComponent(discount.discountCode)}`,
+            );
+        } else {
+            router.push("/checkout");
+        }
     };
 
     // Loading state
