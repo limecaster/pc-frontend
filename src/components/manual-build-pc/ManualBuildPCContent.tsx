@@ -182,6 +182,10 @@ const ManualBuildPCContent: React.FC = () => {
         setIsCompatible(true);
     }, [selectedProducts]);
 
+    useEffect(() => {
+        setSearchTerm("");
+    }, [currentCategory]);
+
     const handleSelectClick = async (
         category: string,
         page: number = 1,
@@ -531,8 +535,13 @@ const ManualBuildPCContent: React.FC = () => {
     };
 
     const handleSearchChange = (term: string) => {
+        if (term === "") {
+            // Reset to all compatible parts, page 1, default sort
+            applyPaginationAndFilters(allCompatibleParts, 1, "", sortOption);
+        } else {
+            applyPaginationAndFilters(allCompatibleParts, 1, term, sortOption);
+        }
         setSearchTerm(term);
-        applyPaginationAndFilters(allCompatibleParts, 1, term, sortOption);
     };
 
     const handleSortChange = (option: "name" | "price-asc" | "price-desc") => {

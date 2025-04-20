@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Image from "next/image";
 
 interface PartSelectionModalProps {
@@ -49,6 +49,13 @@ const PartSelectionModal: React.FC<PartSelectionModalProps> = ({
         if (onSearchChange) onSearchChange("");
         if (onSortChange) onSortChange("name");
     };
+
+    useEffect(() => {
+        if (!showPopup) {
+            setSearchTerm("");
+            if (onSearchChange) onSearchChange("");
+        }
+    }, [showPopup]);
 
     if (!loading && popupItems.length === 0) {
         return (
