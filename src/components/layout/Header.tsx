@@ -41,14 +41,19 @@ const Header = () => {
     useEffect(() => {
         const fetchCart = async () => {
             try {
+                if (!isAuthenticated) {
+                    setCartCount(0);
+                    return;
+                }
                 const cartItems = await getCart();
                 if (cartItems) {
-                    setCartCount(cartItems.length);
+                    setCartCount(cartItems.cart.items.length);
                 } else {
                     setCartCount(0);
                 }
             } catch (error) {
                 console.error("Error fetching cart:", error);
+                setCartCount(0);
             }
         };
         fetchCart();
