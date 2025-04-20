@@ -40,11 +40,12 @@ export default function OrdersPage() {
     );
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+    const pageSize = 10; // Number of orders per page
 
     useEffect(() => {
         document.title = "Đơn hàng của tôi | B Store";
         fetchOrders();
-    }, [currentPage]);
+    }, [user]);
 
     const fetchOrders = async () => {
         if (!user) return;
@@ -53,16 +54,15 @@ export default function OrdersPage() {
         setError(null);
 
         try {
-            // Use getUserOrderHistory instead of trackOrder
             const result = await getUserOrderHistory();
 
             if (result) {
-                // The API might return orders directly or nested in a data property
                 const orderData = Array.isArray(result)
                     ? result
                     : result.orders || [];
                 setOrders(orderData);
-                setTotalPages(Math.ceil(orderData.length / 10) || 1);
+                // Calculate total pages based on the page size
+                setTotalPages(Math.ceil(orderData.length / pageSize) || 1);
             } else {
                 throw new Error("Failed to load orders");
             }
@@ -76,14 +76,10 @@ export default function OrdersPage() {
     };
 
     const handlePayOrder = async (orderId: string | number) => {
-        // Show that we're processing the payment
         setProcessingPayment(orderId.toString());
 
         try {
-            // Get payment data from API
             const result = await initiateOrderPayment(orderId);
-
-            // Check if the response is successful
             if (result && result.success === true) {
                 // Check for various response formats
 
@@ -195,80 +191,82 @@ export default function OrdersPage() {
                             <Table.HeadCell>Thao tác</Table.HeadCell>
                         </Table.Head>
                         <Table.Body>
-                            {orders.map((order) => (
-                                <Table.Row key={order.id} className="bg-white">
-                                    <Table.Cell className="font-medium text-gray-900">
-                                        {order.orderNumber}
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                        {formatDate(order.orderDate)}
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                        {formatCurrency(order.total)}
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                        <OrderStatusBadge
-                                            status={order.status}
-                                        />
-                                    </Table.Cell>
-                                    <Table.Cell>
-                                        <div className="flex space-x-2">
-                                            <button
-                                                onClick={() =>
-                                                    handleViewOrderDetails(
-                                                        order.id,
-                                                    )
-                                                }
-                                                className="text-blue-600 hover:underline font-medium text-sm"
-                                            >
-                                                Chi tiết
-                                            </button>
-
-                                            {order.status === "approved" &&
-                                                !order.paymentStatus && (
-                                                    <button
-                                                        onClick={() =>
-                                                            handlePayOrder(
-                                                                order.id,
-                                                            )
-                                                        }
-                                                        disabled={
-                                                            processingPayment ===
-                                                            order.id.toString()
-                                                        }
-                                                        className="text-green-600 hover:underline font-medium text-sm disabled:opacity-50"
-                                                    >
-                                                        {processingPayment ===
-                                                        order.id.toString()
-                                                            ? "Đang xử lý..."
-                                                            : "Thanh toán"}
-                                                    </button>
-                                                )}
-
-                                            {[
-                                                "pending_approval",
-                                                "approved",
-                                            ].includes(order.status) && (
+                            {orders
+                                .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                                .map((order) => (
+                                    <Table.Row key={order.id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
+                                        <Table.Cell className="font-medium text-gray-900">
+                                            {order.orderNumber}
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                            {formatDate(order.orderDate)}
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                            {formatCurrency(order.total)}
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                            <OrderStatusBadge
+                                                status={order.status}
+                                            />
+                                        </Table.Cell>
+                                        <Table.Cell>
+                                            <div className="flex space-x-2">
                                                 <button
                                                     onClick={() =>
-                                                        openCancelModal(order)
+                                                        handleViewOrderDetails(
+                                                            order.id,
+                                                        )
                                                     }
-                                                    disabled={
-                                                        cancellingOrderId ===
-                                                        order.id.toString()
-                                                    }
-                                                    className="text-red-600 hover:underline font-medium text-sm disabled:opacity-50"
+                                                    className="text-blue-600 hover:underline font-medium text-sm"
                                                 >
-                                                    {cancellingOrderId ===
-                                                    order.id.toString()
-                                                        ? "Đang hủy..."
-                                                        : "Hủy"}
+                                                    Chi tiết
                                                 </button>
-                                            )}
-                                        </div>
-                                    </Table.Cell>
-                                </Table.Row>
-                            ))}
+
+                                                {order.status === "approved" &&
+                                                    !order.paymentStatus && (
+                                                        <button
+                                                            onClick={() =>
+                                                                handlePayOrder(
+                                                                    order.id,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                processingPayment ===
+                                                                order.id.toString()
+                                                            }
+                                                            className="text-green-600 hover:underline font-medium text-sm disabled:opacity-50"
+                                                        >
+                                                            {processingPayment ===
+                                                            order.id.toString()
+                                                                ? "Đang xử lý..."
+                                                                : "Thanh toán"}
+                                                        </button>
+                                                    )}
+
+                                                {[
+                                                    "pending_approval",
+                                                    "approved",
+                                                ].includes(order.status) && (
+                                                    <button
+                                                        onClick={() =>
+                                                            openCancelModal(order)
+                                                        }
+                                                        disabled={
+                                                            cancellingOrderId ===
+                                                            order.id.toString()
+                                                        }
+                                                        className="text-red-600 hover:underline font-medium text-sm disabled:opacity-50"
+                                                    >
+                                                        {cancellingOrderId ===
+                                                        order.id.toString()
+                                                            ? "Đang hủy..."
+                                                            : "Hủy"}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </Table.Cell>
+                                    </Table.Row>
+                                ))}
                         </Table.Body>
                     </Table>
 
