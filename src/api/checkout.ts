@@ -163,6 +163,10 @@ export async function createGuestOrder(orderData: any): Promise<any> {
  */
 export async function processPayment(paymentData: any) {
     try {
+        // Ensure orderId is present in paymentData
+        if (!paymentData.orderId) {
+            throw new Error("orderId is required to process payment");
+        }
         const response = await fetch(`${API_URL}/payment/create`, {
             method: "POST",
             headers: {
@@ -174,7 +178,7 @@ export async function processPayment(paymentData: any) {
         if (!response.ok) {
             const data = await response.json();
             throw new Error(
-                data.error || `Failed to process payment: ${response.status}`,
+                data.error || data.message || `Failed to process payment: ${response.status}`,
             );
         }
 

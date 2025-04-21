@@ -80,6 +80,7 @@ export default function OrdersPage() {
 
         try {
             const result = await initiateOrderPayment(orderId);
+            console.log(result);
             if (result && result.success === true) {
                 // Check for various response formats
 
@@ -96,10 +97,10 @@ export default function OrdersPage() {
                 }
 
                 // Case 3: Success but need to call another API to get the URL
-                else {
-                    router.push(`/checkout/direct-pay?orderId=${orderId}`);
-                    return;
-                }
+                // else {
+                //     router.push(`/checkout/direct-pay?orderId=${orderId}`);
+                //     return;
+                // }
             } else {
                 console.error("Invalid payment response:", result);
                 throw new Error("Invalid payment response");
@@ -243,7 +244,7 @@ export default function OrdersPage() {
                                                             className="text-green-600 hover:underline font-medium text-sm disabled:opacity-50"
                                                         >
                                                             {processingPayment ===
-                                                            order.id.toString()
+                                                                order.id.toString()
                                                                 ? "Đang xử lý..."
                                                                 : "Thanh toán"}
                                                         </button>
@@ -253,24 +254,24 @@ export default function OrdersPage() {
                                                     "pending_approval",
                                                     "approved",
                                                 ].includes(order.status) && (
-                                                    <button
-                                                        onClick={() =>
-                                                            openCancelModal(
-                                                                order,
-                                                            )
-                                                        }
-                                                        disabled={
-                                                            cancellingOrderId ===
-                                                            order.id.toString()
-                                                        }
-                                                        className="text-red-600 hover:underline font-medium text-sm disabled:opacity-50"
-                                                    >
-                                                        {cancellingOrderId ===
-                                                        order.id.toString()
-                                                            ? "Đang hủy..."
-                                                            : "Hủy"}
-                                                    </button>
-                                                )}
+                                                        <button
+                                                            onClick={() =>
+                                                                openCancelModal(
+                                                                    order,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                cancellingOrderId ===
+                                                                order.id.toString()
+                                                            }
+                                                            className="text-red-600 hover:underline font-medium text-sm disabled:opacity-50"
+                                                        >
+                                                            {cancellingOrderId ===
+                                                                order.id.toString()
+                                                                ? "Đang hủy..."
+                                                                : "Hủy"}
+                                                        </button>
+                                                    )}
                                             </div>
                                         </Table.Cell>
                                     </Table.Row>

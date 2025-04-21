@@ -15,11 +15,13 @@ import {
     updateProduct,
     uploadProductImage,
     fetchProductCategories,
-    fetchCategorySpecificationTemplate,
-    fetchSubcategoryValues,
+    fetchSpecificationKeys,
 } from "@/api/admin-products";
+import { Product } from "@/api/admin-products";
 import toast from "react-hot-toast";
 import Image from "next/image";
+
+type CategoryOption = { id: number | string; name: string };
 
 interface ProductFormProps {
     product?: any;
@@ -30,33 +32,30 @@ interface FormData {
     name: string;
     description: string;
     price: string;
-    stock_quantity: string;
+    stock_quantity?: number;
     status: string;
     category: string;
     images: string[];
     specifications: Record<string, string>;
     thumbnail: string;
-    [key: string]: string | string[] | Record<string, string>;
+    [key: string]: string | string[] | Record<string, string> | number | undefined;
 }
 
 const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [imageLoading, setImageLoading] = useState(false);
-    const [categories, setCategories] = useState<string[]>([]);
+    const [categories, setCategories] = useState<CategoryOption[]>([]);
     const [specificationTemplate, setSpecificationTemplate] = useState<
         string[]
     >([]);
-    const [specValueOptions, setSpecValueOptions] = useState<
-        Record<string, string[]>
-    >({});
     const [imagePreview, setImagePreview] = useState<string | null>(null);
 
     const [formData, setFormData] = useState<FormData>({
         name: "",
         description: "",
         price: "",
-        stock_quantity: "",
+        stock_quantity: 0,
         status: "active",
         category: "",
         images: [] as string[],
@@ -65,34 +64,44 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
     });
 
     const [newSpec, setNewSpec] = useState({ key: "", value: "" });
-    const [selectedSpecKey, setSelectedSpecKey] = useState("");
 
     useEffect(() => {
         if (mode === "edit" && product) {
             const {
+                id,
                 name,
                 description,
                 price,
-                stock_quantity,
                 stockQuantity,
                 status,
                 category,
                 images = [],
-                additionalImages,
-                additional_images,
+                additionalImages = [],
+                additional_images: additionalImagesString,
                 specifications = {},
                 thumbnail,
                 imageUrl,
             } = product;
 
-            let productImages = [];
+            let productImages = additionalImages;
+
+            if (additionalImagesString) {
+                try {
+                    const parsedImages = JSON.parse(additionalImagesString);
+                    if (Array.isArray(parsedImages)) {
+                        productImages = parsedImages;
+                    }
+                } catch (e) {
+                    console.error("Error parsing additional_images:", e);
+                }
+            }
 
             if (Array.isArray(images) && images.length > 0) {
                 productImages = images;
-            } else if (additional_images) {
+            } else if (additionalImagesString) {
                 try {
-                    if (typeof additional_images === "string") {
-                        const parsedImages = JSON.parse(additional_images);
+                    if (typeof additionalImagesString === "string") {
+                        const parsedImages = JSON.parse(additionalImagesString);
                         if (Array.isArray(parsedImages)) {
                             productImages = parsedImages;
                         }
@@ -110,20 +119,22 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                 productImages = [imageUrl];
             }
 
-            const finalStockQuantity =
-                stock_quantity !== undefined
-                    ? stock_quantity
-                    : stockQuantity !== undefined
-                      ? stockQuantity
-                      : 0;
+            let finalStockQuantity = 0;
+            if (stockQuantity !== undefined && stockQuantity !== null) {
+                finalStockQuantity = stockQuantity;
+            } else if (typeof stockQuantity === "number") {
+                finalStockQuantity = stockQuantity;
+            } else if (typeof stockQuantity === "string") {
+                // Try to parse if stock is a string number, else fallback to 0
+                const parsed = parseInt(stockQuantity, 10);
+                finalStockQuantity = isNaN(parsed) ? 0 : parsed;
+            }
 
             setFormData({
                 name: name || "",
                 description: description || "",
                 price: price ? price.toString() : "",
-                stock_quantity: finalStockQuantity
-                    ? finalStockQuantity.toString()
-                    : "",
+                stock_quantity: finalStockQuantity,
                 status: status || "active",
                 category: category || "",
                 images: productImages,
@@ -144,7 +155,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
         const loadCategories = async () => {
             try {
                 const { categories } = await fetchProductCategories();
-                setCategories(categories);
+                const formattedCategories = categories.map((cat: string) => ({ id: cat, name: cat }));
+                setCategories(formattedCategories);
             } catch (error) {
                 console.error("Error loading categories:", error);
                 toast.error("Không thể tải danh mục sản phẩm");
@@ -163,14 +175,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
             }
 
             try {
-                const fields = await fetchCategorySpecificationTemplate(
-                    formData.category,
-                );
-                setSpecificationTemplate(fields);
-                // Reset selected spec key
-                setSelectedSpecKey("");
-                // Reset spec value options
-                setSpecValueOptions({});
+                const keys = await fetchSpecificationKeys(formData.category);
+                setSpecificationTemplate(keys);
             } catch (error) {
                 console.error("Error loading specification template:", error);
                 toast.error("Không thể tải mẫu thông số kỹ thuật");
@@ -179,40 +185,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
 
         loadSpecTemplate();
     }, [formData.category]);
-
-    // Fetch subcategory values when a specification key is selected
-    useEffect(() => {
-        const loadSpecValues = async () => {
-            if (!selectedSpecKey || !formData.category) return;
-
-            try {
-                const values = await fetchSubcategoryValues(
-                    formData.category,
-                    selectedSpecKey,
-                );
-
-                setSpecValueOptions((prev) => ({
-                    ...prev,
-                    [selectedSpecKey]: values,
-                }));
-            } catch (error) {
-                console.error(
-                    `Error loading values for ${selectedSpecKey}:`,
-                    error,
-                );
-                // Still set an empty array for this key to prevent future API calls
-                setSpecValueOptions((prev) => ({
-                    ...prev,
-                    [selectedSpecKey]: [],
-                }));
-            }
-        };
-
-        // Only load values if we don't already have them cached
-        if (!specValueOptions[selectedSpecKey]) {
-            loadSpecValues();
-        }
-    }, [selectedSpecKey, formData.category, specValueOptions]);
 
     const handleChange = (
         e: React.ChangeEvent<
@@ -227,10 +199,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
     ) => {
         const { name, value } = e.target;
-
-        if (name === "key") {
-            setSelectedSpecKey(value);
-        }
 
         setNewSpec((prev) => ({ ...prev, [name]: value }));
     };
@@ -247,7 +215,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
         }));
 
         setNewSpec({ key: "", value: "" });
-        setSelectedSpecKey("");
     };
 
     const removeSpecification = (key: string) => {
@@ -329,7 +296,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
         e.preventDefault();
 
         // Validate required fields
-        const requiredFields = ["name", "price", "stock_quantity", "category"];
+        const requiredFields = ["name", "price", "category"];
         const missingFields = requiredFields.filter(
             (field) => !formData[field],
         );
@@ -347,24 +314,21 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
         try {
             setLoading(true);
 
-            // Prepare data for submission
+            const selectedCategory = categories.find(cat => String(cat.id) === String(formData.category));
             const productData = {
-                name: formData.name,
-                description: formData.description,
+                ...formData,
                 price: parseFloat(formData.price),
-                stock: parseInt(formData.stock_quantity),
-                status: formData.status as "active" | "inactive",
-                categoryId: parseInt(formData.category),
-                category: {
-                    id: parseInt(formData.category),
-                    name: formData.category,
-                },
+                stock: formData.stock_quantity ?? 0,
+                stockQuantity: formData.stock_quantity ?? 0,
+                categoryId: selectedCategory ? Number(selectedCategory.id) : Number(formData.category),
                 imageUrl:
-                    formData.thumbnail ||
-                    (formData.images.length > 0 ? formData.images[0] : ""),
-                images: formData.images,
+                    (typeof formData.thumbnail === "string" && formData.thumbnail) ||
+                    (Array.isArray(formData.images) && typeof formData.images[0] === "string" ? formData.images[0] : ""),
                 specifications: formData.specifications || {},
-            };
+                status: (formData.status === "active" ? "active" : "inactive") as "active" | "inactive",
+                // Always send category as the name string for backend compatibility
+                category: selectedCategory ? selectedCategory.name : formData.category,
+            } as Omit<Product, "id" | "createdAt" | "updatedAt">;
 
             let result;
             if (mode === "add") {
@@ -439,9 +403,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                             required
                         >
                             <option value="">Chọn danh mục</option>
-                            {categories.map((category) => (
-                                <option key={category} value={category}>
-                                    {category}
+                            {categories.map((category, idx) => (
+                                <option key={`category-${idx}`} value={category.id}>
+                                    {category.name}
                                 </option>
                             ))}
                         </select>
@@ -464,7 +428,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Tồn kho *
+                                Tồn kho
                             </label>
                             <input
                                 type="number"
@@ -473,7 +437,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                                 onChange={handleChange}
                                 min="0"
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                required
                             />
                         </div>
                     </div>
@@ -546,11 +509,10 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                                         <img
                                             src={image}
                                             alt={`Product ${index}`}
-                                            className={`h-24 w-24 object-cover rounded-md border-2 ${
-                                                formData.thumbnail === image
-                                                    ? "border-blue-500"
-                                                    : "border-gray-200"
-                                            }`}
+                                            className={`h-24 w-24 object-cover rounded-md border-2 ${formData.thumbnail === image
+                                                ? "border-blue-500"
+                                                : "border-gray-200"
+                                                }`}
                                         />
                                         <button
                                             type="button"
@@ -601,8 +563,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                 </h3>
 
                 {/* Form for adding specifications */}
-                <div className="flex space-x-3 mb-4">
-                    <div className="flex-1">
+                <div className="flex items-center gap-2 mb-4">
+                    <div className="w-1/3">
                         <select
                             name="key"
                             value={newSpec.key}
@@ -610,46 +572,27 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, mode }) => {
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         >
                             <option value="">-- Chọn thông số --</option>
-                            {specificationTemplate.map((specKey) => (
+                            {specificationTemplate.map((key) => (
                                 <option
-                                    key={specKey}
-                                    value={specKey}
-                                    disabled={
-                                        specKey in formData.specifications
-                                    }
+                                    key={key}
+                                    value={key}
+                                    disabled={key in formData.specifications} // Disable if already present
                                 >
-                                    {specKey}
+                                    {key}
                                 </option>
                             ))}
                         </select>
                     </div>
-                    <div className="flex-1">
-                        {specValueOptions[selectedSpecKey]?.length > 0 ? (
-                            <select
-                                name="value"
-                                value={newSpec.value}
-                                onChange={handleSpecChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            >
-                                <option value="">-- Chọn giá trị --</option>
-                                {specValueOptions[selectedSpecKey].map(
-                                    (value) => (
-                                        <option key={value} value={value}>
-                                            {value}
-                                        </option>
-                                    ),
-                                )}
-                            </select>
-                        ) : (
-                            <input
-                                type="text"
-                                name="value"
-                                value={newSpec.value}
-                                onChange={handleSpecChange}
-                                placeholder="Giá trị (Ví dụ: Intel Core i5)"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            />
-                        )}
+                    <div className="w-2/3">
+                        {/* Always use text input for value */}
+                        <input
+                            type="text"
+                            name="value"
+                            value={newSpec.value}
+                            onChange={handleSpecChange}
+                            placeholder="Giá trị (Ví dụ: Intel Core i5)"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        />
                     </div>
                     <div>
                         <button

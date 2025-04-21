@@ -59,23 +59,17 @@ export async function initiateOrderPayment(
             headers["Authorization"] = `Bearer ${token}`;
         }
 
-        // Use the order-specific payment endpoint which returns the complete payment data
-        // This endpoint is implemented in OrderController.initiatePayment
-        const response = await fetch(`${API_URL}/orders/${orderId}/pay`, {
+        const response = await fetch(`${API_URL}/payment/create`, {
             method: "POST",
-            headers: headers,
-            body: JSON.stringify({
-                // Include frontend URLs with orderId to ensure proper redirection
-                returnUrl: `${window.location.origin}/checkout/success?orderId=${orderId}`,
-                cancelUrl: `${window.location.origin}/checkout/failure?orderId=${orderId}`,
-            }),
+            headers,
+            body: JSON.stringify({ orderId }),
         });
 
         const data = await response.json();
 
         if (!response.ok) {
             throw new Error(
-                data.message || `Payment initiation failed: ${response.status}`,
+                data.message || data.error || `Payment initiation failed: ${response.status}`,
             );
         }
 

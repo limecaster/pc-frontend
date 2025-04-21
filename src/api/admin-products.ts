@@ -17,14 +17,14 @@ export interface Product {
     stock: number;
     imageUrl: string | null;
     categoryId: number;
-    category?: {
-        id: number;
-        name: string;
-    };
+    category?: string | { id: number; name: string };
     status: "active" | "inactive";
     createdAt: string;
     updatedAt: string;
 }
+
+// Add ProductWithSpecs type to avoid TS errors
+export type ProductWithSpecs = Partial<Product> & { specifications?: Record<string, any>; stockQuantity?: number };
 
 /**
  * Fetch all products with pagination and filtering
@@ -91,14 +91,7 @@ export async function fetchProductById(id: string) {
         const response = await fetch(`${API_URL}/products/admin/${id}`, {
             headers: getAuthHeaders(),
         });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `Error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data.product;
+        return await response.json();
     } catch (error) {
         console.error(`Error fetching product ${id}:`, error);
         throw error;
@@ -112,7 +105,9 @@ export async function createProduct(
     productData: Omit<Product, "id" | "createdAt" | "updatedAt">,
 ) {
     try {
-        const response = await fetch(`${API_URL}/products/admin`, {
+
+
+        const response = await fetch(`${API_URL}/products`, {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify(productData),
@@ -134,12 +129,36 @@ export async function createProduct(
 /**
  * Update an existing product
  */
-export async function updateProduct(id: string, productData: Partial<Product>) {
+export async function updateProduct(id: string, productData: ProductWithSpecs) {
     try {
+        // Reformat category and remove id/category from specifications before sending to backend
+        let formattedProductData = {
+            ...productData,
+            category: typeof productData.category === 'object' && productData.category?.name
+                ? productData.category.name
+                : productData.category,
+        };
+        // Ensure stockQuantity is present and a number if stock_quantity is provided
+        if ('stock_quantity' in formattedProductData && formattedProductData.stock_quantity !== undefined) {
+            formattedProductData.stockQuantity = parseInt(formattedProductData.stock_quantity as string, 10);
+        }
+        // Remove id and category from specifications if present (type-safe)
+        if (
+            Object.prototype.hasOwnProperty.call(formattedProductData, 'specifications') &&
+            formattedProductData.specifications &&
+            typeof formattedProductData.specifications === 'object'
+        ) {
+            const { id: _id, category: _cat, ...restSpecs } = formattedProductData.specifications;
+            formattedProductData = {
+                ...formattedProductData,
+                specifications: restSpecs,
+            };
+        }
+
         const response = await fetch(`${API_URL}/products/admin/${id}`, {
             method: "PATCH",
             headers: getAuthHeaders(),
-            body: JSON.stringify(productData),
+            body: JSON.stringify(formattedProductData),
         });
 
         if (!response.ok) {
@@ -218,8 +237,8 @@ export async function fetchProductCategories() {
             const errorData = await response.json();
             throw new Error(errorData.message || `Error: ${response.status}`);
         }
-
-        return await response.json();
+        const data = await response.json();
+        return data;
     } catch (error) {
         console.error("Error fetching product categories:", error);
         throw error;
@@ -389,6 +408,36 @@ export async function getSimpleProductList(
 }
 
 /**
+ * Fetch all available specification keys for a given category (for admin form dropdowns)
+ */
+export async function fetchSpecificationKeys(category: string): Promise<string[]> {
+    if (!category) return [];
+    const response = await fetch(
+        `${API_URL}/products/subcategory-keys/${encodeURIComponent(category)}`,
+        { headers: getAuthHeaders() },
+    );
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.keys || [];
+}
+
+/**
+ * (Optional) If you want to provide value suggestions for a spec key, use this.
+ */
+export async function fetchSpecValueSuggestions(
+    category: string,
+    specKey: string,
+): Promise<string[]> {
+    if (!category || !specKey) return [];
+    const response = await fetch(
+        `${API_URL}/products/admin/specification-values/${encodeURIComponent(category)}/${encodeURIComponent(specKey)}`,
+        { headers: getAuthHeaders() },
+    );
+    if (!response.ok) return [];
+    return await response.json();
+}
+
+/**
  * Get category-specific specification fields
  * This will query Neo4j for the specification template based on product category
  */
@@ -437,8 +486,9 @@ export async function fetchSubcategoryValues(
             return [];
         }
 
+        // Use the new admin endpoint for specification values
         const response = await fetch(
-            `${API_URL}/products/subcategory-values/${encodeURIComponent(category)}/${encodeURIComponent(subcategory)}`,
+            `${API_URL}/products/admin/specification-values/${encodeURIComponent(category)}/${encodeURIComponent(subcategory)}`,
             {
                 headers: getAuthHeaders(),
             },
@@ -451,10 +501,7 @@ export async function fetchSubcategoryValues(
 
         return await response.json();
     } catch (error) {
-        console.error(
-            `Error fetching values for ${category}/${subcategory}:`,
-            error,
-        );
-        return []; // Return empty array on error
+        // Optionally log or handle error
+        return [];
     }
 }
