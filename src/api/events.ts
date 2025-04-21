@@ -36,7 +36,7 @@ function getPageInfo(): { pageUrl: string; referrerUrl: string | null } {
     };
 }
 
-const getSessionId = () => {
+export const getSessionId = () => {
     // Check current authentication status
     const isAuthenticated = localStorage.getItem("token") !== null;
 
@@ -448,8 +448,11 @@ export const trackSearch = async (query: string, resultsCount: number) => {
 };
 
 export const trackChatbotSendMessage = async (message: string) => {
+    const sessionId = getSessionId();
+
     await trackEvent({
         eventType: "chatbot_send_message",
+        sessionId: sessionId,
         entityType: "chatbot",
         eventData: {
             message,
