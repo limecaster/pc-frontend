@@ -329,7 +329,7 @@ export const trackLogout = async (userId: string, userRole: string) => {
 
 export const trackAutoBuildRequest = async (userInput: string) => {
     await trackEvent({
-        eventType: "auto_build_request",
+        eventType: "auto_build_pc_request",
         entityType: "feature",
         eventData: {
             userInput,
@@ -340,7 +340,7 @@ export const trackAutoBuildRequest = async (userInput: string) => {
 
 export const trackAutoBuildAddToCart = async (configDetails: any) => {
     await trackEvent({
-        eventType: "auto_build_add_to_cart",
+        eventType: "auto_build_pc_add_to_cart",
         entityType: "feature",
         eventData: {
             ...configDetails,
@@ -351,7 +351,7 @@ export const trackAutoBuildAddToCart = async (configDetails: any) => {
 
 export const trackAutoBuildCustomize = async (customization: any) => {
     await trackEvent({
-        eventType: "auto_build_customize",
+        eventType: "auto_build_pc_customize",
         entityType: "feature",
         eventData: {
             ...customization,

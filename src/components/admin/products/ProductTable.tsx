@@ -203,11 +203,10 @@ const ProductTable: React.FC<ProductTableProps> = ({
                                 </td>
                                 <td className="py-3 px-4 text-sm">
                                     <span
-                                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                            product.status === "active"
-                                                ? "bg-green-100 text-green-800"
-                                                : "bg-red-100 text-red-800"
-                                        }`}
+                                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.status === "active"
+                                            ? "bg-green-100 text-green-800"
+                                            : "bg-red-100 text-red-800"
+                                            }`}
                                     >
                                         {product.status === "active"
                                             ? "Đang bán"
@@ -223,7 +222,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                                         >
                                             <FontAwesomeIcon icon={faEdit} />
                                         </Link>
-                                        <button
+                                        {/* <button
                                             onClick={() =>
                                                 confirmDelete(product.id)
                                             }
@@ -231,7 +230,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                                             title="Xóa sản phẩm"
                                         >
                                             <FontAwesomeIcon icon={faTrash} />
-                                        </button>
+                                        </button> */}
                                     </div>
                                 </td>
                             </tr>
@@ -267,11 +266,10 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     <button
                         onClick={() => onPageChange(pagination.currentPage - 1)}
                         disabled={pagination.currentPage <= 1}
-                        className={`px-3 py-1 rounded-md ${
-                            pagination.currentPage <= 1
-                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
-                        }`}
+                        className={`px-3 py-1 rounded-md ${pagination.currentPage <= 1
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
+                            }`}
                     >
                         <FontAwesomeIcon icon={faCaretLeft} />
                     </button>
@@ -294,11 +292,10 @@ const ProductTable: React.FC<ProductTableProps> = ({
                                 )}
                                 <button
                                     onClick={() => onPageChange(page)}
-                                    className={`px-3 py-1 rounded-md ${
-                                        pagination.currentPage === page
-                                            ? "bg-primary text-white"
-                                            : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
-                                    }`}
+                                    className={`px-3 py-1 rounded-md ${pagination.currentPage === page
+                                        ? "bg-primary text-white"
+                                        : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
+                                        }`}
                                 >
                                     {page}
                                 </button>
@@ -310,11 +307,10 @@ const ProductTable: React.FC<ProductTableProps> = ({
                         disabled={
                             pagination.currentPage >= pagination.totalPages
                         }
-                        className={`px-3 py-1 rounded-md ${
-                            pagination.currentPage >= pagination.totalPages
-                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
-                        }`}
+                        className={`px-3 py-1 rounded-md ${pagination.currentPage >= pagination.totalPages
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
+                            }`}
                     >
                         <FontAwesomeIcon icon={faCaretRight} />
                     </button>

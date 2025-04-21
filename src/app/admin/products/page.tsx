@@ -12,7 +12,6 @@ interface Product {
     stock_quantity: number;
     status: string;
     category: string;
-    // Add other properties as needed
 }
 
 export default function ProductsPage() {

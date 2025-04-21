@@ -45,6 +45,11 @@ const Header = () => {
                     setCartCount(0);
                     return;
                 }
+                // If role is admin or staff, don't show cart
+                if (user?.role === "admin" || user?.role === "staff") {
+                    setCartCount(0);
+                    return;
+                }
                 const cartItems = await getCart();
                 if (cartItems) {
                     setCartCount(cartItems.cart.items.length);
@@ -143,9 +148,8 @@ const Header = () => {
                             />
                             <span className="hidden md:inline text-sm text-white">
                                 {isAuthenticated
-                                    ? `Xin chào, ${
-                                          user?.firstName || user?.username
-                                      }`
+                                    ? `Xin chào, ${user?.firstName || user?.username
+                                    }`
                                     : "Tài khoản"}
                             </span>
                         </button>
