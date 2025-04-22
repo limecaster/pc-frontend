@@ -30,7 +30,7 @@ const CheckoutSuccessContent: React.FC = () => {
         const fetchOrderData = async () => {
             try {
                 // Get orderId from URL parameters - this is the most important parameter
-                const orderId = searchParams.get("orderId");
+                const orderId = searchParams.get("orderId") || searchParams.get("orderCode") || "";
                 const paymentStatus = searchParams.get("status");
                 const paymentCode = searchParams.get("code");
                 const paymentId = searchParams.get("id");
