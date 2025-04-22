@@ -171,7 +171,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
             )}
 
             {/* Automatic Discounts Section (match cart/CartSummary) */}
-            {appliedAutomaticDiscounts.length > 0 && !isUsingManualDiscount && (
+            {/* {appliedAutomaticDiscounts.length > 0 && !isUsingManualDiscount && (
                 <div className="text-green-600 text-sm bg-green-50 p-3 rounded-lg border border-green-100 mt-3">
                     <p className="font-medium mb-1">
                         Mã giảm giá tự động áp dụng:
@@ -208,7 +208,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({
                         </li>
                     </ul>
                 </div>
-            )}
+            )} */}
 
             {/* Enhanced Discount Details Section */}
             {discountedCartItems &&

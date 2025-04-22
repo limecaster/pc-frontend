@@ -103,7 +103,7 @@ const ConfigurationSummary: React.FC<ConfigurationSummaryProps> = ({
             });
 
             setTimeout(() => {
-                router.push("/checkout");
+                router.push("/cart");
             }, 500);
         } catch (error) {
             console.error("Error processing buy now:", error);

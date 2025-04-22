@@ -21,7 +21,8 @@ const DashboardOverview: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [orderCount, setOrderCount] = useState(0);
     const [recentOrders, setRecentOrders] = useState<any[]>([]);
-    const [configurations, setConfigurations] = useState<any[]>([]);
+    const [recentConfigurations, setRecentConfigurations] = useState<any[]>([]);
+    const [configurationsCount, setConfigurationsCount] = useState<number>(0);
     const [wishlistCount, setWishlistCount] = useState(0);
 
     useEffect(() => {
@@ -29,8 +30,8 @@ const DashboardOverview: React.FC = () => {
             setLoading(true);
             try {
                 const configsData = await getAllConfigurations();
-                setConfigurations(configsData.slice(0, 3));
-
+                setRecentConfigurations(configsData.slice(0, 3));
+                setConfigurationsCount(configsData.length || 0);
                 try {
                     const ordersResponse = await getOrderHistory();
                     if (ordersResponse && Array.isArray(ordersResponse)) {
@@ -124,7 +125,7 @@ const DashboardOverview: React.FC = () => {
                                     Cấu hình PC
                                 </p>
                                 <p className="text-2xl font-bold">
-                                    {configurations.length}
+                                    {configurationsCount}
                                 </p>
                             </div>
                             <div className="bg-blue-100 p-3 rounded-full">
@@ -229,7 +230,7 @@ const DashboardOverview: React.FC = () => {
             )}
 
             {/* Recent PC Configurations */}
-            {configurations.length > 0 && (
+            {recentConfigurations.length > 0 && (
                 <div className="bg-white rounded-lg p-6 border border-gray-100 shadow-sm">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-lg font-medium">
@@ -244,7 +245,7 @@ const DashboardOverview: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {configurations.map((config) => (
+                        {recentConfigurations.map((config) => (
                             <div
                                 key={config.id}
                                 className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
