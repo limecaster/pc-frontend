@@ -6,7 +6,7 @@ import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 import { io, Socket } from "socket.io-client";
 import { useRouter } from "next/navigation";
 import { getAutoBuildSuggestions, PCConfiguration } from "@/api/auto-build-pc";
-import { API_URL } from "@/config/constants";
+import { API_URL, SOCKET_IO_URL } from "@/config/constants";
 import { toast } from "react-hot-toast";
 import {
     saveConfiguration,
@@ -25,12 +25,10 @@ import {
     ArrowDownTrayIcon,
     PencilIcon,
     XMarkIcon,
-    BoltIcon,
-    CheckCircleIcon,
     InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 
-const WEBSOCKET_URL = API_URL;
+const WEBSOCKET_URL = SOCKET_IO_URL;
 
 const AutoBuildPCContent: React.FC = () => {
     useEffect(() => {
@@ -52,12 +50,15 @@ const AutoBuildPCContent: React.FC = () => {
     );
 
     useEffect(() => {
-        const socket = io(WEBSOCKET_URL);
+        const socket = io(WEBSOCKET_URL, {
+            path: "/socket.io",
+            transports: ["websocket", "polling"],
+        });
         socket.on("connect", () => {
             // Subscribe with userId
             socket.emit("subscribeAutoBuild", { userId });
         });
-        socket.on("autoBuildSubscribed", (data: any) => {});
+        socket.on("autoBuildSubscribed", (data: any) => { });
         socket.on("pcConfigFormed", (config: any) => {
             setPcConfigs((prevConfigs) => [...prevConfigs, config]);
         });
@@ -516,17 +517,17 @@ const AutoBuildPCContent: React.FC = () => {
                                                 ) === 0
                                                     ? "N/A"
                                                     : Object.values(config)
-                                                          .reduce(
-                                                              (
-                                                                  acc: number,
-                                                                  part: any,
-                                                              ) =>
-                                                                  acc +
-                                                                  (part.benchmarkScore ||
-                                                                      0),
-                                                              0,
-                                                          )
-                                                          .toFixed(1)}
+                                                        .reduce(
+                                                            (
+                                                                acc: number,
+                                                                part: any,
+                                                            ) =>
+                                                                acc +
+                                                                (part.benchmarkScore ||
+                                                                    0),
+                                                            0,
+                                                        )
+                                                        .toFixed(1)}
                                             </span>
                                         </div>
                                     </div>
@@ -654,17 +655,17 @@ const AutoBuildPCContent: React.FC = () => {
                                         ) === 0
                                             ? "N/A"
                                             : Object.values(selectedConfig)
-                                                  .reduce(
-                                                      (
-                                                          acc: number,
-                                                          part: any,
-                                                      ) =>
-                                                          acc +
-                                                          (part.benchmarkScore ||
-                                                              0),
-                                                      0,
-                                                  )
-                                                  .toFixed(1)}
+                                                .reduce(
+                                                    (
+                                                        acc: number,
+                                                        part: any,
+                                                    ) =>
+                                                        acc +
+                                                        (part.benchmarkScore ||
+                                                            0),
+                                                    0,
+                                                )
+                                                .toFixed(1)}
                                     </span>
                                 </div>
 
