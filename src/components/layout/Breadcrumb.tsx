@@ -1,10 +1,7 @@
 import React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-import house from "@/assets/icon/others/House.svg";
-import caretRight from "@/assets/icon/others/CaretRight.svg";
+import { HomeIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 
 // Define a mapping of path segments to readable names
 const pathNameMap: { [key: string]: string } = {
@@ -58,11 +55,7 @@ const Breadcrumb: React.FC = () => {
                     aria-label="Breadcrumb"
                 >
                     <div className="flex gap-2 justify-center items-center">
-                        <Image
-                            src={house}
-                            alt=""
-                            className="object-contain shrink-0 self-stretch my-auto w-5 aspect-square"
-                        />
+                        <HomeIcon className="object-contain shrink-0 self-stretch my-auto w-5 aspect-square text-gray-500" />
                         <Link
                             href="/"
                             className="self-stretch my-auto text-gray-500 hover:text-gray-700"
@@ -72,11 +65,7 @@ const Breadcrumb: React.FC = () => {
 
                         {breadcrumbItems.map((item, index) => (
                             <React.Fragment key={item.path}>
-                                <Image
-                                    src={caretRight}
-                                    alt=""
-                                    className="object-contain shrink-0 self-stretch my-auto w-5 aspect-square"
-                                />
+                                <ChevronRightIcon className="object-contain shrink-0 self-stretch my-auto w-5 aspect-square text-gray-400" />
                                 {index === breadcrumbItems.length - 1 ? (
                                     <span className="self-stretch my-auto font-medium text-secondary hover:text-primary">
                                         {item.name}
